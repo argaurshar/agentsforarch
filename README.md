@@ -4,6 +4,10 @@ A single-page tool for AND Studio's architects and interior designers: turn
 sketches and models into renders, elevations, axonometric views, and client
 concept presentations.
 
+**▶ Live demo:** https://argaurshar.github.io/agentsforarch/ — runs in your
+browser on the built-in mock engine (no key needed); add a Google Gemini key in
+Settings to generate real images with Nano Banana Pro.
+
 Built to the internal build spec (`build.mb`).
 
 ## Quick start

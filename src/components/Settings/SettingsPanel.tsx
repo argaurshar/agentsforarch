@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { DEFAULT_MODEL } from '../../providers/runtimeConfig';
 import { useProjectStore } from '../../store/useProjectStore';
 import { Button } from '../ui/Button';
+import { Select } from '../ui/Select';
 
 interface SettingsPanelProps {
   open: boolean;
@@ -13,12 +14,14 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
   const apiKey = useProjectStore((s) => s.apiKey);
   const model = useProjectStore((s) => s.model);
   const rememberKey = useProjectStore((s) => s.rememberKey);
+  const forceMock = useProjectStore((s) => s.forceMock);
   const providerName = useProjectStore((s) => s.providerName);
   const setApiConfig = useProjectStore((s) => s.setApiConfig);
 
   const [keyDraft, setKeyDraft] = useState(apiKey ?? '');
   const [modelDraft, setModelDraft] = useState(model);
   const [remember, setRemember] = useState(rememberKey);
+  const [engine, setEngine] = useState<'auto' | 'mock'>(forceMock ? 'mock' : 'auto');
   const [reveal, setReveal] = useState(false);
   const [saved, setSaved] = useState(false);
 
@@ -28,22 +31,33 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
       setKeyDraft(apiKey ?? '');
       setModelDraft(model);
       setRemember(rememberKey);
+      setEngine(forceMock ? 'mock' : 'auto');
       setSaved(false);
     }
-  }, [open, apiKey, model, rememberKey]);
+  }, [open, apiKey, model, rememberKey, forceMock]);
 
   if (!open) return null;
 
   const active = providerName === 'Nano Banana Pro';
 
   const apply = () => {
-    setApiConfig({ key: keyDraft.trim() || undefined, model: modelDraft.trim() || DEFAULT_MODEL, remember });
+    setApiConfig({
+      key: keyDraft.trim() || undefined,
+      model: modelDraft.trim() || DEFAULT_MODEL,
+      remember,
+      forceMock: engine === 'mock',
+    });
     setSaved(true);
   };
 
   const clear = () => {
     setKeyDraft('');
-    setApiConfig({ key: undefined, model: modelDraft.trim() || DEFAULT_MODEL, remember: false });
+    setApiConfig({
+      key: undefined,
+      model: modelDraft.trim() || DEFAULT_MODEL,
+      remember: false,
+      forceMock: engine === 'mock',
+    });
     setSaved(false);
   };
 
@@ -77,6 +91,20 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
             <span className="text-sm text-graphite">Active engine</span>
             <span className="mono-meta text-ochre">{providerName}</span>
           </div>
+
+          {/* Engine selector — force the mock even when a key is saved. */}
+          <Select
+            label="Engine"
+            value={engine}
+            options={[
+              { value: 'auto', label: 'Auto — Nano Banana Pro when a key is set' },
+              { value: 'mock', label: 'Mock engine (always)' },
+            ]}
+            onChange={(v) => {
+              setEngine(v === 'mock' ? 'mock' : 'auto');
+              setSaved(false);
+            }}
+          />
 
           <p className="text-sm leading-relaxed text-graphite">
             By default the app runs on a built-in <strong>mock engine</strong> — great for trying the flow with no

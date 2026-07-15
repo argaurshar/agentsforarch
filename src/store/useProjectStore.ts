@@ -36,6 +36,7 @@ interface ApiConfigInput {
   key: string | undefined;
   model?: string;
   remember: boolean;
+  forceMock?: boolean;
 }
 
 interface ProjectState {
@@ -47,6 +48,7 @@ interface ProjectState {
   apiKey: string | undefined;
   model: string;
   rememberKey: boolean;
+  forceMock: boolean;
   setApiConfig: (cfg: ApiConfigInput) => void;
 
   setTab: (tab: TabKey) => void;
@@ -88,12 +90,14 @@ export const useProjectStore = create<ProjectState>((set, get) => {
     apiKey: rc.apiKey,
     model: rc.model,
     rememberKey: rc.remembered,
+    forceMock: rc.forceMock,
     setApiConfig: (cfg) => {
       setGeminiConfig(cfg);
       set({
         apiKey: getGeminiApiKey(),
         model: getGeminiModel(),
         rememberKey: cfg.remember,
+        forceMock: Boolean(cfg.forceMock),
         providerName: getActiveProvider().name,
       });
     },

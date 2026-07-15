@@ -2,6 +2,7 @@ import { FluxProvider } from './flux';
 import { GeminiProvider } from './gemini';
 import { MagnificProvider } from './magnific';
 import { MockProvider } from './mock';
+import { isMockForced } from './runtimeConfig';
 import type { ImageProvider } from './types';
 
 export type {
@@ -25,6 +26,7 @@ const realProviders: ImageProvider[] = [new GeminiProvider(), new MagnificProvid
  * class directly.
  */
 export function getActiveProvider(): ImageProvider {
+  if (isMockForced()) return mockProvider;
   const configured = realProviders.find((p) => p.isConfigured());
   return configured ?? mockProvider;
 }
