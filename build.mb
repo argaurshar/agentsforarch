@@ -1,0 +1,380 @@
+# AND Studio — Internal Visualization Platform
+## Build specification for Claude Code
+
+**Read this entire document before writing any code.**
+
+You are building a single-page web application for AND Studio, an architecture practice. Their architects and interior designers will use it to turn sketches and models into renders, elevations, axonometric views, and client concept presentations.
+
+This spec is the source of truth. If something is not specified here, ask before inventing it.
+
+---
+
+## 0. Ground rules
+
+- **Do not invent features.** Four features are specified. Build exactly those four.
+- **Do not hardcode any AI provider.** All image generation goes through the adapter interface in §5. A working mock provider is required so the app runs end-to-end with zero API keys.
+- **Do not add authentication** in this build. It is a single-studio internal tool. Leave a clear seam for it later (§9).
+- **Do not use browser localStorage or sessionStorage** for app state. Use in-memory state plus the storage adapter (§6).
+- **Ask before adding any dependency** not listed in §2.
+- Build incrementally in the phase order in §10. Do not skip ahead.
+
+---
+
+## 1. What the app does
+
+The studio uploads an input image, picks one of four features, and gets a generated output. Outputs accumulate into a project, and the project can be exported as a client presentation PDF.
+
+The four features chain conceptually — a sketch becomes a render, a render informs an elevation, an elevation becomes an axonometric, and all of them assemble into a presentation — but **each feature must work standalone**.
+
+### Navigation — every tab is always open
+
+**This is a rule, not a preference.** All four features are always accessible from the sidebar. A user clicks any tab, at any time, in any order, and it works.
+
+- **No wizard. No stepper. No linear flow.**
+- **No tab is ever locked, greyed out, or disabled** because a previous step wasn't done.
+- Feature 03 does not require that feature 02 was run first. The user uploads an elevation directly if they have one.
+- Feature 04 (presentation) is reachable at any time. If no images exist yet, show an empty state pointing to the other features — do not disable the tab.
+- Each feature accepts its input by direct upload, independent of what else has happened in the session.
+
+The studio's architects will jump straight to whichever tool they need. Treat the four features as four independent instruments that happen to share a project, not as steps in a pipeline.
+
+### The four features
+
+| # | Feature | Input | Output |
+|---|---------|-------|--------|
+| 01 | Sketch/Plan → Render | A hand sketch or floor plan image | A styled architectural render |
+| 02 | Sketch/Model → Elevation | A sketch or SketchUp model screenshot | An elevation design render |
+| 03 | Elevation → Axonometric | An elevation image | Axonometric + section-axonometric views, multiple viewpoints |
+| 04 | Concept Presentation | Selected outputs from features 01–03 | An arranged presentation, exportable to PDF |
+
+---
+
+## 2. Stack
+
+Use exactly this. Ask before adding anything else.
+
+- **React 18** + **TypeScript** (strict mode on)
+- **Vite** as the build tool
+- **Tailwind CSS** for styling
+- **Zustand** for state management (simple, no boilerplate)
+- **react-dropzone** for file uploads
+- **jspdf** for PDF export
+- **lucide-react** for icons
+
+No component library. Build the UI from scratch per §4 — the visual design is a differentiator for this client and off-the-shelf components will look generic.
+
+---
+
+## 3. Project structure
+
+```
+src/
+  main.tsx
+  App.tsx
+  index.css
+  types/
+    index.ts               # All shared types
+  providers/
+    types.ts               # ImageProvider interface
+    mock.ts                # MockProvider — works with no keys
+    magnific.ts            # Stub, throws "not configured"
+    flux.ts                # Stub, throws "not configured"
+    index.ts               # Provider registry + selection
+  storage/
+    types.ts               # StorageAdapter interface
+    memory.ts              # In-memory implementation
+    index.ts
+  store/
+    useProjectStore.ts     # Zustand store
+  features/
+    render/RenderFeature.tsx
+    elevation/ElevationFeature.tsx
+    axonometric/AxonometricFeature.tsx
+    presentation/PresentationFeature.tsx
+  components/
+    Layout/AppShell.tsx
+    Layout/Sidebar.tsx
+    Upload/ImageDropzone.tsx
+    Output/OutputGrid.tsx
+    Output/OutputCard.tsx
+    Output/ImageCompare.tsx
+    Presentation/SlideCanvas.tsx
+    Presentation/SlideList.tsx
+    ui/Button.tsx
+    ui/Card.tsx
+    ui/Select.tsx
+    ui/Spinner.tsx
+    ui/EmptyState.tsx
+  lib/
+    pdf.ts                 # PDF export
+    images.ts              # Resize, validate, dataURL helpers
+```
+
+---
+
+## 4. Visual design
+
+This client is an architecture studio. The UI must look like a precision design instrument, not a SaaS dashboard. **This matters — do not ship default Tailwind blue-and-gray.**
+
+### Palette (use these exact values as CSS variables)
+
+```css
+--ink:      #0F1729;  /* primary text, headers, dark surfaces */
+--ochre:    #C2410C;  /* THE single accent — CTAs, active states, labels */
+--bone:     #F7F2E8;  /* app background (warm cream, NOT white) */
+--drafting: #EDE6D5;  /* card / sub-surface */
+--paper:    #FCFAF5;  /* clean surface for cards on bone */
+--graphite: #334155;  /* body text */
+--mist:     #94A3B8;  /* captions, metadata */
+--hairline: #D8D1C0;  /* ALL borders and dividers */
+```
+
+### Hard rules
+
+- **One accent only.** Ochre. Never introduce a second accent color.
+- **No rounded corners.** `border-radius: 0` everywhere. This is non-negotiable.
+- **No drop shadows. No gradients. No glassmorphism.** Use 1px hairline borders instead.
+- Background is Bone (`#F7F2E8`), never white.
+- Body text is Graphite, not Ink. Ink is for headings only.
+- Generous whitespace. Let the page breathe.
+
+### Typography
+
+- **Headings:** a serif — load `Fraunces` from Google Fonts. Weight 300–400. Large, confident.
+- **Body/UI:** `Inter`. Weights 400/500/700.
+- **Labels, metadata, timestamps, file names:** `JetBrains Mono`, uppercase, letter-spacing `0.14em`, in Ochre.
+
+### Signature detail
+
+Every section opens with a mono eyebrow label in Ochre, formatted:
+
+```
+01  /  SKETCH TO RENDER
+```
+
+This is the most recognizable element of the studio's identity. Use it consistently.
+
+### Layout
+
+- Persistent left sidebar (feature nav) + main work area.
+- Sidebar: Ink background, Bone text, Ochre for the active item.
+- Main area: Bone background, content in Paper cards with hairline borders.
+- Each feature page: eyebrow → serif heading → hairline rule → upload zone → controls → output grid.
+
+---
+
+## 5. The image provider adapter — CRITICAL
+
+**All generation goes through this interface. No component may call an image API directly.**
+
+```typescript
+// providers/types.ts
+
+export type FeatureKind = 'render' | 'elevation' | 'axonometric';
+
+export interface GenerateRequest {
+  feature: FeatureKind;
+  inputImage: string;        // dataURL
+  prompt?: string;           // optional user styling notes
+  options: {
+    style?: string;          // e.g. 'photoreal' | 'clay' | 'line'
+    viewpoints?: string[];   // axonometric only
+    variations?: number;     // how many outputs, default 1
+  };
+}
+
+export interface GeneratedImage {
+  id: string;
+  url: string;               // dataURL or remote URL
+  label: string;             // e.g. 'Golden hour', 'SE axonometric'
+  createdAt: number;
+}
+
+export interface GenerateResult {
+  images: GeneratedImage[];
+  providerName: string;
+  elapsedMs: number;
+}
+
+export interface ImageProvider {
+  name: string;
+  isConfigured(): boolean;
+  generate(req: GenerateRequest): Promise<GenerateResult>;
+}
+```
+
+### MockProvider — required, must work with zero config
+
+`providers/mock.ts` must:
+- Return `isConfigured() === true` always.
+- Simulate a realistic delay (1.5–3s) so loading states are visible and testable.
+- Return the **input image** back, canvas-processed so the output visibly differs per feature:
+  - `render` → apply a warm color wash + slight blur (suggests a render)
+  - `elevation` → convert to high-contrast grayscale (suggests a line elevation)
+  - `axonometric` → grayscale + a CSS skew transform baked into the canvas (suggests an axon)
+- Respect `options.variations` — return that many images with distinct labels.
+- Label outputs meaningfully (`'Photoreal — variation 1'`, `'NE axonometric'`).
+
+This is what makes the app demo-able immediately. Get it right.
+
+### Real providers — stubs only in this build
+
+`magnific.ts` and `flux.ts` implement the same interface, read their key from `import.meta.env.VITE_MAGNIFIC_KEY` etc., return `isConfigured() === false` when the key is absent, and `throw new Error('Provider not configured')` if `generate` is called while unconfigured.
+
+`providers/index.ts` exports a registry and a `getActiveProvider()` that returns the first configured real provider, else the mock. Show the active provider name in the UI footer.
+
+---
+
+## 6. Storage adapter
+
+Do not use localStorage. Define an interface and ship an in-memory implementation, so a local-disk or cloud implementation can drop in later without touching components.
+
+```typescript
+// storage/types.ts
+export interface StorageAdapter {
+  saveProject(p: Project): Promise<void>;
+  loadProject(id: string): Promise<Project | null>;
+  listProjects(): Promise<ProjectSummary[]>;
+  deleteProject(id: string): Promise<void>;
+}
+```
+
+---
+
+## 7. Data model
+
+```typescript
+// types/index.ts
+
+export interface Project {
+  id: string;
+  name: string;
+  createdAt: number;
+  updatedAt: number;
+  assets: Asset[];
+  slides: Slide[];
+}
+
+export interface Asset {
+  id: string;
+  feature: FeatureKind;
+  inputImage: string;        // dataURL
+  outputs: GeneratedImage[];
+  prompt?: string;
+  createdAt: number;
+}
+
+export interface Slide {
+  id: string;
+  imageIds: string[];        // references GeneratedImage.id
+  layout: 'full' | 'two-up' | 'four-grid';
+  title?: string;
+  caption?: string;
+  order: number;
+}
+```
+
+One project is active at a time. Every generation appends an `Asset`. The presentation feature reads from `assets` and composes `slides`.
+
+---
+
+## 8. Feature behaviour
+
+### Shared pattern (all of 01–03)
+
+1. Eyebrow + heading + hairline rule.
+2. Dropzone (drag-drop or click). Accept PNG/JPG/WEBP, max 10MB. Validate and show a clear inline error on reject.
+3. Show input thumbnail once uploaded, with a "replace" affordance.
+4. Controls (feature-specific, see below) + optional free-text prompt field.
+5. Primary CTA: **Generate** (Ochre, square corners).
+6. While generating: skeleton cards in the output grid + a spinner in the CTA. Never block the whole UI.
+7. Outputs render in a grid. Each card: image, mono label, and actions — download, and "add to presentation".
+8. On error: an inline message with a retry button. Never a raw stack trace.
+
+### 01 · Sketch/Plan → Render
+- Controls: **Style** select (`Photoreal`, `Clay model`, `Line drawing`, `Watercolour`), **Variations** select (1/2/4).
+- Include a before/after compare view (`ImageCompare.tsx`) — a draggable vertical divider over the input vs output. Architects care about fidelity to their sketch; this is a signature moment.
+
+### 02 · Sketch/Model → Elevation
+- Controls: **Elevation type** select (`Front`, `Side`, `Rear`), **Style** select (`Line`, `Rendered`, `Shaded`).
+- Note in the UI: input can be a sketch or a SketchUp screenshot.
+
+### 03 · Elevation → Axonometric
+- Controls: **Viewpoints** — a multi-select of `NE`, `NW`, `SE`, `SW`. Default `NE`.
+- Toggle: **Section axonometric** (on/off). When on, label outputs `'... — section'`.
+- Generate one output per selected viewpoint. If 3 viewpoints are selected, return 3 images with distinct labels.
+
+### 04 · Concept Presentation
+This is the payoff feature. Build it carefully.
+
+- Left panel: all generated images across the project, grouped by feature, each with a checkbox.
+- Centre: slide canvas showing the current slide with its chosen layout.
+- Right panel: slide list (reorderable), plus per-slide layout picker and title/caption fields.
+- Actions: **Add slide**, **Delete slide**, **Reorder** (up/down buttons are fine — do not add a drag library), **Export PDF**.
+- Layouts: `full` (one image), `two-up` (two side by side), `four-grid` (2×2).
+- **Export PDF** (`lib/pdf.ts`): A4 landscape, one slide per page, Bone background, image(s) placed per layout, title in serif and caption in mono, and a footer line: `AND STUDIO  ·  CONCEPT PRESENTATION`. Use jspdf.
+
+---
+
+## 9. Seams to leave open
+
+Do not build these, but do not block them either:
+
+- **Auth:** keep all data access in the store/adapters, never in components, so an auth layer can wrap later.
+- **Local deployment:** no hardcoded remote URLs. All external calls go through providers.
+- **Persistence:** the storage adapter (§6) is the only path to durable data.
+
+---
+
+## 10. Build order — follow exactly
+
+**Phase 1 — Foundation**
+Vite + React + TS + Tailwind. Design tokens as CSS variables. Fonts loaded. `AppShell` + `Sidebar` with four nav items — **all four freely clickable from the start, none disabled**. Empty feature pages with correct eyebrow/heading/rule. **Stop. Show me the shell.**
+
+**Phase 2 — Types and adapters**
+All types (§7). Provider interface + MockProvider fully working. Storage interface + memory adapter. Zustand store. No UI wiring yet.
+
+**Phase 3 — Feature 01**
+Dropzone, controls, generate flow against the mock, output grid, before/after compare, loading and error states. **This is the reference implementation — get it right, then reuse.**
+
+**Phase 4 — Features 02 and 03**
+Same pattern, feature-specific controls. Axonometric must produce one output per viewpoint.
+
+**Phase 5 — Feature 04**
+Image picker, slide canvas, slide list, layouts, reorder.
+
+**Phase 6 — PDF export**
+`lib/pdf.ts`. Verify all three layouts export correctly.
+
+**Phase 7 — Polish**
+Empty states with real guidance. Keyboard focus rings in Ochre. Transitions ≤150ms. Responsive down to 1280px (desktop tool — do not build mobile).
+
+---
+
+## 11. Definition of done
+
+- [ ] `npm install && npm run dev` works with **zero configuration and zero API keys**
+- [ ] All four features work end-to-end against the mock provider
+- [ ] **All four tabs are always clickable — none disabled, locked, or gated behind another feature**
+- [ ] **Feature 03 works from a directly uploaded elevation, without running feature 02 first**
+- [ ] **Feature 04 is reachable with zero generated images and shows a helpful empty state**
+- [ ] No component imports a provider directly — all go through `getActiveProvider()`
+- [ ] No localStorage/sessionStorage anywhere
+- [ ] No rounded corners, no shadows, no gradients, no second accent color
+- [ ] Background is Bone, not white
+- [ ] Every section has a mono Ochre eyebrow
+- [ ] PDF exports correctly for all three layouts
+- [ ] TypeScript strict passes, no `any`
+- [ ] Loading and error states exist on every async action
+
+---
+
+## 12. Open questions — ask me, do not guess
+
+1. **Feature 03 label.** The client referred to this as "Ergonomical Perception," but the feature produces axonometric and section-axonometric views. The spec uses "Axonometric" because that is what architects call it and what the output is. Confirm the label before it ships — "Ergonomical Perception" would lead users to expect ergonomic analysis (circulation, human scale, furniture fit), which this feature does not do.
+2. **Real model wiring.** Stubs only here. Which provider goes live first, and do you have keys?
+3. **Deployment target.** Cloud vs local is unconfirmed with the client. Built cloud-ready with swappable storage — confirm before it hardens.
+4. **Presentation branding.** PDF export currently carries a plain AND Studio footer. Should it use the studio's actual brand assets?
+5. **Multi-project.** The model supports many projects but the UI assumes one active. Do they need a project switcher now?
+
+Ask about these rather than inventing answers.
