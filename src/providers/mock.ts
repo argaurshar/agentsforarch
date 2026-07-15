@@ -1,4 +1,5 @@
 import { loadImage, newId } from '../lib/images';
+import { outputLabels } from './labels';
 import type { GeneratedImage, GenerateRequest, GenerateResult, ImageProvider } from './types';
 
 // The MockProvider (spec §5). Works with ZERO configuration so the whole app
@@ -7,22 +8,6 @@ import type { GeneratedImage, GenerateRequest, GenerateResult, ImageProvider } f
 
 const MIN_DELAY_MS = 1500;
 const MAX_DELAY_MS = 3000;
-
-const STYLE_LABELS: Record<string, string> = {
-  photoreal: 'Photoreal',
-  clay: 'Clay model',
-  line: 'Line drawing',
-  watercolour: 'Watercolour',
-  rendered: 'Rendered',
-  shaded: 'Shaded',
-  standard: 'Axonometric',
-  section: 'Section axonometric',
-};
-
-function prettyStyle(style: string | undefined, fallback: string): string {
-  if (!style) return fallback;
-  return STYLE_LABELS[style] ?? style.charAt(0).toUpperCase() + style.slice(1);
-}
 
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => {
@@ -188,38 +173,24 @@ export class MockProvider implements ImageProvider {
 
     const images: GeneratedImage[] = [];
     const createdAt = Date.now();
+    const labels = outputLabels(req); // shared with the real providers
 
     if (req.feature === 'axonometric') {
       const viewpoints = req.options.viewpoints?.length ? req.options.viewpoints : ['NE'];
       const section = req.options.style === 'section';
-      for (const vp of viewpoints) {
-        const url = await axonTransform(req.inputImage, section, vp);
-        images.push({
-          id: newId('img'),
-          url,
-          label: `${vp} axonometric${section ? ' — section' : ''}`,
-          createdAt,
-        });
+      for (let i = 0; i < viewpoints.length; i += 1) {
+        const url = await axonTransform(req.inputImage, section, viewpoints[i]);
+        images.push({ id: newId('img'), url, label: labels[i], createdAt });
       }
     } else if (req.feature === 'elevation') {
-      // The selected elevation face (Front/Side/Rear) rides in `viewpoints`.
-      const face = req.options.viewpoints?.[0];
-      const styleLabel = prettyStyle(req.options.style, 'Rendered');
-      const label = face ? `${face} elevation — ${styleLabel}` : `${styleLabel} elevation`;
       const url = await elevationTransform(req.inputImage, req.options.style);
-      images.push({ id: newId('img'), url, label, createdAt });
+      images.push({ id: newId('img'), url, label: labels[0], createdAt });
     } else {
       // render
       const variations = Math.max(1, req.options.variations ?? 1);
-      const styleLabel = prettyStyle(req.options.style, 'Render');
       for (let i = 0; i < variations; i += 1) {
         const url = await renderTransform(req.inputImage, i, req.options.style);
-        images.push({
-          id: newId('img'),
-          url,
-          label: `${styleLabel} — variation ${i + 1}`,
-          createdAt,
-        });
+        images.push({ id: newId('img'), url, label: labels[i], createdAt });
       }
     }
 

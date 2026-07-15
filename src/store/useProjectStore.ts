@@ -1,6 +1,12 @@
 import { create } from 'zustand';
 import { newId } from '../lib/images';
 import { getActiveProvider } from '../providers';
+import {
+  getGeminiApiKey,
+  getGeminiModel,
+  initRuntimeConfig,
+  setGeminiConfig,
+} from '../providers/runtimeConfig';
 import { storage } from '../storage';
 import type { Asset, FeatureKind, GeneratedImage, Project, Slide, SlideLayout, TabKey } from '../types';
 
@@ -26,10 +32,22 @@ interface AddAssetInput {
   prompt?: string;
 }
 
+interface ApiConfigInput {
+  key: string | undefined;
+  model?: string;
+  remember: boolean;
+}
+
 interface ProjectState {
   project: Project;
   tab: TabKey;
   providerName: string;
+
+  // Image-generation credentials (Nano Banana Pro), supplied from the frontend.
+  apiKey: string | undefined;
+  model: string;
+  rememberKey: boolean;
+  setApiConfig: (cfg: ApiConfigInput) => void;
 
   setTab: (tab: TabKey) => void;
   renameProject: (name: string) => void;
@@ -60,11 +78,25 @@ function touch(project: Project): Project {
 export const useProjectStore = create<ProjectState>((set, get) => {
   const initial = createEmptyProject();
   persist(initial);
+  const rc = initRuntimeConfig();
 
   return {
     project: initial,
     tab: 'render',
     providerName: getActiveProvider().name,
+
+    apiKey: rc.apiKey,
+    model: rc.model,
+    rememberKey: rc.remembered,
+    setApiConfig: (cfg) => {
+      setGeminiConfig(cfg);
+      set({
+        apiKey: getGeminiApiKey(),
+        model: getGeminiModel(),
+        rememberKey: cfg.remember,
+        providerName: getActiveProvider().name,
+      });
+    },
 
     setTab: (tab) => set({ tab }),
 
