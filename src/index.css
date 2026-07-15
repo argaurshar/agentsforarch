@@ -1,0 +1,96 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ------------------------------------------------------------------ */
+/* Design tokens — the single source of truth for the palette (spec §4) */
+/* ------------------------------------------------------------------ */
+:root {
+  --ink: #0f1729; /* primary text, headers, dark surfaces */
+  --ochre: #c2410c; /* THE single accent — CTAs, active states, labels */
+  --bone: #f7f2e8; /* app background (warm cream, NOT white) */
+  --drafting: #ede6d5; /* card / sub-surface */
+  --paper: #fcfaf5; /* clean surface for cards on bone */
+  --graphite: #334155; /* body text */
+  --mist: #94a3b8; /* captions, metadata */
+  --hairline: #d8d1c0; /* ALL borders and dividers */
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    background-color: var(--bone);
+    color: var(--graphite);
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-weight: 400;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Ink is for headings only. Body text is Graphite. */
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: 'Fraunces', Georgia, Cambria, serif;
+    color: var(--ink);
+    font-weight: 400;
+    line-height: 1.05;
+  }
+
+  /* Keyboard focus rings in Ochre (spec §10 — polish). */
+  :focus-visible {
+    outline: 2px solid var(--ochre);
+    outline-offset: 2px;
+  }
+
+  /* Selection uses the single accent, never a second colour. */
+  ::selection {
+    background: var(--ochre);
+    color: var(--bone);
+  }
+}
+
+@layer components {
+  /* Signature detail (spec §4): mono eyebrow label, e.g. "01  /  SKETCH TO RENDER". */
+  .eyebrow {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--ochre);
+    font-size: 0.75rem;
+    font-weight: 500;
+  }
+
+  /* Mono metadata / filenames / timestamps. */
+  .mono-meta {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--ochre);
+    font-size: 0.6875rem;
+  }
+}
+
+/* Keep transitions short (spec §10: ≤150ms). */
+* {
+  transition-duration: 150ms;
+}
+
+/* Custom hairline scrollbars for the drafting-instrument feel. */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bone);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--hairline);
+  border: 2px solid var(--bone);
+}
