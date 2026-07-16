@@ -18,7 +18,7 @@ const base =
 
 const variants: Record<Variant, string> = {
   // The single accent — Ochre — square corners, no shadow.
-  primary: 'bg-ochre text-bone border-ochre hover:bg-[#a8380b] hover:border-[#a8380b]',
+  primary: 'bg-ochre text-bone border-ochre hover:bg-ochre-deep hover:border-ochre-deep',
   secondary: 'bg-paper text-ink border-hairline hover:bg-drafting',
   ghost: 'bg-transparent text-graphite border-transparent hover:bg-drafting',
   danger: 'bg-transparent text-ochre border-hairline hover:bg-drafting',

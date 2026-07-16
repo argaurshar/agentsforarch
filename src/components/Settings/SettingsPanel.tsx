@@ -3,7 +3,6 @@ import { useEffect, useState } from 'react';
 import { DEFAULT_MODEL } from '../../providers/runtimeConfig';
 import { useProjectStore } from '../../store/useProjectStore';
 import { Button } from '../ui/Button';
-import { Select } from '../ui/Select';
 
 interface SettingsPanelProps {
   open: boolean;
@@ -14,7 +13,7 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
   const apiKey = useProjectStore((s) => s.apiKey);
   const model = useProjectStore((s) => s.model);
   const rememberKey = useProjectStore((s) => s.rememberKey);
-  const forceMock = useProjectStore((s) => s.forceMock);
+  const engineReady = useProjectStore((s) => s.engineReady);
   const claudeApiKey = useProjectStore((s) => s.claudeApiKey);
   const providerName = useProjectStore((s) => s.providerName);
   const setApiConfig = useProjectStore((s) => s.setApiConfig);
@@ -23,7 +22,6 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
   const [modelDraft, setModelDraft] = useState(model);
   const [claudeDraft, setClaudeDraft] = useState(claudeApiKey ?? '');
   const [remember, setRemember] = useState(rememberKey);
-  const [engine, setEngine] = useState<'auto' | 'mock'>(forceMock ? 'mock' : 'auto');
   const [reveal, setReveal] = useState(false);
   const [claudeReveal, setClaudeReveal] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -35,21 +33,19 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
       setModelDraft(model);
       setClaudeDraft(claudeApiKey ?? '');
       setRemember(rememberKey);
-      setEngine(forceMock ? 'mock' : 'auto');
       setSaved(false);
     }
-  }, [open, apiKey, model, claudeApiKey, rememberKey, forceMock]);
+  }, [open, apiKey, model, claudeApiKey, rememberKey]);
 
   if (!open) return null;
 
-  const active = providerName === 'Nano Banana Pro';
+  const active = engineReady;
 
   const apply = () => {
     setApiConfig({
       key: keyDraft.trim() || undefined,
       model: modelDraft.trim() || DEFAULT_MODEL,
       remember,
-      forceMock: engine === 'mock',
       claudeKey: claudeDraft.trim() || undefined,
     });
     setSaved(true);
@@ -62,7 +58,6 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
       key: undefined,
       model: modelDraft.trim() || DEFAULT_MODEL,
       remember: false,
-      forceMock: engine === 'mock',
       claudeKey: undefined,
     });
     setSaved(false);
@@ -74,13 +69,13 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
       <aside
         role="dialog"
         aria-modal="true"
-        aria-label="Image generation settings"
+        aria-label="API keys"
         className="relative flex h-full w-full max-w-md flex-col overflow-y-auto border-l border-hairline bg-bone"
       >
         <div className="flex items-center justify-between border-b border-hairline px-6 py-4">
           <div className="flex items-center gap-2">
             <KeyRound size={16} strokeWidth={1.75} className="text-ochre" />
-            <p className="eyebrow">Image Generation</p>
+            <p className="eyebrow">API Keys</p>
           </div>
           <button
             type="button"
@@ -93,30 +88,18 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
         </div>
 
         <div className="flex flex-col gap-6 px-6 py-6">
+          <p className="eyebrow -mb-2">Image Generation</p>
+
           {/* Current status */}
           <div className="flex items-center justify-between border border-hairline bg-paper px-4 py-3">
             <span className="text-sm text-graphite">Active engine</span>
-            <span className="mono-meta text-ochre">{providerName}</span>
+            <span className={`mono-meta ${active ? 'text-ochre' : 'text-mist'}`}>{providerName}</span>
           </div>
 
-          {/* Engine selector — force the mock even when a key is saved. */}
-          <Select
-            label="Engine"
-            value={engine}
-            options={[
-              { value: 'auto', label: 'Auto — Nano Banana Pro when a key is set' },
-              { value: 'mock', label: 'Mock engine (always)' },
-            ]}
-            onChange={(v) => {
-              setEngine(v === 'mock' ? 'mock' : 'auto');
-              setSaved(false);
-            }}
-          />
-
           <p className="text-sm leading-relaxed text-graphite">
-            By default the app runs on a built-in <strong>mock engine</strong> — great for trying the flow with no
-            key. To generate real images, add your Google&nbsp;Gemini API key to switch on{' '}
-            <strong>Nano&nbsp;Banana&nbsp;Pro</strong>.
+            This app generates <strong>real images</strong> with your Google&nbsp;Gemini API key via{' '}
+            <strong>Nano&nbsp;Banana&nbsp;Pro</strong>. Add your key below to start — it&apos;s free to get and stays
+            in your browser.
           </p>
 
           {/* Key input */}
@@ -151,7 +134,7 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
               href="https://aistudio.google.com/apikey"
               target="_blank"
               rel="noreferrer noopener"
-              className="w-fit text-xs text-ochre underline underline-offset-2 hover:text-[#a8380b]"
+              className="w-fit text-xs text-ochre underline underline-offset-2 hover:text-ochre-deep"
             >
               Get a free key from Google AI Studio →
             </a>
@@ -212,7 +195,7 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
               href="https://console.anthropic.com/settings/keys"
               target="_blank"
               rel="noreferrer noopener"
-              className="w-fit text-xs text-ochre underline underline-offset-2 hover:text-[#a8380b]"
+              className="w-fit text-xs text-ochre underline underline-offset-2 hover:text-ochre-deep"
             >
               Get a key from the Anthropic Console →
             </a>
@@ -224,7 +207,7 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
               type="checkbox"
               checked={remember}
               onChange={(e) => setRemember(e.target.checked)}
-              className="mt-0.5 h-4 w-4 shrink-0 accent-[#c2410c]"
+              className="mt-0.5 h-4 w-4 shrink-0 accent-ochre"
             />
             <span className="text-sm text-graphite">
               Remember on this device
@@ -250,7 +233,7 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
           <p className="border-t border-hairline pt-4 text-xs leading-relaxed text-mist">
             {active
               ? 'Nano Banana Pro is active. Generations call Google directly from your browser using your key.'
-              : 'No image key set — using the mock engine.'}{' '}
+              : 'No image key set yet — add one above to start generating.'}{' '}
             Because this is a static app with no server, all requests go straight from your browser to Google / Anthropic.
             Your keys are never sent anywhere else, but a browser CORS block or an invalid key will surface as an inline
             error.

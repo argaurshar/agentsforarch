@@ -11,6 +11,7 @@ interface UseGenerateResult {
   error: string | null;
   outputs: GeneratedImage[];
   inputUsed: string | null;
+  engineReady: boolean; // whether an image key is configured
   run: (req: GenerateRequest) => Promise<void>;
   reset: () => void;
 }
@@ -18,11 +19,13 @@ interface UseGenerateResult {
 /**
  * The shared generate flow (spec §8, shared pattern). Resolves the active
  * provider via `getActiveProvider()` — features never import a provider — and
- * appends an Asset to the project on success. Loading and error states are the
- * caller's to render.
+ * appends an Asset to the project on success. When no image key is configured
+ * the provider is `null`, and the flow surfaces a clear prompt to add one.
+ * Loading and error states are the caller's to render.
  */
 export function useGenerate(): UseGenerateResult {
   const addAsset = useProjectStore((s) => s.addAsset);
+  const engineReady = useProjectStore((s) => s.engineReady);
   const [status, setStatus] = useState<GenerateStatus>('idle');
   const [error, setError] = useState<string | null>(null);
   const [outputs, setOutputs] = useState<GeneratedImage[]>([]);
@@ -30,10 +33,15 @@ export function useGenerate(): UseGenerateResult {
 
   const run = useCallback(
     async (req: GenerateRequest) => {
+      const provider = getActiveProvider();
+      if (!provider) {
+        setError('Add your Gemini API key in Settings (top-right) to generate images.');
+        setStatus('error');
+        return;
+      }
       setStatus('loading');
       setError(null);
       try {
-        const provider = getActiveProvider();
         const result = await provider.generate(req);
         addAsset({
           feature: req.feature,
@@ -59,7 +67,7 @@ export function useGenerate(): UseGenerateResult {
     setInputUsed(null);
   }, []);
 
-  return { status, error, outputs, inputUsed, run, reset };
+  return { status, error, outputs, inputUsed, engineReady, run, reset };
 }
 
 interface UsePresentationAdderResult {

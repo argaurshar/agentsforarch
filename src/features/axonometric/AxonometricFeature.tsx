@@ -25,7 +25,7 @@ export function AxonometricFeature() {
     if (!promptEdited) setPrompt(suggestedPrompt);
   }, [suggestedPrompt, promptEdited]);
 
-  const { status, error, outputs, run } = useGenerate();
+  const { status, error, outputs, engineReady, run } = useGenerate();
   const { addToPresentation, addedIds } = usePresentationAdder();
 
   const loading = status === 'loading';
@@ -130,7 +130,7 @@ export function AxonometricFeature() {
                     setPrompt(suggestedPrompt);
                     setPromptEdited(false);
                   }}
-                  className="flex items-center gap-1 text-[0.7rem] text-ochre hover:text-[#a8380b] focus-visible:outline-ochre"
+                  className="flex items-center gap-1 text-[0.7rem] text-ochre hover:text-ochre-deep focus-visible:outline-ochre"
                 >
                   <RotateCcw size={12} strokeWidth={1.75} /> Reset
                 </button>
@@ -162,6 +162,8 @@ export function AxonometricFeature() {
               <span className="text-xs text-mist">Upload an elevation to begin.</span>
             ) : orderedSelection.length === 0 ? (
               <span className="text-xs text-mist">Select at least one viewpoint.</span>
+            ) : !engineReady ? (
+              <span className="text-xs text-ochre">Add your Gemini key in Settings to generate.</span>
             ) : null}
           </div>
         </div>

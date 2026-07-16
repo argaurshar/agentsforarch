@@ -71,7 +71,7 @@ export function loadImage(src: string): Promise<HTMLImageElement> {
 /**
  * Downscale a dataURL so its longest edge is at most `maxEdge`, returning a
  * JPEG dataURL. Images already within bounds are returned unchanged. Keeps
- * canvas work in the mock provider bounded and keeps in-memory state light.
+ * uploaded/generated images bounded and in-memory state light.
  */
 export async function resizeDataURL(dataURL: string, maxEdge = 1600): Promise<string> {
   const img = await loadImage(dataURL);

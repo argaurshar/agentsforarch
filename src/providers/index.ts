@@ -1,8 +1,6 @@
 import { FluxProvider } from './flux';
 import { GeminiProvider } from './gemini';
 import { MagnificProvider } from './magnific';
-import { MockProvider } from './mock';
-import { isMockForced } from './runtimeConfig';
 import type { ImageProvider } from './types';
 
 export type {
@@ -13,25 +11,32 @@ export type {
   ImageProvider,
 } from './types';
 
-// The mock is always available so the app runs end-to-end with zero keys.
-const mockProvider = new MockProvider();
-
-// Real providers, in priority order. Nano Banana Pro activates once the user
-// adds their key in Settings; Magnific/Flux remain env-keyed stubs.
+// Real image providers, in priority order. Nano Banana Pro activates once the
+// user adds their Gemini key in Settings; Magnific/Flux remain env-keyed seams.
+// There is no demo/placeholder engine — the app generates real images only, so
+// a provider is available only when a key is configured.
 const realProviders: ImageProvider[] = [new GeminiProvider(), new MagnificProvider(), new FluxProvider()];
 
 /**
- * Returns the first configured real provider, else the mock (spec §5). This is
- * the ONLY way components obtain a provider — no component imports a provider
- * class directly.
+ * The first configured real provider, or `null` when no key is set. This is the
+ * ONLY way components obtain a provider — no component imports a provider class
+ * directly. Callers must handle `null` by prompting the user to add a key.
  */
-export function getActiveProvider(): ImageProvider {
-  if (isMockForced()) return mockProvider;
-  const configured = realProviders.find((p) => p.isConfigured());
-  return configured ?? mockProvider;
+export function getActiveProvider(): ImageProvider | null {
+  return realProviders.find((p) => p.isConfigured()) ?? null;
 }
 
-/** All known providers, for diagnostics / a future settings surface. */
+/** Whether a real image engine is configured and ready to generate. */
+export function isImageEngineReady(): boolean {
+  return realProviders.some((p) => p.isConfigured());
+}
+
+/** Display name of the active engine, or a "not connected" label. */
+export function activeProviderName(): string {
+  return getActiveProvider()?.name ?? 'Not connected';
+}
+
+/** All known real providers, for diagnostics / a future settings surface. */
 export function listProviders(): ImageProvider[] {
-  return [...realProviders, mockProvider];
+  return [...realProviders];
 }

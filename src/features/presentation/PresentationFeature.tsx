@@ -1,6 +1,7 @@
-import { FileDown, ImagePlus, Images, LayoutGrid, Plus, Sparkles } from 'lucide-react';
+import { FileDown, ImagePlus, Images, LayoutGrid, Plus, Sparkles, Wand2 } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
 import { BrandPanel } from '../../components/Presentation/BrandPanel';
+import { DeckGenerator } from '../../components/Presentation/DeckGenerator';
 import { SlideCanvas } from '../../components/Presentation/SlideCanvas';
 import { SlideList } from '../../components/Presentation/SlideList';
 import { Button } from '../../components/ui/Button';
@@ -48,6 +49,7 @@ export function PresentationFeature() {
     return seen;
   }, [pool]);
 
+  const [mode, setMode] = useState<'ai' | 'manual'>('ai');
   const [checked, setChecked] = useState<Set<string>>(new Set());
   const [selectedSlideId, setSelectedSlideId] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
@@ -156,29 +158,61 @@ export function PresentationFeature() {
         index="04"
         eyebrow="Concept Presentation"
         title="Concept Presentation"
-        description="Assemble outputs into an arranged, on-brand presentation — compose it with Claude, then export to PDF."
+        description="Generate a distinctive, self-contained HTML deck with Claude — or arrange outputs into an on-brand storyboard and export to PDF."
         actions={
-          <Button
-            variant="primary"
-            icon={<FileDown size={16} strokeWidth={1.75} />}
-            onClick={handleExport}
-            loading={exporting}
-            disabled={orderedSlides.length === 0}
-          >
-            {exporting ? 'Exporting…' : 'Export PDF'}
-          </Button>
+          mode === 'manual' ? (
+            <Button
+              variant="primary"
+              icon={<FileDown size={16} strokeWidth={1.75} />}
+              onClick={handleExport}
+              loading={exporting}
+              disabled={orderedSlides.length === 0}
+            >
+              {exporting ? 'Exporting…' : 'Export PDF'}
+            </Button>
+          ) : undefined
         }
       />
 
+      {/* Mode toggle — AI deck (frontend-slides skill) vs. manual storyboard. */}
+      <div className="mb-6 inline-flex border border-hairline bg-paper" role="tablist" aria-label="Presentation mode">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={mode === 'ai'}
+          onClick={() => setMode('ai')}
+          className={`flex items-center gap-2 px-4 py-2 text-sm transition-colors focus-visible:outline-ochre ${
+            mode === 'ai' ? 'bg-ochre text-bone' : 'text-graphite hover:bg-drafting'
+          }`}
+        >
+          <Wand2 size={15} strokeWidth={1.75} /> AI deck
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={mode === 'manual'}
+          onClick={() => setMode('manual')}
+          className={`flex items-center gap-2 border-l border-hairline px-4 py-2 text-sm transition-colors focus-visible:outline-ochre ${
+            mode === 'manual' ? 'bg-ochre text-bone' : 'text-graphite hover:bg-drafting'
+          }`}
+        >
+          <LayoutGrid size={15} strokeWidth={1.75} /> Manual storyboard
+        </button>
+      </div>
+
       <BrandPanel />
 
-      {pdfError ? (
-        <div className="mb-6">
-          <ErrorBanner message={pdfError} onRetry={handleExport} />
-        </div>
-      ) : null}
+      {mode === 'ai' ? <DeckGenerator /> : null}
 
-      {!hasImages ? (
+      {mode === 'manual' ? (
+        <>
+          {pdfError ? (
+            <div className="mb-6">
+              <ErrorBanner message={pdfError} onRetry={handleExport} />
+            </div>
+          ) : null}
+
+          {!hasImages ? (
         <EmptyState
           icon={Images}
           title="No images yet"
@@ -379,7 +413,9 @@ export function PresentationFeature() {
             ) : null}
           </aside>
         </div>
-      )}
+          )}
+        </>
+      ) : null}
 
       {/* Shared hidden upload input (used by both the empty state and the picker). */}
       <input

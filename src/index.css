@@ -6,14 +6,18 @@
 /* Design tokens — the single source of truth for the palette (spec §4) */
 /* ------------------------------------------------------------------ */
 :root {
-  --ink: #0f1729; /* primary text, headers, dark surfaces */
-  --ochre: #c2410c; /* THE single accent — CTAs, active states, labels */
-  --bone: #f7f2e8; /* app background (warm cream, NOT white) */
-  --drafting: #ede6d5; /* card / sub-surface */
-  --paper: #fcfaf5; /* clean surface for cards on bone */
-  --graphite: #334155; /* body text */
-  --mist: #94a3b8; /* captions, metadata */
-  --hairline: #d8d1c0; /* ALL borders and dividers */
+  /* AND Studio brand palette (from andstudio.in): warm ivory, charcoal-black,
+     antique brass. App chrome only — the per-deck presentation Brand default is
+     kept separate (see the store's makeDefaultBrand). */
+  --ink: #1c1815; /* warm charcoal-black — sidebar, headings, dark surfaces */
+  --ochre: #86662e; /* THE single accent — antique brass/bronze */
+  --ochre-deep: #6d5325; /* accent hover / pressed */
+  --bone: #f3ede1; /* app background (warm ivory, NOT white) */
+  --drafting: #e7ddca; /* card / sub-surface */
+  --paper: #faf6ed; /* clean surface for cards on bone */
+  --graphite: #3b342b; /* body text (warm dark grey) */
+  --mist: #98907f; /* captions, metadata (warm grey) */
+  --hairline: #d9cfb9; /* ALL borders and dividers (warm) */
 }
 
 @layer base {
@@ -32,15 +36,16 @@
     text-rendering: optimizeLegibility;
   }
 
-  /* Ink is for headings only. Body text is Graphite. */
+  /* Ink is for headings only. Body text is Graphite. Elegant editorial serif
+     matching andstudio.in. */
   h1,
   h2,
   h3,
   h4 {
-    font-family: 'Fraunces', Georgia, Cambria, serif;
+    font-family: 'Cormorant Garamond', Georgia, Cambria, serif;
     color: var(--ink);
-    font-weight: 400;
-    line-height: 1.05;
+    font-weight: 500;
+    line-height: 1.1;
   }
 
   /* Keyboard focus rings in Ochre (spec §10 — polish). */

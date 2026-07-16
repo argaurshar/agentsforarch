@@ -1,5 +1,5 @@
 import { KeyRound, Menu, X } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useProjectStore } from '../../store/useProjectStore';
 import { SettingsPanel } from '../Settings/SettingsPanel';
@@ -13,11 +13,22 @@ export function AppShell({ children }: AppShellProps) {
   const projectName = useProjectStore((s) => s.project.name);
   const renameProject = useProjectStore((s) => s.renameProject);
   const providerName = useProjectStore((s) => s.providerName);
+  const engineReady = useProjectStore((s) => s.engineReady);
+  const claudeApiKey = useProjectStore((s) => s.claudeApiKey);
 
   const [draft, setDraft] = useState(projectName);
   const [editing, setEditing] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+
+  // First-run onboarding: if no keys are configured yet, open Settings once so
+  // a first-time visitor (e.g. a client following the link) is guided to connect
+  // their keys rather than hitting an error on the first Generate.
+  useEffect(() => {
+    if (!engineReady && !claudeApiKey) setSettingsOpen(true);
+    // Run once on mount only.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const commit = () => {
     renameProject(draft);
@@ -95,11 +106,15 @@ export function AppShell({ children }: AppShellProps) {
           <button
             type="button"
             onClick={() => setSettingsOpen(true)}
-            className="flex shrink-0 items-center gap-2 border border-hairline bg-paper px-3 py-1.5 text-graphite hover:bg-drafting focus-visible:outline-ochre"
-            title="Image generation settings"
+            className={`flex shrink-0 items-center gap-2 border bg-paper px-3 py-1.5 hover:bg-drafting focus-visible:outline-ochre ${
+              engineReady ? 'border-hairline text-graphite' : 'border-ochre text-ochre'
+            }`}
+            title={engineReady ? 'API keys' : 'Connect your API key to generate'}
           >
             <KeyRound size={15} strokeWidth={1.75} className="text-ochre" />
-            <span className="mono-meta hidden text-ochre sm:inline">{providerName}</span>
+            <span className={`mono-meta text-ochre ${engineReady ? 'hidden sm:inline' : 'inline'}`}>
+              {engineReady ? providerName : 'Connect key'}
+            </span>
           </button>
         </div>
 
@@ -110,7 +125,7 @@ export function AppShell({ children }: AppShellProps) {
 
         {/* Footer — active engine (spec §5). */}
         <footer className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-t border-hairline bg-bone px-4 py-3 sm:px-6 lg:px-10">
-          <span className="mono-meta hidden text-mist sm:inline">AND Studio · Concept Presentation</span>
+          <span className="mono-meta hidden text-mist sm:inline">AND · Architecture &amp; Design Studio</span>
           <span className="mono-meta text-mist">
             Engine&nbsp;·&nbsp;<span className="text-ochre">{providerName}</span>
           </span>
