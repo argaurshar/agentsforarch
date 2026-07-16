@@ -4,6 +4,10 @@ A single-page tool for AND Studio's architects and interior designers: turn
 sketches and models into renders, elevations, axonometric views, and client
 concept presentations.
 
+**▶ Live demo:** https://argaurshar.github.io/agentsforarch/ — runs in your
+browser on the built-in mock engine (no key needed); add a Google Gemini key in
+Settings to generate real images with Nano Banana Pro.
+
 Built to the internal build spec (`build.mb`).
 
 ## Quick start
@@ -50,32 +54,42 @@ and shows a helpful empty state.
 - **Image providers** (`src/providers/`) sit behind a single `ImageProvider`
   adapter. No component calls an image API directly — they resolve a provider
   via `getActiveProvider()`, which returns the first configured real provider
-  (Magnific / Flux — stubs here) or the always-available mock. The active
-  provider name is shown in the footer.
+  (Nano Banana Pro; then Magnific / Flux stubs) or the always-available mock.
+  The active engine is shown in the top bar and footer.
 - **Storage** (`src/storage/`) is behind a `StorageAdapter` interface with an
-  in-memory implementation. No `localStorage` / `sessionStorage` is used
-  anywhere; a durable adapter can drop in later.
+  in-memory implementation. Project data never touches `localStorage` /
+  `sessionStorage`; the only opt-in use of `localStorage` is remembering the
+  Gemini API key/model (see below).
 - **State** lives in a Zustand store (`src/store/`), the only path to the
   project model — leaving clean seams for auth and persistence.
 
-### Wiring a real provider
+### Prompts are automatic
 
-Copy `.env.example` to `.env` and set a key:
+Every generation feature ships an auto-generated, model-tuned prompt
+(`src/lib/prompts.ts`) that pre-fills the prompt field — users never have to
+write one. The field stays fully editable, with a **Reset** to return to the
+suggestion; changing a control (style, elevation face, section) regenerates the
+suggestion unless you've edited it.
 
-```bash
-# VITE_MAGNIFIC_KEY=...
-# VITE_FLUX_KEY=...
-```
+### Generating real images (Nano Banana Pro)
 
-The app auto-selects the first configured provider. The real providers are
-stubs in this build (they throw until implemented); the mock always works.
+Open **Settings** (the key button, top-right) and paste a Google **Gemini** API
+key to switch the engine from the mock to **Nano Banana Pro** (Gemini 3 Pro
+Image). Optionally "remember on this device". Because this is a static app with
+no backend, your browser calls Google directly with your key — the key never
+goes anywhere else. Get a free key at
+[Google AI Studio](https://aistudio.google.com/apikey).
+
+The Magnific / Flux env-keyed stubs (`.env` → `VITE_MAGNIFIC_KEY`,
+`VITE_FLUX_KEY`) remain as additional adapter seams.
 
 ## Design language
 
 Warm "drafting-instrument" palette (Bone background, Ink, single Ochre accent),
 square corners only, hairline borders instead of shadows, serif headings
 (Fraunces), and a mono Ochre eyebrow (`01  /  SKETCH TO RENDER`) opening every
-section.
+section. Fully responsive — a left rail on desktop collapses to a hamburger
+drawer on mobile.
 
 ## Open questions
 

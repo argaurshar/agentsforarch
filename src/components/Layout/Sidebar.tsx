@@ -20,7 +20,12 @@ const NAV_ITEMS: NavItem[] = [
   { key: 'presentation', index: '04', name: 'Presentation', sub: 'Concept Presentation', icon: LayoutTemplate },
 ];
 
-export function Sidebar() {
+interface SidebarProps {
+  /** Called after a nav item is chosen — used to close the mobile drawer. */
+  onNavigate?: () => void;
+}
+
+export function Sidebar({ onNavigate }: SidebarProps = {}) {
   const tab = useProjectStore((s) => s.tab);
   const setTab = useProjectStore((s) => s.setTab);
 
@@ -45,7 +50,10 @@ export function Sidebar() {
               <button
                 type="button"
                 aria-current={active ? 'page' : undefined}
-                onClick={() => setTab(item.key)}
+                onClick={() => {
+                  setTab(item.key);
+                  onNavigate?.();
+                }}
                 className={`group flex w-full items-center gap-3 border-l-2 px-4 py-3 text-left transition-colors ${
                   active
                     ? 'border-ochre bg-white/[0.06]'

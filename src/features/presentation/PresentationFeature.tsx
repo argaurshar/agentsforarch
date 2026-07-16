@@ -1,25 +1,23 @@
-import { FileDown, Images, LayoutGrid, Plus } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { FileDown, ImagePlus, Images, LayoutGrid, Plus, Sparkles } from 'lucide-react';
+import { useMemo, useRef, useState } from 'react';
+import { BrandPanel } from '../../components/Presentation/BrandPanel';
 import { SlideCanvas } from '../../components/Presentation/SlideCanvas';
 import { SlideList } from '../../components/Presentation/SlideList';
 import { Button } from '../../components/ui/Button';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { ErrorBanner } from '../../components/ui/ErrorBanner';
 import { SectionHeader } from '../../components/ui/SectionHeader';
+import { composeDeck } from '../../lib/composer';
+import type { ComposerImage } from '../../lib/composer';
+import { fileToDataURL, newId, resizeDataURL, validateImageFile } from '../../lib/images';
 import { exportPresentationPdf } from '../../lib/pdf';
-import { imageMapFromAssets, imagesFromAssets, useProjectStore } from '../../store/useProjectStore';
-import type { FeatureKind, SlideLayout } from '../../types';
+import { imageMapFromProject, poolFromProject, useProjectStore } from '../../store/useProjectStore';
+import type { GeneratedImage, SlideLayout } from '../../types';
 
-const FEATURE_GROUPS: { key: FeatureKind; label: string }[] = [
-  { key: 'render', label: 'Renders' },
-  { key: 'elevation', label: 'Elevations' },
-  { key: 'axonometric', label: 'Axonometrics' },
-];
-
-const LAYOUT_OPTIONS: { value: SlideLayout; label: string; capacity: number }[] = [
-  { value: 'full', label: 'Full', capacity: 1 },
-  { value: 'two-up', label: 'Two-up', capacity: 2 },
-  { value: 'four-grid', label: 'Four-grid', capacity: 4 },
+const LAYOUT_OPTIONS: { value: SlideLayout; label: string }[] = [
+  { value: 'full', label: 'Full' },
+  { value: 'two-up', label: 'Two-up' },
+  { value: 'four-grid', label: 'Four-grid' },
 ];
 
 function layoutForCount(count: number): SlideLayout {
@@ -29,25 +27,37 @@ function layoutForCount(count: number): SlideLayout {
 }
 
 export function PresentationFeature() {
-  const assets = useProjectStore((s) => s.project.assets);
-  const slides = useProjectStore((s) => s.project.slides);
-  const projectName = useProjectStore((s) => s.project.name);
+  const project = useProjectStore((s) => s.project);
+  const projectName = project.name;
+  const brand = project.brand;
+  const claudeApiKey = useProjectStore((s) => s.claudeApiKey);
   const addSlide = useProjectStore((s) => s.addSlide);
   const updateSlide = useProjectStore((s) => s.updateSlide);
   const removeSlide = useProjectStore((s) => s.removeSlide);
   const moveSlide = useProjectStore((s) => s.moveSlide);
   const setTab = useProjectStore((s) => s.setTab);
+  const setComposedSlides = useProjectStore((s) => s.setComposedSlides);
+  const addUploads = useProjectStore((s) => s.addUploads);
 
-  const images = useMemo(() => imagesFromAssets(assets), [assets]);
-  const imageMap = useMemo(() => imageMapFromAssets(assets), [assets]);
-  const orderedSlides = useMemo(() => [...slides].sort((a, b) => a.order - b.order), [slides]);
+  const pool = useMemo(() => poolFromProject(project), [project]);
+  const imageMap = useMemo(() => imageMapFromProject(project), [project]);
+  const orderedSlides = useMemo(() => [...project.slides].sort((a, b) => a.order - b.order), [project.slides]);
+  const groups = useMemo(() => {
+    const seen: string[] = [];
+    for (const p of pool) if (!seen.includes(p.group)) seen.push(p.group);
+    return seen;
+  }, [pool]);
 
   const [checked, setChecked] = useState<Set<string>>(new Set());
   const [selectedSlideId, setSelectedSlideId] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
   const [pdfError, setPdfError] = useState<string | null>(null);
+  const [composing, setComposing] = useState(false);
+  const [composeError, setComposeError] = useState<string | null>(null);
+  const [confirmCompose, setConfirmCompose] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const uploadRef = useRef<HTMLInputElement>(null);
 
-  // Resolve the effective selection even as slides are added/removed.
   const effectiveSlideId =
     (selectedSlideId && orderedSlides.some((s) => s.id === selectedSlideId) ? selectedSlideId : orderedSlides[0]?.id) ??
     null;
@@ -63,8 +73,7 @@ export function PresentationFeature() {
   };
 
   const handleAddSlide = () => {
-    // Preserve on-screen image order; cap to the largest layout capacity (4).
-    const ids = images.filter((ref) => checked.has(ref.image.id)).map((ref) => ref.image.id);
+    const ids = pool.filter((p) => checked.has(p.image.id)).map((p) => p.image.id);
     if (ids.length === 0) return;
     const capped = ids.slice(0, 4);
     const id = addSlide(capped, layoutForCount(capped.length));
@@ -76,9 +85,8 @@ export function PresentationFeature() {
     setPdfError(null);
     setExporting(true);
     try {
-      // Yield so the spinner paints before the (synchronous) jsPDF work.
       await new Promise((resolve) => setTimeout(resolve, 30));
-      exportPresentationPdf({ projectName, slides: orderedSlides, imageMap });
+      exportPresentationPdf({ projectName, slides: orderedSlides, imageMap, brand });
     } catch {
       setPdfError('Could not export the PDF. Please try again.');
     } finally {
@@ -86,7 +94,61 @@ export function PresentationFeature() {
     }
   };
 
-  const hasImages = images.length > 0;
+  const canCompose = Boolean(claudeApiKey) && pool.length > 0;
+
+  const runCompose = async () => {
+    setComposeError(null);
+    setConfirmCompose(false);
+    setComposing(true);
+    try {
+      const images: ComposerImage[] = pool.map((p) => ({ id: p.image.id, group: p.group, label: p.image.label }));
+      const composed = await composeDeck({ projectName, brand, images });
+      setComposedSlides(composed);
+      setSelectedSlideId(null);
+    } catch (e) {
+      setComposeError(e instanceof Error ? e.message : 'The composer failed. Please try again.');
+    } finally {
+      setComposing(false);
+    }
+  };
+
+  const onComposeClick = () => {
+    if (!canCompose) return;
+    if (orderedSlides.length > 0) {
+      setConfirmCompose(true);
+      return;
+    }
+    void runCompose();
+  };
+
+  const onUploadFiles = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    setUploadError(null);
+    const images: GeneratedImage[] = [];
+    for (const file of Array.from(files)) {
+      const check = validateImageFile(file);
+      if (!check.ok) {
+        setUploadError(check.error);
+        continue;
+      }
+      try {
+        const raw = await fileToDataURL(file);
+        const url = await resizeDataURL(raw);
+        images.push({
+          id: newId('img'),
+          url,
+          label: file.name.replace(/\.[^.]+$/, '') || 'Uploaded image',
+          createdAt: Date.now(),
+        });
+      } catch {
+        setUploadError('Could not read one of the files.');
+      }
+    }
+    if (images.length > 0) addUploads(images);
+    if (uploadRef.current) uploadRef.current.value = '';
+  };
+
+  const hasImages = pool.length > 0;
 
   return (
     <div>
@@ -94,7 +156,7 @@ export function PresentationFeature() {
         index="04"
         eyebrow="Concept Presentation"
         title="Concept Presentation"
-        description="Assemble selected outputs into an arranged presentation and export it to PDF."
+        description="Assemble outputs into an arranged, on-brand presentation — compose it with Claude, then export to PDF."
         actions={
           <Button
             variant="primary"
@@ -108,6 +170,8 @@ export function PresentationFeature() {
         }
       />
 
+      <BrandPanel />
+
       {pdfError ? (
         <div className="mb-6">
           <ErrorBanner message={pdfError} onRetry={handleExport} />
@@ -118,29 +182,63 @@ export function PresentationFeature() {
         <EmptyState
           icon={Images}
           title="No images yet"
-          description="Generate renders, elevations, or axonometrics first — then compose them into a presentation here. Nothing is required in any particular order."
+          description="Generate renders, elevations, or axonometrics — or upload your own below — then compose them into a presentation. Nothing is required in any particular order."
           action={
             <div className="flex flex-wrap items-center justify-center gap-3">
               <Button onClick={() => setTab('render')}>Go to Render</Button>
               <Button onClick={() => setTab('elevation')}>Go to Elevation</Button>
               <Button onClick={() => setTab('axonometric')}>Go to Axonometric</Button>
+              <Button icon={<ImagePlus size={15} strokeWidth={1.75} />} onClick={() => uploadRef.current?.click()}>
+                Upload images
+              </Button>
             </div>
           }
         />
       ) : (
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,15rem)_minmax(0,1fr)_minmax(0,19rem)]">
-          {/* Left — image picker grouped by feature. */}
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,16rem)_minmax(0,1fr)_minmax(0,19rem)]">
+          {/* Left — compose, upload, and the image picker. */}
           <aside className="flex flex-col gap-5">
+            <div className="flex flex-col gap-2">
+              <Button
+                variant="primary"
+                size="sm"
+                icon={<Sparkles size={14} strokeWidth={1.75} />}
+                onClick={onComposeClick}
+                loading={composing}
+                disabled={!canCompose}
+              >
+                {composing ? 'Composing…' : 'Compose with Claude'}
+              </Button>
+              {!claudeApiKey ? (
+                <p className="text-[0.7rem] text-mist">Add a Claude key in Settings to enable.</p>
+              ) : null}
+              {confirmCompose ? (
+                <div className="border border-hairline bg-drafting px-3 py-2.5 text-xs text-graphite">
+                  Replace your {orderedSlides.length} slide{orderedSlides.length === 1 ? '' : 's'} with a
+                  Claude-composed deck?
+                  <div className="mt-2 flex gap-2">
+                    <Button variant="primary" size="sm" onClick={() => void runCompose()}>
+                      Replace
+                    </Button>
+                    <Button variant="secondary" size="sm" onClick={() => setConfirmCompose(false)}>
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              ) : null}
+              {composeError ? <ErrorBanner message={composeError} onRetry={onComposeClick} /> : null}
+            </div>
+
             <div className="flex items-center justify-between">
               <p className="mono-meta">Images</p>
               <span className="mono-meta text-mist">{checked.size} selected</span>
             </div>
-            {FEATURE_GROUPS.map((group) => {
-              const groupImages = images.filter((ref) => ref.feature === group.key);
-              if (groupImages.length === 0) return null;
+
+            {groups.map((group) => {
+              const groupImages = pool.filter((p) => p.group === group);
               return (
-                <div key={group.key} className="flex flex-col gap-2">
-                  <p className="font-mono text-[0.6rem] uppercase tracking-[0.14em] text-graphite">{group.label}</p>
+                <div key={group} className="flex flex-col gap-2">
+                  <p className="font-mono text-[0.6rem] uppercase tracking-[0.14em] text-graphite">{group}</p>
                   <div className="flex flex-col gap-1.5">
                     {groupImages.map((ref) => {
                       const isChecked = checked.has(ref.image.id);
@@ -174,6 +272,7 @@ export function PresentationFeature() {
                 </div>
               );
             })}
+
             <div className="flex flex-col gap-2">
               <Button
                 variant="primary"
@@ -184,6 +283,14 @@ export function PresentationFeature() {
               >
                 Add slide
               </Button>
+              <button
+                type="button"
+                onClick={() => uploadRef.current?.click()}
+                className="flex items-center justify-center gap-1.5 border border-hairline bg-paper px-3 py-1.5 text-xs text-graphite hover:bg-drafting focus-visible:outline-ochre"
+              >
+                <ImagePlus size={14} strokeWidth={1.75} /> Upload images
+              </button>
+              {uploadError ? <p className="text-[0.7rem] text-ochre">{uploadError}</p> : null}
               <p className="text-[0.7rem] text-mist">Up to 4 images per slide.</p>
             </div>
           </aside>
@@ -191,7 +298,7 @@ export function PresentationFeature() {
           {/* Center — current slide. */}
           <div className="min-w-0">
             <p className="mono-meta mb-3">Slide {selectedSlide ? '' : '· none'}</p>
-            <SlideCanvas slide={selectedSlide} imageMap={imageMap} />
+            <SlideCanvas slide={selectedSlide} imageMap={imageMap} brand={brand} />
           </div>
 
           {/* Right — slide list + per-slide editor. */}
@@ -200,7 +307,7 @@ export function PresentationFeature() {
               <p className="mono-meta mb-3">Slides ({orderedSlides.length})</p>
               {orderedSlides.length === 0 ? (
                 <p className="border border-dashed border-hairline bg-paper px-4 py-6 text-center text-xs text-mist">
-                  Select images and press “Add slide” to build your deck.
+                  Select images and press “Add slide”, or “Compose with Claude” to build the deck for you.
                 </p>
               ) : (
                 <SlideList
@@ -273,6 +380,16 @@ export function PresentationFeature() {
           </aside>
         </div>
       )}
+
+      {/* Shared hidden upload input (used by both the empty state and the picker). */}
+      <input
+        ref={uploadRef}
+        type="file"
+        accept="image/png,image/jpeg,image/webp"
+        multiple
+        className="hidden"
+        onChange={(e) => void onUploadFiles(e.target.files)}
+      />
     </div>
   );
 }

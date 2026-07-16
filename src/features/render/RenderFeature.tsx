@@ -1,5 +1,5 @@
-import { Sparkles } from 'lucide-react';
-import { useState } from 'react';
+import { RotateCcw, Sparkles } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
 import { ImageDropzone } from '../../components/Upload/ImageDropzone';
 import { ImageCompare } from '../../components/Output/ImageCompare';
 import { OutputGrid } from '../../components/Output/OutputGrid';
@@ -7,6 +7,7 @@ import { Button } from '../../components/ui/Button';
 import { ErrorBanner } from '../../components/ui/ErrorBanner';
 import { SectionHeader } from '../../components/ui/SectionHeader';
 import { Select } from '../../components/ui/Select';
+import { renderPrompt } from '../../lib/prompts';
 import { useGenerate, usePresentationAdder } from '../hooks';
 
 const STYLE_OPTIONS = [
@@ -26,7 +27,14 @@ export function RenderFeature() {
   const [input, setInput] = useState<string | null>(null);
   const [style, setStyle] = useState('photoreal');
   const [variations, setVariations] = useState('2');
-  const [prompt, setPrompt] = useState('');
+
+  // Prompt is auto-generated from the chosen style; the user can edit it.
+  const suggestedPrompt = useMemo(() => renderPrompt(style), [style]);
+  const [prompt, setPrompt] = useState(suggestedPrompt);
+  const [promptEdited, setPromptEdited] = useState(false);
+  useEffect(() => {
+    if (!promptEdited) setPrompt(suggestedPrompt);
+  }, [suggestedPrompt, promptEdited]);
 
   const { status, error, outputs, inputUsed, run } = useGenerate();
   const { addToPresentation, addedIds } = usePresentationAdder();
@@ -66,16 +74,32 @@ export function RenderFeature() {
           </div>
 
           <div className="flex flex-col gap-2">
-            <label htmlFor="render-prompt" className="mono-meta">
-              Prompt (optional)
-            </label>
+            <div className="flex items-center justify-between gap-3">
+              <label htmlFor="render-prompt" className="mono-meta">
+                Prompt · auto-generated
+              </label>
+              {promptEdited ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPrompt(suggestedPrompt);
+                    setPromptEdited(false);
+                  }}
+                  className="flex items-center gap-1 text-[0.7rem] text-ochre hover:text-[#a8380b] focus-visible:outline-ochre"
+                >
+                  <RotateCcw size={12} strokeWidth={1.75} /> Reset
+                </button>
+              ) : null}
+            </div>
             <textarea
               id="render-prompt"
               value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              rows={3}
-              placeholder="e.g. warm evening light, brushed concrete, planted terrace"
-              className="resize-none border border-hairline bg-paper px-3 py-2.5 text-sm text-graphite placeholder:text-mist focus-visible:outline-ochre"
+              onChange={(e) => {
+                setPrompt(e.target.value);
+                setPromptEdited(true);
+              }}
+              rows={4}
+              className="resize-none border border-hairline bg-paper px-3 py-2.5 text-sm leading-relaxed text-graphite placeholder:text-mist focus-visible:outline-ochre"
             />
           </div>
 
