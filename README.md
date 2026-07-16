@@ -40,7 +40,7 @@ disabled, or gated behind another.
 | 01 | Sketch / Plan → Render | Hand sketch or floor plan | Styled architectural render (with before/after compare) |
 | 02 | Sketch / Model → Elevation | Sketch or SketchUp screenshot | Elevation design render |
 | 03 | Elevation → Axonometric | Elevation image | Axonometric + section-axonometric views, one per viewpoint |
-| 04 | Concept Presentation | Selected outputs from 01–03 | Arranged slides, exportable to PDF |
+| 04 | Concept Presentation | Selected outputs from 01–03 + brand identity | AI-generated self-contained HTML deck, or hand-arranged slides exportable to PDF |
 
 Each feature accepts its input by direct upload, independent of anything else
 in the session. Feature 03 works from a directly uploaded elevation without
@@ -62,6 +62,10 @@ and shows a helpful empty state.
   Gemini API key/model (see below).
 - **State** lives in a Zustand store (`src/store/`), the only path to the
   project model — leaving clean seams for auth and persistence.
+- **Presentation generation** (`src/lib/slidesDeck.ts`) runs the vendored
+  `frontend-slides` skill through Claude to produce a self-contained HTML deck;
+  image placeholder tokens are swapped for embedded data URIs after generation
+  so the downloaded file is fully portable. Used only by the Presentation tab.
 
 ### Prompts are automatic
 
@@ -82,6 +86,29 @@ goes anywhere else. Get a free key at
 
 The Magnific / Flux env-keyed stubs (`.env` → `VITE_MAGNIFIC_KEY`,
 `VITE_FLUX_KEY`) remain as additional adapter seams.
+
+### Building a presentation (frontend-slides skill)
+
+The Concept Presentation tab has two modes:
+
+- **AI deck** (default) — Claude generates a distinctive, self-contained HTML
+  presentation from your brand identity and images: a fixed 1920×1080 stage that
+  scales to any screen, real motion, and keyboard/touch navigation. Preview it
+  inline, download the single `.html` file, open it in a new tab, or print it to
+  PDF. Choose a purpose / length / density (all optional, sensible defaults) and
+  optionally add talking points — you never have to write a prompt.
+- **Manual storyboard** — arrange pooled images into `full` / `two-up` /
+  `four-grid` slides by hand (or let Claude compose them), then export a branded
+  PDF.
+
+Generation runs the open-source
+[frontend-slides](https://github.com/zarazhangrui/frontend-slides) skill by
+zarazhangrui. Its instruction and resource files are vendored **verbatim** under
+`src/lib/skill/resources/` and sent to Claude (`claude-opus-4-8`) so every deck
+follows the skill precisely — its fixed-stage rules, design system, and
+animation grammar. Add a **Claude (Anthropic) API key** in Settings to enable
+it; the browser calls Anthropic directly with your key. This skill is used
+**only** on the Concept Presentation tab.
 
 ## Design language
 

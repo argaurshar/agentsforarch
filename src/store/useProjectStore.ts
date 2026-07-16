@@ -80,6 +80,11 @@ interface ProjectState {
   claudeApiKey: string | undefined; // Claude key for the presentation composer
   setApiConfig: (cfg: ApiConfigInput) => void;
 
+  // The frontend-slides deck generated for the Concept Presentation tab (in-memory
+  // session artifact — a full self-contained HTML document, not project data).
+  deckHtml: string | null;
+  setDeckHtml: (html: string | null) => void;
+
   setTab: (tab: TabKey) => void;
   renameProject: (name: string) => void;
 
@@ -137,6 +142,9 @@ export const useProjectStore = create<ProjectState>((set, get) => {
         providerName: getActiveProvider().name,
       });
     },
+
+    deckHtml: null,
+    setDeckHtml: (html) => set({ deckHtml: html }),
 
     setTab: (tab) => set({ tab }),
 
