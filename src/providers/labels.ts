@@ -1,7 +1,7 @@
 import type { GenerateRequest } from './types';
 
-// Shared output-label logic so every provider (mock, Nano Banana Pro, …) labels
-// its outputs identically — switching providers never changes the labels.
+// Shared output-label logic so every provider (Nano Banana Pro, Magnific, …)
+// labels its outputs identically — switching providers never changes the labels.
 
 const STYLE_LABELS: Record<string, string> = {
   photoreal: 'Photoreal',

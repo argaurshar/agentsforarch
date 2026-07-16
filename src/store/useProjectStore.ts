@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { newId } from '../lib/images';
-import { getActiveProvider } from '../providers';
+import { activeProviderName, isImageEngineReady } from '../providers';
 import {
   getClaudeApiKey,
   getGeminiApiKey,
@@ -63,7 +63,6 @@ interface ApiConfigInput {
   key: string | undefined;
   model?: string;
   remember: boolean;
-  forceMock?: boolean;
   claudeKey?: string | undefined;
 }
 
@@ -76,7 +75,7 @@ interface ProjectState {
   apiKey: string | undefined;
   model: string;
   rememberKey: boolean;
-  forceMock: boolean;
+  engineReady: boolean; // true once a real image key is configured
   claudeApiKey: string | undefined; // Claude key for the presentation composer
   setApiConfig: (cfg: ApiConfigInput) => void;
 
@@ -124,12 +123,12 @@ export const useProjectStore = create<ProjectState>((set, get) => {
   return {
     project: initial,
     tab: 'render',
-    providerName: getActiveProvider().name,
+    providerName: activeProviderName(),
 
     apiKey: rc.apiKey,
     model: rc.model,
     rememberKey: rc.remembered,
-    forceMock: rc.forceMock,
+    engineReady: isImageEngineReady(),
     claudeApiKey: rc.claudeApiKey,
     setApiConfig: (cfg) => {
       setGeminiConfig(cfg);
@@ -137,9 +136,9 @@ export const useProjectStore = create<ProjectState>((set, get) => {
         apiKey: getGeminiApiKey(),
         model: getGeminiModel(),
         rememberKey: cfg.remember,
-        forceMock: Boolean(cfg.forceMock),
+        engineReady: isImageEngineReady(),
         claudeApiKey: getClaudeApiKey(),
-        providerName: getActiveProvider().name,
+        providerName: activeProviderName(),
       });
     },
 
