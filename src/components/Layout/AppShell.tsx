@@ -125,7 +125,7 @@ export function AppShell({ children }: AppShellProps) {
 
         {/* Footer — active engine (spec §5). */}
         <footer className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-t border-hairline bg-bone px-4 py-3 sm:px-6 lg:px-10">
-          <span className="mono-meta hidden text-mist sm:inline">AND Studio · Concept Presentation</span>
+          <span className="mono-meta hidden text-mist sm:inline">AND · Architecture &amp; Design Studio</span>
           <span className="mono-meta text-mist">
             Engine&nbsp;·&nbsp;<span className="text-ochre">{providerName}</span>
           </span>

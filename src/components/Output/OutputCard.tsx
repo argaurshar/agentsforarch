@@ -35,7 +35,7 @@ export function OutputCard({ image, onAddToPresentation, added }: OutputCardProp
             className={`flex items-center justify-center border p-1.5 focus-visible:outline-ochre ${
               added
                 ? 'cursor-default border-hairline bg-drafting text-mist'
-                : 'border-ochre bg-ochre text-bone hover:bg-[#a8380b]'
+                : 'border-ochre bg-ochre text-bone hover:bg-ochre-deep'
             }`}
             title={added ? 'Already in presentation' : 'Add to presentation'}
             aria-label={added ? 'Already in presentation' : `Add ${image.label} to presentation`}

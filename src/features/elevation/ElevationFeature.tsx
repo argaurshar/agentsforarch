@@ -87,7 +87,7 @@ export function ElevationFeature() {
                     setPrompt(suggestedPrompt);
                     setPromptEdited(false);
                   }}
-                  className="flex items-center gap-1 text-[0.7rem] text-ochre hover:text-[#a8380b] focus-visible:outline-ochre"
+                  className="flex items-center gap-1 text-[0.7rem] text-ochre hover:text-ochre-deep focus-visible:outline-ochre"
                 >
                   <RotateCcw size={12} strokeWidth={1.75} /> Reset
                 </button>

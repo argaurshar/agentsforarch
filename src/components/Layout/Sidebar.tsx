@@ -34,9 +34,20 @@ export function Sidebar({ onNavigate }: SidebarProps = {}) {
       aria-label="Features"
       className="flex w-64 shrink-0 flex-col bg-ink text-bone"
     >
+      {/* Brand lockup — echoes andstudio.in. To use the exact logo, replace the
+          "AND" wordmark block below with:  <img src="/logo.svg" alt="AND Studio"
+          className="h-9 w-auto" />  (drop the SVG/PNG into /public). */}
       <div className="border-b border-white/10 px-6 py-7">
-        <p className="font-mono text-[0.7rem] uppercase tracking-[0.3em] text-ochre">AND Studio</p>
-        <p className="mt-2 font-serif text-lg font-light leading-tight text-bone">
+        <div className="flex items-baseline gap-1">
+          <span className="font-serif text-[2rem] font-medium leading-none tracking-[0.03em] text-bone">
+            AND
+          </span>
+          <span className="font-serif text-xs text-bone/50">®</span>
+        </div>
+        <p className="mt-2 font-mono text-[0.5rem] uppercase tracking-[0.28em] text-bone/45">
+          Architecture &amp; Design Studio
+        </p>
+        <p className="mt-4 font-serif text-base font-light leading-tight text-bone/75">
           Visualization Platform
         </p>
       </div>

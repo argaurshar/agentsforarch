@@ -134,7 +134,7 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
               href="https://aistudio.google.com/apikey"
               target="_blank"
               rel="noreferrer noopener"
-              className="w-fit text-xs text-ochre underline underline-offset-2 hover:text-[#a8380b]"
+              className="w-fit text-xs text-ochre underline underline-offset-2 hover:text-ochre-deep"
             >
               Get a free key from Google AI Studio →
             </a>
@@ -195,7 +195,7 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
               href="https://console.anthropic.com/settings/keys"
               target="_blank"
               rel="noreferrer noopener"
-              className="w-fit text-xs text-ochre underline underline-offset-2 hover:text-[#a8380b]"
+              className="w-fit text-xs text-ochre underline underline-offset-2 hover:text-ochre-deep"
             >
               Get a key from the Anthropic Console →
             </a>
@@ -207,7 +207,7 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
               type="checkbox"
               checked={remember}
               onChange={(e) => setRemember(e.target.checked)}
-              className="mt-0.5 h-4 w-4 shrink-0 accent-[#c2410c]"
+              className="mt-0.5 h-4 w-4 shrink-0 accent-ochre"
             />
             <span className="text-sm text-graphite">
               Remember on this device

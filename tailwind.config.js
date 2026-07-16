@@ -30,6 +30,7 @@ export default {
       colors: {
         ink: 'var(--ink)',
         ochre: 'var(--ochre)',
+        'ochre-deep': 'var(--ochre-deep)',
         bone: 'var(--bone)',
         drafting: 'var(--drafting)',
         paper: 'var(--paper)',
@@ -38,7 +39,7 @@ export default {
         hairline: 'var(--hairline)',
       },
       fontFamily: {
-        serif: ['Fraunces', 'Georgia', 'Cambria', 'serif'],
+        serif: ['"Cormorant Garamond"', 'Georgia', 'Cambria', 'serif'],
         sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
         mono: ['"JetBrains Mono"', 'ui-monospace', 'SFMono-Regular', 'monospace'],
       },
