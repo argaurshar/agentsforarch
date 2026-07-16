@@ -20,7 +20,11 @@ export default function App() {
 
   return (
     <AppShell>
-      <ActiveFeature />
+      {/* `key={tab}` remounts on tab change so the reveal animation replays,
+          giving each feature screen a composed, unhurried arrival. */}
+      <div key={tab} className="view-enter">
+        <ActiveFeature />
+      </div>
     </AppShell>
   );
 }

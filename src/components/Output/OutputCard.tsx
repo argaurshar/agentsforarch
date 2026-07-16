@@ -10,9 +10,13 @@ interface OutputCardProps {
 
 export function OutputCard({ image, onAddToPresentation, added }: OutputCardProps) {
   return (
-    <figure className="flex flex-col border border-hairline bg-paper">
-      <div className="border-b border-hairline bg-drafting">
-        <img src={image.url} alt={image.label} className="max-h-64 w-full object-contain" />
+    <figure className="group flex flex-col border border-hairline bg-paper transition-colors hover:border-ochre/50">
+      <div className="overflow-hidden border-b border-hairline bg-drafting">
+        <img
+          src={image.url}
+          alt={image.label}
+          className="max-h-64 w-full object-contain transition-transform duration-500 group-hover:scale-[1.02]"
+        />
       </div>
       <figcaption className="flex items-center justify-between gap-2 px-3 py-3">
         <span className="mono-meta truncate" title={image.label}>
