@@ -39,7 +39,7 @@ export default {
         hairline: 'var(--hairline)',
       },
       fontFamily: {
-        serif: ['"Cormorant Garamond"', 'Georgia', 'Cambria', 'serif'],
+        serif: ['"Cormorant"', '"Cormorant Garamond"', 'Georgia', 'Cambria', 'serif'],
         sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
         mono: ['"JetBrains Mono"', 'ui-monospace', 'SFMono-Regular', 'monospace'],
       },

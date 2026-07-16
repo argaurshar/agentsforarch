@@ -18,6 +18,9 @@
   --graphite: #3b342b; /* body text (warm dark grey) */
   --mist: #98907f; /* captions, metadata (warm grey) */
   --hairline: #d9cfb9; /* ALL borders and dividers (warm) */
+
+  /* Motion — one refined easing curve for the whole app (premium, unhurried). */
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 @layer base {
@@ -36,16 +39,17 @@
     text-rendering: optimizeLegibility;
   }
 
-  /* Ink is for headings only. Body text is Graphite. Elegant editorial serif
-     matching andstudio.in. */
+  /* Ink is for headings only. Body text is Graphite. Cormorant — an elegant,
+     high-contrast editorial serif that reads bespoke and high-end. */
   h1,
   h2,
   h3,
   h4 {
-    font-family: 'Cormorant Garamond', Georgia, Cambria, serif;
+    font-family: 'Cormorant', 'Cormorant Garamond', Georgia, Cambria, serif;
     color: var(--ink);
     font-weight: 500;
-    line-height: 1.1;
+    line-height: 1.06;
+    letter-spacing: -0.008em;
   }
 
   /* Keyboard focus rings in Ochre (spec §10 — polish). */
@@ -82,9 +86,73 @@
   }
 }
 
-/* Keep transitions short (spec §10: ≤150ms). */
+/* Interactive transitions — smooth and refined (hover/focus/press). */
 * {
-  transition-duration: 150ms;
+  transition-duration: 200ms;
+  transition-timing-function: var(--ease);
+}
+
+/* ------------------------------------------------------------------ */
+/* Motion layer — tasteful, unhurried reveals + micro-interactions.    */
+/* All entrance motion is opacity/transform only (no shadows — spec §4) */
+/* and is disabled under prefers-reduced-motion.                        */
+/* ------------------------------------------------------------------ */
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Each feature screen arrives with a soft rise (replays on tab change via
+   a `key` on the routed wrapper). */
+.view-enter {
+  animation: fade-up 0.55s var(--ease) both;
+}
+
+/* Staggered reveal for composed groups (e.g. the section header). */
+.reveal {
+  opacity: 0;
+  animation: fade-up 0.6s var(--ease) forwards;
+}
+.reveal-1 {
+  animation-delay: 0.04s;
+}
+.reveal-2 {
+  animation-delay: 0.12s;
+}
+.reveal-3 {
+  animation-delay: 0.2s;
+}
+
+/* A subtle lift for primary affordances on hover. */
+.lift {
+  transition-property: transform, background-color, border-color, color;
+}
+.lift:hover {
+  transform: translateY(-1px);
+}
+.lift:active {
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .view-enter,
+  .reveal {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  .lift:hover {
+    transform: none !important;
+  }
+  * {
+    transition-duration: 0.01ms !important;
+  }
 }
 
 /* Custom hairline scrollbars for the drafting-instrument feel. */

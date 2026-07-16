@@ -74,7 +74,9 @@ export function Sidebar({ onNavigate }: SidebarProps = {}) {
                 <Icon
                   size={18}
                   strokeWidth={1.5}
-                  className={active ? 'text-ochre' : 'text-bone/60 group-hover:text-bone'}
+                  className={`transition-transform group-hover:translate-x-0.5 ${
+                    active ? 'text-ochre' : 'text-bone/60 group-hover:text-bone'
+                  }`}
                 />
                 <span className="flex flex-col">
                   <span className="flex items-baseline gap-2">

@@ -22,14 +22,14 @@ export function SectionHeader({ index, eyebrow, title, description, actions }: S
     <header className="mb-8">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
         <div>
-          <p className="eyebrow">
+          <p className="eyebrow reveal reveal-1">
             {index}
             <span className="px-2 text-ochre/60">/</span>
             {eyebrow}
           </p>
-          <h1 className="mt-4 font-serif text-3xl font-light text-ink sm:text-4xl">{title}</h1>
+          <h1 className="reveal reveal-2 mt-4 font-serif text-4xl font-light text-ink sm:text-[2.75rem]">{title}</h1>
           {description ? (
-            <p className="mt-3 max-w-2xl text-sm leading-relaxed text-graphite">{description}</p>
+            <p className="reveal reveal-3 mt-3 max-w-2xl text-sm leading-relaxed text-graphite">{description}</p>
           ) : null}
         </div>
         {actions ? <div className="shrink-0">{actions}</div> : null}
