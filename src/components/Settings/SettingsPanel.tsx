@@ -69,13 +69,13 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
       <aside
         role="dialog"
         aria-modal="true"
-        aria-label="Image generation settings"
+        aria-label="API keys"
         className="relative flex h-full w-full max-w-md flex-col overflow-y-auto border-l border-hairline bg-bone"
       >
         <div className="flex items-center justify-between border-b border-hairline px-6 py-4">
           <div className="flex items-center gap-2">
             <KeyRound size={16} strokeWidth={1.75} className="text-ochre" />
-            <p className="eyebrow">Image Generation</p>
+            <p className="eyebrow">API Keys</p>
           </div>
           <button
             type="button"
@@ -88,6 +88,8 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
         </div>
 
         <div className="flex flex-col gap-6 px-6 py-6">
+          <p className="eyebrow -mb-2">Image Generation</p>
+
           {/* Current status */}
           <div className="flex items-center justify-between border border-hairline bg-paper px-4 py-3">
             <span className="text-sm text-graphite">Active engine</span>

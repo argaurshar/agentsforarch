@@ -109,7 +109,7 @@ export function AppShell({ children }: AppShellProps) {
             className={`flex shrink-0 items-center gap-2 border bg-paper px-3 py-1.5 hover:bg-drafting focus-visible:outline-ochre ${
               engineReady ? 'border-hairline text-graphite' : 'border-ochre text-ochre'
             }`}
-            title={engineReady ? 'Image generation settings' : 'Connect your API key to generate'}
+            title={engineReady ? 'API keys' : 'Connect your API key to generate'}
           >
             <KeyRound size={15} strokeWidth={1.75} className="text-ochre" />
             <span className={`mono-meta text-ochre ${engineReady ? 'hidden sm:inline' : 'inline'}`}>

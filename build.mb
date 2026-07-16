@@ -1,6 +1,17 @@
 # AND Studio — Internal Visualization Platform
 ## Build specification for Claude Code
 
+> **Addendum (post-build change) — real-only, no mock engine.** At the studio's
+> request the shipped app deliberately supersedes §5's *MockProvider* requirement
+> and the "runs end-to-end with zero API keys" behavior. The app is now
+> **real-only**: image generation requires a Google Gemini key (Nano Banana Pro)
+> and presentations require an Anthropic key, both entered by the user in the
+> browser. `getActiveProvider()` returns `null` when no key is set and the UI
+> prompts the user to add one — there is no mock/demo/placeholder engine. Every
+> other part of this spec still applies. (A separate addition: the Concept
+> Presentation feature can also generate a self-contained HTML deck via the
+> vendored `frontend-slides` skill through Claude.)
+
 **Read this entire document before writing any code.**
 
 You are building a single-page web application for AND Studio, an architecture practice. Their architects and interior designers will use it to turn sketches and models into renders, elevations, axonometric views, and client concept presentations.

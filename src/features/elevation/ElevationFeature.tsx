@@ -33,7 +33,7 @@ export function ElevationFeature() {
     if (!promptEdited) setPrompt(suggestedPrompt);
   }, [suggestedPrompt, promptEdited]);
 
-  const { status, error, outputs, run } = useGenerate();
+  const { status, error, outputs, engineReady, run } = useGenerate();
   const { addToPresentation, addedIds } = usePresentationAdder();
 
   const loading = status === 'loading';
@@ -115,7 +115,11 @@ export function ElevationFeature() {
             >
               {loading ? 'Generating…' : 'Generate'}
             </Button>
-            {!input ? <span className="text-xs text-mist">Upload an image to begin.</span> : null}
+            {!input ? (
+              <span className="text-xs text-mist">Upload an image to begin.</span>
+            ) : !engineReady ? (
+              <span className="text-xs text-ochre">Add your Gemini key in Settings to generate.</span>
+            ) : null}
           </div>
         </div>
 

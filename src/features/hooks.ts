@@ -11,6 +11,7 @@ interface UseGenerateResult {
   error: string | null;
   outputs: GeneratedImage[];
   inputUsed: string | null;
+  engineReady: boolean; // whether an image key is configured
   run: (req: GenerateRequest) => Promise<void>;
   reset: () => void;
 }
@@ -24,6 +25,7 @@ interface UseGenerateResult {
  */
 export function useGenerate(): UseGenerateResult {
   const addAsset = useProjectStore((s) => s.addAsset);
+  const engineReady = useProjectStore((s) => s.engineReady);
   const [status, setStatus] = useState<GenerateStatus>('idle');
   const [error, setError] = useState<string | null>(null);
   const [outputs, setOutputs] = useState<GeneratedImage[]>([]);
@@ -65,7 +67,7 @@ export function useGenerate(): UseGenerateResult {
     setInputUsed(null);
   }, []);
 
-  return { status, error, outputs, inputUsed, run, reset };
+  return { status, error, outputs, inputUsed, engineReady, run, reset };
 }
 
 interface UsePresentationAdderResult {
