@@ -1,5 +1,5 @@
 import { jsPDF } from 'jspdf';
-import type { GeneratedImage, Slide, SlideLayout } from '../types';
+import type { Brand, GeneratedImage, Slide, SlideLayout } from '../types';
 import { slugify } from './images';
 
 // A4 landscape in points.
@@ -8,11 +8,6 @@ const PAGE_H = 595.28;
 const MARGIN = 48;
 const GAP = 16;
 
-// Palette (spec §4) as RGB tuples for jsPDF.
-const BONE: [number, number, number] = [247, 242, 232];
-const INK: [number, number, number] = [15, 23, 41];
-const GRAPHITE: [number, number, number] = [51, 65, 85];
-const OCHRE: [number, number, number] = [194, 65, 12];
 const HAIRLINE: [number, number, number] = [216, 209, 192];
 
 const CAPACITY: Record<SlideLayout, number> = {
@@ -21,6 +16,8 @@ const CAPACITY: Record<SlideLayout, number> = {
   'four-grid': 4,
 };
 
+type Rgb = [number, number, number];
+
 interface Rect {
   x: number;
   y: number;
@@ -28,10 +25,26 @@ interface Rect {
   h: number;
 }
 
+function hexToRgb(hex: string, fallback: Rgb): Rgb {
+  const m = /^#?([0-9a-f]{3}|[0-9a-f]{6})$/i.exec((hex || '').trim());
+  if (!m) return fallback;
+  let h = m[1];
+  if (h.length === 3) h = h.split('').map((c) => c + c).join('');
+  const int = parseInt(h, 16);
+  return [(int >> 16) & 255, (int >> 8) & 255, int & 255];
+}
+
+/** Map a CSS font-family stack to the closest jsPDF built-in font. */
+function pdfFont(family: string): 'times' | 'helvetica' | 'courier' {
+  const f = (family || '').toLowerCase();
+  if (/mono|courier|consol|jetbrains/.test(f)) return 'courier';
+  if (/sans|inter|helvetica|arial|grotesk|roboto|system-ui/.test(f)) return 'helvetica';
+  if (/serif|fraunces|georgia|times|garamond|playfair|cambria|slab/.test(f)) return 'times';
+  return 'helvetica';
+}
+
 function cellsForLayout(layout: SlideLayout, area: Rect): Rect[] {
-  if (layout === 'full') {
-    return [area];
-  }
+  if (layout === 'full') return [area];
   if (layout === 'two-up') {
     const w = (area.w - GAP) / 2;
     return [
@@ -39,7 +52,6 @@ function cellsForLayout(layout: SlideLayout, area: Rect): Rect[] {
       { x: area.x + w + GAP, y: area.y, w, h: area.h },
     ];
   }
-  // four-grid (2×2)
   const w = (area.w - GAP) / 2;
   const h = (area.h - GAP) / 2;
   return [
@@ -56,7 +68,6 @@ function detectFormat(url: string): 'PNG' | 'JPEG' | 'WEBP' {
   return 'JPEG';
 }
 
-/** Contain-fit an image of natural size (iw,ih) inside a cell. */
 function containRect(cell: Rect, iw: number, ih: number): Rect {
   if (iw <= 0 || ih <= 0) return cell;
   const scale = Math.min(cell.w / iw, cell.h / ih);
@@ -69,32 +80,54 @@ interface ExportOptions {
   projectName: string;
   slides: Slide[]; // already ordered
   imageMap: Map<string, GeneratedImage>;
+  brand: Brand;
 }
 
 /**
- * Export the presentation to A4-landscape PDF: one slide per page, Bone
- * background, images placed per layout, serif title, mono caption, and the
- * studio footer line (spec §8.04).
+ * Export the presentation to A4-landscape PDF in the project's brand identity:
+ * one slide per page, brand background, images placed per layout, brand fonts,
+ * a logo, and the studio footer line (spec §8.04).
  */
-export function exportPresentationPdf({ projectName, slides, imageMap }: ExportOptions): void {
+export function exportPresentationPdf({ projectName, slides, imageMap, brand }: ExportOptions): void {
   const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+
+  const bg = hexToRgb(brand.background, [247, 242, 232]);
+  const titleColor = hexToRgb(brand.primary, [15, 23, 41]);
+  const textColor = hexToRgb(brand.text, [51, 65, 85]);
+  const accent = hexToRgb(brand.accent, [194, 65, 12]);
+  const headingFont = pdfFont(brand.headingFont);
+  const bodyFont = pdfFont(brand.bodyFont);
+  const footerName = (brand.name || 'AND STUDIO').toUpperCase();
 
   slides.forEach((slide, index) => {
     if (index > 0) doc.addPage();
 
-    // Bone background.
-    doc.setFillColor(...BONE);
+    // Brand background.
+    doc.setFillColor(...bg);
     doc.rect(0, 0, PAGE_W, PAGE_H, 'F');
 
     let contentTop = MARGIN;
 
-    // Title (serif).
+    // Logo, top-right.
+    if (brand.logo) {
+      try {
+        const props = doc.getImageProperties(brand.logo);
+        const h = 22;
+        const w = props.height > 0 ? (props.width / props.height) * h : h;
+        doc.addImage(brand.logo, detectFormat(brand.logo), PAGE_W - MARGIN - w, MARGIN - 6, w, h);
+        contentTop = Math.max(contentTop, MARGIN + 24);
+      } catch {
+        /* skip an undecodable logo */
+      }
+    }
+
+    // Title.
     if (slide.title) {
-      doc.setFont('times', 'normal');
+      doc.setFont(headingFont, 'normal');
       doc.setFontSize(22);
-      doc.setTextColor(...INK);
+      doc.setTextColor(...titleColor);
       doc.text(slide.title, MARGIN, MARGIN + 16);
-      contentTop = MARGIN + 34;
+      contentTop = Math.max(contentTop, MARGIN + 34);
     }
 
     const contentBottom = PAGE_H - MARGIN - (slide.caption ? 44 : 26);
@@ -116,28 +149,28 @@ export function exportPresentationPdf({ projectName, slides, imageMap }: ExportO
         const props = doc.getImageProperties(image.url);
         const placed = containRect(cell, props.width, props.height);
         doc.addImage(image.url, detectFormat(image.url), placed.x, placed.y, placed.w, placed.h);
-        // Hairline frame around the placed image.
         doc.setDrawColor(...HAIRLINE);
         doc.setLineWidth(0.75);
         doc.rect(placed.x, placed.y, placed.w, placed.h, 'S');
       } catch {
-        // Skip any image jsPDF can't decode rather than aborting the export.
+        /* skip an image jsPDF can't decode */
       }
     }
 
-    // Caption (mono).
+    // Caption (brand body font).
     if (slide.caption) {
-      doc.setFont('courier', 'normal');
-      doc.setFontSize(9);
-      doc.setTextColor(...GRAPHITE);
-      doc.text(slide.caption.toUpperCase(), MARGIN, PAGE_H - MARGIN - 20);
+      doc.setFont(bodyFont, 'normal');
+      doc.setFontSize(10);
+      doc.setTextColor(...textColor);
+      const lines = doc.splitTextToSize(slide.caption, PAGE_W - MARGIN * 2 - 220);
+      doc.text(lines.slice(0, 2), MARGIN, PAGE_H - MARGIN - 20);
     }
 
-    // Footer line.
+    // Footer line (brand accent).
     doc.setFont('courier', 'normal');
     doc.setFontSize(8);
-    doc.setTextColor(...OCHRE);
-    doc.text('AND STUDIO  ·  CONCEPT PRESENTATION', MARGIN, PAGE_H - MARGIN);
+    doc.setTextColor(...accent);
+    doc.text(`${footerName}  ·  CONCEPT PRESENTATION`, MARGIN, PAGE_H - MARGIN);
   });
 
   doc.save(`${slugify(projectName || 'presentation')}.pdf`);

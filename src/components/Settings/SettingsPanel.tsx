@@ -15,14 +15,17 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
   const model = useProjectStore((s) => s.model);
   const rememberKey = useProjectStore((s) => s.rememberKey);
   const forceMock = useProjectStore((s) => s.forceMock);
+  const claudeApiKey = useProjectStore((s) => s.claudeApiKey);
   const providerName = useProjectStore((s) => s.providerName);
   const setApiConfig = useProjectStore((s) => s.setApiConfig);
 
   const [keyDraft, setKeyDraft] = useState(apiKey ?? '');
   const [modelDraft, setModelDraft] = useState(model);
+  const [claudeDraft, setClaudeDraft] = useState(claudeApiKey ?? '');
   const [remember, setRemember] = useState(rememberKey);
   const [engine, setEngine] = useState<'auto' | 'mock'>(forceMock ? 'mock' : 'auto');
   const [reveal, setReveal] = useState(false);
+  const [claudeReveal, setClaudeReveal] = useState(false);
   const [saved, setSaved] = useState(false);
 
   // Re-sync the form to the store whenever the panel opens.
@@ -30,11 +33,12 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
     if (open) {
       setKeyDraft(apiKey ?? '');
       setModelDraft(model);
+      setClaudeDraft(claudeApiKey ?? '');
       setRemember(rememberKey);
       setEngine(forceMock ? 'mock' : 'auto');
       setSaved(false);
     }
-  }, [open, apiKey, model, rememberKey, forceMock]);
+  }, [open, apiKey, model, claudeApiKey, rememberKey, forceMock]);
 
   if (!open) return null;
 
@@ -46,17 +50,20 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
       model: modelDraft.trim() || DEFAULT_MODEL,
       remember,
       forceMock: engine === 'mock',
+      claudeKey: claudeDraft.trim() || undefined,
     });
     setSaved(true);
   };
 
-  const clear = () => {
+  const clearAll = () => {
     setKeyDraft('');
+    setClaudeDraft('');
     setApiConfig({
       key: undefined,
       model: modelDraft.trim() || DEFAULT_MODEL,
       remember: false,
       forceMock: engine === 'mock',
+      claudeKey: undefined,
     });
     setSaved(false);
   };
@@ -168,6 +175,49 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
             <p className="text-xs text-mist">Defaults to Nano Banana Pro ({DEFAULT_MODEL}). Change only if Google renames it.</p>
           </div>
 
+          {/* Presentation composer (Claude) */}
+          <div className="flex flex-col gap-2 border-t border-hairline pt-6">
+            <p className="eyebrow">Presentation Composer</p>
+            <p className="text-sm leading-relaxed text-graphite">
+              Add a Claude API key to let <strong>Compose&nbsp;with&nbsp;Claude</strong> arrange your deck and write
+              brand-voiced titles and captions (uses Claude Opus&nbsp;4.8).
+            </p>
+            <label htmlFor="claude-key" className="mono-meta mt-1">
+              Claude API key
+            </label>
+            <div className="flex items-stretch border border-hairline bg-paper focus-within:outline focus-within:outline-2 focus-within:outline-ochre">
+              <input
+                id="claude-key"
+                type={claudeReveal ? 'text' : 'password'}
+                value={claudeDraft}
+                onChange={(e) => {
+                  setClaudeDraft(e.target.value);
+                  setSaved(false);
+                }}
+                placeholder="sk-ant-…"
+                autoComplete="off"
+                spellCheck={false}
+                className="min-w-0 flex-1 bg-transparent px-3 py-2.5 font-mono text-sm text-graphite placeholder:text-mist focus:outline-none"
+              />
+              <button
+                type="button"
+                onClick={() => setClaudeReveal((r) => !r)}
+                className="border-l border-hairline px-3 text-mist hover:text-ochre focus-visible:outline-ochre"
+                aria-label={claudeReveal ? 'Hide Claude key' : 'Show Claude key'}
+              >
+                {claudeReveal ? <EyeOff size={15} strokeWidth={1.75} /> : <Eye size={15} strokeWidth={1.75} />}
+              </button>
+            </div>
+            <a
+              href="https://console.anthropic.com/settings/keys"
+              target="_blank"
+              rel="noreferrer noopener"
+              className="w-fit text-xs text-ochre underline underline-offset-2 hover:text-[#a8380b]"
+            >
+              Get a key from the Anthropic Console →
+            </a>
+          </div>
+
           {/* Remember */}
           <label className="flex cursor-pointer items-start gap-3">
             <input
@@ -187,11 +237,11 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
           {/* Actions */}
           <div className="flex items-center gap-3">
             <Button variant="primary" onClick={apply} icon={saved ? <Check size={16} strokeWidth={2} /> : undefined}>
-              {saved ? 'Saved' : 'Save key'}
+              {saved ? 'Saved' : 'Save'}
             </Button>
-            {apiKey ? (
-              <Button variant="secondary" onClick={clear}>
-                Remove key
+            {apiKey || claudeApiKey ? (
+              <Button variant="secondary" onClick={clearAll}>
+                Clear keys
               </Button>
             ) : null}
           </div>
@@ -200,10 +250,10 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
           <p className="border-t border-hairline pt-4 text-xs leading-relaxed text-mist">
             {active
               ? 'Nano Banana Pro is active. Generations call Google directly from your browser using your key.'
-              : 'No key set — using the mock engine.'}{' '}
-            Because this is a static app with no server, requests go straight from your browser to Google. Your key
-            is never sent anywhere else, but a browser CORS block or an invalid key will surface as an inline error
-            when you generate.
+              : 'No image key set — using the mock engine.'}{' '}
+            Because this is a static app with no server, all requests go straight from your browser to Google / Anthropic.
+            Your keys are never sent anywhere else, but a browser CORS block or an invalid key will surface as an inline
+            error.
           </p>
         </div>
       </aside>

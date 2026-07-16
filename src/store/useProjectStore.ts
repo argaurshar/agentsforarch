@@ -2,16 +2,41 @@ import { create } from 'zustand';
 import { newId } from '../lib/images';
 import { getActiveProvider } from '../providers';
 import {
+  getClaudeApiKey,
   getGeminiApiKey,
   getGeminiModel,
   initRuntimeConfig,
   setGeminiConfig,
 } from '../providers/runtimeConfig';
 import { storage } from '../storage';
-import type { Asset, FeatureKind, GeneratedImage, Project, Slide, SlideLayout, TabKey } from '../types';
+import type {
+  Asset,
+  Brand,
+  ComposedSlide,
+  FeatureKind,
+  GeneratedImage,
+  Project,
+  Slide,
+  SlideLayout,
+  TabKey,
+} from '../types';
 
 // All project data access lives here (spec §9 — auth/persistence seam). No
 // component reads or writes the model directly; they go through these actions.
+
+/** Default brand — matches AND Studio's own palette so unbranded decks look native. */
+function makeDefaultBrand(): Brand {
+  return {
+    name: '',
+    primary: '#0f1729',
+    accent: '#c2410c',
+    background: '#f7f2e8',
+    text: '#334155',
+    headingFont: 'Fraunces, Georgia, serif',
+    bodyFont: 'Inter, system-ui, sans-serif',
+    voice: '',
+  };
+}
 
 function createEmptyProject(): Project {
   const now = Date.now();
@@ -22,6 +47,8 @@ function createEmptyProject(): Project {
     updatedAt: now,
     assets: [],
     slides: [],
+    uploads: [],
+    brand: makeDefaultBrand(),
   };
 }
 
@@ -37,6 +64,7 @@ interface ApiConfigInput {
   model?: string;
   remember: boolean;
   forceMock?: boolean;
+  claudeKey?: string | undefined;
 }
 
 interface ProjectState {
@@ -49,10 +77,16 @@ interface ProjectState {
   model: string;
   rememberKey: boolean;
   forceMock: boolean;
+  claudeApiKey: string | undefined; // Claude key for the presentation composer
   setApiConfig: (cfg: ApiConfigInput) => void;
 
   setTab: (tab: TabKey) => void;
   renameProject: (name: string) => void;
+
+  setBrand: (patch: Partial<Brand>) => void;
+  addUploads: (images: GeneratedImage[]) => void;
+  removeUpload: (imageId: string) => void;
+  setComposedSlides: (slides: ComposedSlide[]) => void;
 
   addAsset: (input: AddAssetInput) => Asset;
   removeAsset: (assetId: string) => void;
@@ -91,6 +125,7 @@ export const useProjectStore = create<ProjectState>((set, get) => {
     model: rc.model,
     rememberKey: rc.remembered,
     forceMock: rc.forceMock,
+    claudeApiKey: rc.claudeApiKey,
     setApiConfig: (cfg) => {
       setGeminiConfig(cfg);
       set({
@@ -98,6 +133,7 @@ export const useProjectStore = create<ProjectState>((set, get) => {
         model: getGeminiModel(),
         rememberKey: cfg.remember,
         forceMock: Boolean(cfg.forceMock),
+        claudeApiKey: getClaudeApiKey(),
         providerName: getActiveProvider().name,
       });
     },
@@ -106,6 +142,47 @@ export const useProjectStore = create<ProjectState>((set, get) => {
 
     renameProject: (name) => {
       const next = touch({ ...get().project, name: name.trim() || 'Untitled Project' });
+      persist(next);
+      set({ project: next });
+    },
+
+    setBrand: (patch) => {
+      const project = get().project;
+      const next = touch({ ...project, brand: { ...project.brand, ...patch } });
+      persist(next);
+      set({ project: next });
+    },
+
+    addUploads: (images) => {
+      const project = get().project;
+      const next = touch({ ...project, uploads: [...project.uploads, ...images] });
+      persist(next);
+      set({ project: next });
+    },
+
+    removeUpload: (imageId) => {
+      const project = get().project;
+      const uploads = project.uploads.filter((u) => u.id !== imageId);
+      const slides = project.slides
+        .map((s) => ({ ...s, imageIds: s.imageIds.filter((id) => id !== imageId) }))
+        .filter((s) => s.imageIds.length > 0)
+        .map((s, index) => ({ ...s, order: index }));
+      const next = touch({ ...project, uploads, slides });
+      persist(next);
+      set({ project: next });
+    },
+
+    setComposedSlides: (composed) => {
+      const project = get().project;
+      const slides: Slide[] = composed.map((c, index) => ({
+        id: newId('slide'),
+        imageIds: [...c.imageIds],
+        layout: c.layout,
+        title: c.title || undefined,
+        caption: c.caption || undefined,
+        order: index,
+      }));
+      const next = touch({ ...project, slides });
       persist(next);
       set({ project: next });
     },
@@ -231,5 +308,37 @@ export function imageMapFromAssets(assets: Asset[]): Map<string, GeneratedImage>
       map.set(image.id, image);
     }
   }
+  return map;
+}
+
+/** A presentation-pool image, tagged with its display group. */
+export interface PoolImage {
+  image: GeneratedImage;
+  group: string;
+}
+
+const POOL_GROUPS: { key: FeatureKind; label: string }[] = [
+  { key: 'render', label: 'Renders' },
+  { key: 'elevation', label: 'Elevations' },
+  { key: 'axonometric', label: 'Axonometrics' },
+];
+
+/** All images available to the presentation — generated outputs + uploads. */
+export function poolFromProject(project: Project): PoolImage[] {
+  const out: PoolImage[] = [];
+  for (const group of POOL_GROUPS) {
+    for (const asset of project.assets) {
+      if (asset.feature !== group.key) continue;
+      for (const image of asset.outputs) out.push({ image, group: group.label });
+    }
+  }
+  for (const image of project.uploads) out.push({ image, group: 'Uploaded' });
+  return out;
+}
+
+/** Lookup map including uploaded images, for slide rendering/export. */
+export function imageMapFromProject(project: Project): Map<string, GeneratedImage> {
+  const map = imageMapFromAssets(project.assets);
+  for (const image of project.uploads) map.set(image.id, image);
   return map;
 }

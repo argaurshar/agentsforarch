@@ -8,6 +8,19 @@ export type SlideLayout = 'full' | 'two-up' | 'four-grid';
 /** The four sidebar destinations. Presentation is not a generation feature. */
 export type TabKey = FeatureKind | 'presentation';
 
+/** The studio/client's brand identity, applied to slides and the PDF export. */
+export interface Brand {
+  name: string;
+  primary: string; // hex — headings / strong marks
+  accent: string; // hex — the single accent
+  background: string; // hex — slide background
+  text: string; // hex — body text
+  headingFont: string; // CSS font-family stack
+  bodyFont: string; // CSS font-family stack
+  logo?: string; // dataURL
+  voice?: string; // tone-of-voice notes, used by the Claude composer
+}
+
 export interface Project {
   id: string;
   name: string;
@@ -15,6 +28,17 @@ export interface Project {
   updatedAt: number;
   assets: Asset[];
   slides: Slide[];
+  /** Images uploaded directly into the presentation (not generated). */
+  uploads: GeneratedImage[];
+  brand: Brand;
+}
+
+/** A slide the Claude composer proposes (image ids resolved by the caller). */
+export interface ComposedSlide {
+  imageIds: string[];
+  layout: SlideLayout;
+  title: string;
+  caption: string;
 }
 
 export interface Asset {

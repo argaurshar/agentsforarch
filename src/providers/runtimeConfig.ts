@@ -11,10 +11,12 @@ export const DEFAULT_MODEL = 'gemini-3-pro-image-preview'; // Nano Banana Pro
 const KEY_STORAGE = 'and-studio.gemini-key';
 const MODEL_STORAGE = 'and-studio.gemini-model';
 const FORCE_MOCK_STORAGE = 'and-studio.force-mock';
+const CLAUDE_KEY_STORAGE = 'and-studio.claude-key';
 
 let apiKey: string | undefined;
 let model: string = DEFAULT_MODEL;
 let forceMock = false;
+let claudeApiKey: string | undefined;
 
 function safeGet(name: string): string | undefined {
   try {
@@ -39,13 +41,16 @@ export function initRuntimeConfig(): {
   model: string;
   remembered: boolean;
   forceMock: boolean;
+  claudeApiKey: string | undefined;
 } {
   const savedKey = safeGet(KEY_STORAGE);
   if (savedKey) apiKey = savedKey;
   const savedModel = safeGet(MODEL_STORAGE);
   if (savedModel) model = savedModel;
   forceMock = safeGet(FORCE_MOCK_STORAGE) === '1';
-  return { apiKey, model, remembered: Boolean(savedKey), forceMock };
+  const savedClaude = safeGet(CLAUDE_KEY_STORAGE);
+  if (savedClaude) claudeApiKey = savedClaude;
+  return { apiKey, model, remembered: Boolean(savedKey), forceMock, claudeApiKey };
 }
 
 export function getGeminiApiKey(): string | undefined {
@@ -54,6 +59,11 @@ export function getGeminiApiKey(): string | undefined {
 
 export function getGeminiModel(): string {
   return model || DEFAULT_MODEL;
+}
+
+/** The Claude (Anthropic) key used by the presentation composer. */
+export function getClaudeApiKey(): string | undefined {
+  return claudeApiKey;
 }
 
 /** When true, the app uses the mock engine even if a key is configured. */
@@ -66,17 +76,21 @@ export function setGeminiConfig(cfg: {
   model?: string;
   remember: boolean;
   forceMock?: boolean;
+  claudeKey?: string | undefined;
 }): void {
   apiKey = cfg.key?.trim() || undefined;
   model = cfg.model?.trim() || DEFAULT_MODEL;
   forceMock = Boolean(cfg.forceMock);
+  claudeApiKey = cfg.claudeKey?.trim() || undefined;
   if (cfg.remember) {
     safeSet(KEY_STORAGE, apiKey ?? null);
     safeSet(MODEL_STORAGE, model);
     safeSet(FORCE_MOCK_STORAGE, forceMock ? '1' : null);
+    safeSet(CLAUDE_KEY_STORAGE, claudeApiKey ?? null);
   } else {
     safeSet(KEY_STORAGE, null);
     safeSet(MODEL_STORAGE, null);
     safeSet(FORCE_MOCK_STORAGE, null);
+    safeSet(CLAUDE_KEY_STORAGE, null);
   }
 }
