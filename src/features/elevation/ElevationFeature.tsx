@@ -1,7 +1,7 @@
 import { RotateCcw, Sparkles, X } from 'lucide-react';
 import { useEffect, useMemo } from 'react';
 import { ImageDropzone } from '../../components/Upload/ImageDropzone';
-import { ImageCompare } from '../../components/Output/ImageCompare';
+import { CompareSection } from '../../components/Output/CompareSection';
 import { OutputGrid } from '../../components/Output/OutputGrid';
 import { RefineChips } from '../../components/Scene/RefineChips';
 import { SceneControls } from '../../components/Scene/SceneControls';
@@ -203,10 +203,7 @@ export function ElevationFeature() {
 
       {/* Before / after — compare the elevation against the input. */}
       {inputUsed && outputs.length > 0 ? (
-        <div className="mt-10">
-          <p className="mono-meta mb-3">Fidelity · Before / After</p>
-          <ImageCompare before={inputUsed} after={outputs[0].url} beforeLabel="Input" afterLabel="Elevation" />
-        </div>
+        <CompareSection before={inputUsed} after={outputs[0].url} beforeLabel="Input" afterLabel="Elevation" />
       ) : null}
     </div>
   );
