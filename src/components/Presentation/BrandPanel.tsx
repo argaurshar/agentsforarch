@@ -72,7 +72,7 @@ export function BrandPanel() {
     setLogoError(null);
     try {
       const raw = await fileToDataURL(file);
-      const resized = await resizeDataURL(raw, 512);
+      const resized = await resizeDataURL(raw, 512, 'image/png'); // PNG keeps logo transparency + embeds in jsPDF
       setBrand({ logo: resized });
     } catch {
       setLogoError('Could not read that logo. Try another file.');

@@ -69,17 +69,24 @@ export function loadImage(src: string): Promise<HTMLImageElement> {
 }
 
 /**
- * Downscale a dataURL so its longest edge is at most `maxEdge`, returning a
- * JPEG dataURL. Images already within bounds are returned unchanged. Keeps
+ * Downscale a dataURL so its longest edge is at most `maxEdge`, re-encoding to
+ * `outputMime`. Images already within bounds are returned unchanged — EXCEPT
+ * WEBP, which is always re-encoded because jsPDF can't reliably embed it (a
+ * WEBP upload or logo would otherwise vanish from the exported PDF). Keeps
  * uploaded/generated images bounded and in-memory state light.
  */
-export async function resizeDataURL(dataURL: string, maxEdge = 1600): Promise<string> {
+export async function resizeDataURL(
+  dataURL: string,
+  maxEdge = 1600,
+  outputMime: 'image/jpeg' | 'image/png' = 'image/jpeg',
+): Promise<string> {
   const img = await loadImage(dataURL);
   const longest = Math.max(img.width, img.height);
-  if (longest <= maxEdge) {
+  const isWebp = dataURL.startsWith('data:image/webp');
+  if (longest <= maxEdge && !isWebp) {
     return dataURL;
   }
-  const scale = maxEdge / longest;
+  const scale = longest > maxEdge ? maxEdge / longest : 1;
   const width = Math.round(img.width * scale);
   const height = Math.round(img.height * scale);
   const canvas = document.createElement('canvas');
@@ -90,7 +97,7 @@ export async function resizeDataURL(dataURL: string, maxEdge = 1600): Promise<st
     return dataURL;
   }
   ctx.drawImage(img, 0, 0, width, height);
-  return canvas.toDataURL('image/jpeg', 0.92);
+  return canvas.toDataURL(outputMime, outputMime === 'image/jpeg' ? 0.92 : undefined);
 }
 
 /** Trigger a browser download of a dataURL/URL. */

@@ -77,9 +77,8 @@ export function PresentationFeature() {
 
   const handleAddSlide = () => {
     const ids = pool.filter((p) => checked.has(p.image.id)).map((p) => p.image.id);
-    if (ids.length === 0) return;
-    const capped = ids.slice(0, 4);
-    const id = addSlide(capped, layoutForCount(capped.length));
+    if (ids.length === 0 || ids.length > 4) return; // the button is disabled past 4
+    const id = addSlide(ids, layoutForCount(ids.length));
     setSelectedSlideId(id);
     setChecked(new Set());
   };
@@ -128,10 +127,11 @@ export function PresentationFeature() {
     if (!files || files.length === 0) return;
     setUploadError(null);
     const images: GeneratedImage[] = [];
+    const errors: string[] = [];
     for (const file of Array.from(files)) {
       const check = validateImageFile(file);
       if (!check.ok) {
-        setUploadError(check.error);
+        errors.push(`${file.name} — ${check.error}`);
         continue;
       }
       try {
@@ -144,10 +144,13 @@ export function PresentationFeature() {
           createdAt: Date.now(),
         });
       } catch {
-        setUploadError('Could not read one of the files.');
+        errors.push(`${file.name} — could not be read`);
       }
     }
     if (images.length > 0) addUploads(images);
+    if (errors.length > 0) {
+      setUploadError(`${errors.length} file${errors.length === 1 ? '' : 's'} skipped: ${errors.join('; ')}`);
+    }
     if (uploadRef.current) uploadRef.current.value = '';
   };
 
@@ -327,10 +330,13 @@ export function PresentationFeature() {
                 size="sm"
                 icon={<Plus size={14} strokeWidth={1.75} />}
                 onClick={handleAddSlide}
-                disabled={checked.size === 0}
+                disabled={checked.size === 0 || checked.size > 4}
               >
                 Add slide
               </Button>
+              {checked.size > 4 ? (
+                <p className="text-[0.7rem] text-ochre">Select at most 4 images per slide ({checked.size} selected).</p>
+              ) : null}
               <button
                 type="button"
                 onClick={() => uploadRef.current?.click()}
@@ -443,3 +449,7 @@ export function PresentationFeature() {
     </div>
   );
 }
+
+// Default export so App can lazy-load this whole tree (Anthropic SDK + jspdf +
+// vendored skill markdown) out of the main chunk.
+export default PresentationFeature;

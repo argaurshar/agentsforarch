@@ -124,6 +124,10 @@ export async function composeDeck(opts: {
     throw friendlyError(err);
   }
 
+  if (message.stop_reason === 'max_tokens') {
+    throw new Error('The composed deck was cut short — try composing with fewer images.');
+  }
+
   const toolUse = message.content.find((block) => block.type === 'tool_use');
   if (!toolUse || toolUse.type !== 'tool_use') {
     throw new Error('Claude did not return a deck. Try again.');
