@@ -60,6 +60,7 @@ export interface ElevationSettings {
 }
 export interface AxonSettings {
   viewpoints: string[]; // NE/NW/SE/SW
+  style: string; // realistic | lineart | bw
   section: boolean;
   scene: SceneOptions;
 }
@@ -123,6 +124,6 @@ export function initialGeneration(): GenerationState {
   return {
     render: baseRun<RenderSettings>({ style: 'photoreal', variations: 2, scene: defaultScene() }, renderPrompt('photoreal')),
     elevation: baseRun<ElevationSettings>({ face: 'Front', style: 'rendered', scene: defaultScene() }, elevationPrompt('Front', 'rendered')),
-    axonometric: baseRun<AxonSettings>({ viewpoints: ['NE'], section: false, scene }, axonometricPrompt(false)),
+    axonometric: baseRun<AxonSettings>({ viewpoints: ['NE'], style: 'realistic', section: false, scene }, axonometricPrompt(false)),
   };
 }

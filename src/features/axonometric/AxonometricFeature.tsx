@@ -8,11 +8,18 @@ import { SceneControls } from '../../components/Scene/SceneControls';
 import { Button } from '../../components/ui/Button';
 import { ErrorBanner } from '../../components/ui/ErrorBanner';
 import { SectionHeader } from '../../components/ui/SectionHeader';
+import { Select } from '../../components/ui/Select';
 import { buildAxonometricPrompt, buildRefinePrompt } from '../../lib/prompts';
 import { useProjectStore } from '../../store/useProjectStore';
 import { useGenerate, usePresentationAdder } from '../hooks';
 
 const VIEWPOINTS = ['NE', 'NW', 'SE', 'SW'] as const;
+
+const STYLE_OPTIONS = [
+  { value: 'realistic', label: 'Realistic render' },
+  { value: 'lineart', label: 'Line art' },
+  { value: 'bw', label: 'Black & white lines' },
+];
 
 export function AxonometricFeature() {
   const { input, settings, mode, refine, prompt, promptEdited } = useProjectStore((s) => s.generation.axonometric);
@@ -24,13 +31,13 @@ export function AxonometricFeature() {
   const exitRefine = useProjectStore((s) => s.exitRefine);
   const removeImage = useProjectStore((s) => s.removeImage);
 
-  const { viewpoints: selected, section, scene } = settings;
+  const { viewpoints: selected, style, section, scene } = settings;
 
-  // Auto-assembled from the section toggle + scene, or (in refine mode) from the
-  // refine chips. Each viewpoint is added per-image by the provider. Editable.
+  // Auto-assembled from the style + section toggle + scene, or (in refine mode)
+  // from the refine chips. Each viewpoint is added per-image by the provider.
   const suggestedPrompt = useMemo(
-    () => (mode === 'refine' ? buildRefinePrompt(refine) : buildAxonometricPrompt({ section, ...scene })),
-    [mode, refine, section, scene],
+    () => (mode === 'refine' ? buildRefinePrompt(refine) : buildAxonometricPrompt({ section, style, ...scene })),
+    [mode, refine, section, style, scene],
   );
   useEffect(() => {
     if (!promptEdited && suggestedPrompt !== prompt) setFeaturePrompt('axonometric', suggestedPrompt, false);
@@ -58,8 +65,8 @@ export function AxonometricFeature() {
       prompt: prompt.trim() || undefined,
       options:
         mode === 'refine'
-          ? { style: section ? 'section' : 'standard', refine: true }
-          : { viewpoints: orderedSelection, style: section ? 'section' : 'standard' },
+          ? { style, section, refine: true }
+          : { viewpoints: orderedSelection, style, section },
     });
   };
 
@@ -82,6 +89,13 @@ export function AxonometricFeature() {
               onClear={() => setFeatureInput('axonometric', null)}
             />
           </div>
+
+          <Select
+            label="Axonometric style"
+            value={style}
+            options={STYLE_OPTIONS}
+            onChange={(v) => updateFeatureSettings('axonometric', { style: v })}
+          />
 
           {/* Viewpoints — multi-select (spec §8.03). */}
           <div className="flex flex-col gap-2">
@@ -148,13 +162,13 @@ export function AxonometricFeature() {
               </div>
               <RefineChips value={refine} onChange={(patch) => patchFeatureRun('axonometric', { refine: { ...refine, ...patch } })} />
             </div>
-          ) : (
+          ) : style === 'realistic' ? (
             <SceneControls
               value={scene}
               onChange={(patch) => updateFeatureSettings('axonometric', { scene: patch })}
               show={{ materials: true, mood: true }}
             />
-          )}
+          ) : null}
 
           <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between gap-3">

@@ -13,6 +13,9 @@ const STYLE_LABELS: Record<string, string> = {
   shaded: 'Shaded',
   standard: 'Axonometric',
   section: 'Section axonometric',
+  realistic: 'Realistic',
+  lineart: 'Line art',
+  bw: 'Black & white',
 };
 
 export function prettyStyle(style: string | undefined, fallback: string): string {
@@ -27,8 +30,7 @@ export function outputLabels(req: GenerateRequest): string[] {
   }
   if (req.feature === 'axonometric') {
     const viewpoints = req.options.viewpoints?.length ? req.options.viewpoints : ['NE'];
-    const section = req.options.style === 'section';
-    return viewpoints.map((vp) => `${vp} axonometric${section ? ' — section' : ''}`);
+    return viewpoints.map((vp) => `${vp} axonometric${req.options.section ? ' — section' : ''}`);
   }
   if (req.feature === 'elevation') {
     const faces = req.options.viewpoints?.length ? req.options.viewpoints : [undefined];

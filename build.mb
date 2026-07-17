@@ -434,3 +434,23 @@ Invariants preserved: TS strict, no new deps, no browser persistence of project 
 prompt textarea editable with Reset semantics, provider adapter seam unchanged,
 default (studio, golden-hour, no arch style) reproduces the previous photoreal prompt
 exactly.
+
+## Addendum · Axonometric — true 3D reconstruction + styles
+
+Reported bug: from a flat elevation the axonometric came back as the same flat,
+front-on view (the old prompt said "preserve proportions with no perspective
+distortion", so the image model just reproduced the input). Fixes:
+
+1. **Rebuild, don't copy.** `buildAxonometricPrompt` (`src/lib/prompts.ts`) now
+   instructs the model to *rebuild the elevation as a 3D massing model*, rotate to a
+   three-quarter corner seen from slightly above (front face + returning side wall +
+   roof all visible) with genuine depth, and explicitly **not** reproduce a flat
+   front-on elevation. The per-image viewpoint (NE/NW/SE/SW) reinforces the corner.
+2. **Style options.** `AxonSettings.style` (`realistic` | `lineart` | `bw`) with an
+   **Axonometric style** select: realistic 3D render (materials + mood + shadows),
+   colour line-art illustration, or pure black-and-white technical linework. Materials/
+   mood scene controls show only for `realistic`.
+3. **Section decoupled from style.** The section-axonometric cut used to be smuggled
+   through `options.style` (`'standard'`/`'section'`); it now travels as its own
+   `options.section` boolean (`src/providers/types.ts`), freeing `style` for the real
+   axonometric style. Labels updated accordingly (`src/providers/labels.ts`).

@@ -42,7 +42,7 @@ disabled, or gated behind another.
 |---|---------|-------|--------|
 | 01 | Sketch / Plan → Render | Hand sketch or floor plan | Styled architectural render, or a **3D isometric "dollhouse" cutaway** from a 2D plan (with before/after compare) |
 | 02 | Sketch / Model → Elevation | Sketch or SketchUp screenshot | Elevation design render (with before/after compare) |
-| 03 | Elevation → Axonometric | Elevation image | Axonometric + section-axonometric views, one per viewpoint (with before/after compare) |
+| 03 | Elevation → Axonometric | Elevation image | True 3D axonometric + section-axonometric views in **realistic / line-art / black-&-white**, one per viewpoint (with before/after compare) |
 | 04 | Concept Presentation | Selected outputs from 01–03 + brand identity | AI-generated self-contained HTML deck, or hand-arranged slides exportable to PDF |
 
 Each feature accepts its input by direct upload, independent of anything else

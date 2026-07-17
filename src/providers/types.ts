@@ -10,9 +10,10 @@ export interface GenerateRequest {
   inputImage: string; // dataURL
   prompt?: string; // optional user styling notes
   options: {
-    style?: string; // e.g. 'photoreal' | 'clay' | 'line'
+    style?: string; // e.g. 'photoreal' | 'clay' | 'line' | axon 'realistic' | 'lineart' | 'bw'
     viewpoints?: string[]; // axonometric viewpoints, or elevation faces for the all-faces batch
     variations?: number; // how many outputs, default 1
+    section?: boolean; // axonometric: also cut a section-axonometric
     refine?: boolean; // this is an iterative refine of an existing output (single job, refined label)
   };
 }

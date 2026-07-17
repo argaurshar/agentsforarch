@@ -133,19 +133,39 @@ export function buildElevationPrompt(a: { face: 'Front' | 'Side' | 'Rear' | null
 
 type AxonSceneArgs = Pick<SceneOptions, 'materials' | 'customMaterials' | 'mood'>;
 
-export function buildAxonometricPrompt(a: { section: boolean } & AxonSceneArgs): string {
+export type AxonStyleKey = 'realistic' | 'lineart' | 'bw';
+
+/**
+ * The critical move: a flat elevation must be REBUILT as a 3D volume and rotated
+ * to a corner view, not reproduced front-on. Without this the model just returns
+ * the input elevation lightly cleaned up (the reported bug). The viewpoint
+ * (NE/NW/SE/SW) is appended per-image by the provider and reinforces the corner.
+ */
+export function buildAxonometricPrompt(a: { section: boolean; style: string } & AxonSceneArgs): string {
   const parts: string[] = [
-    'Generate an architectural axonometric (parallel-projection, roughly 30-degree isometric) view of the ' +
-      'building from the elevation shown. Preserve façade details, openings and proportions with no perspective ' +
-      'distortion. Present it on a clean neutral background with a soft drop shadow, as a professional ' +
-      'presentation drawing.',
+    'Rebuild the building shown in this elevation as a three-dimensional massing model and present it as an architectural axonometric view.',
+    'Rotate to a three-quarter corner viewpoint seen from slightly above, so the front face, the returning side wall and the roof are all clearly visible and the building reads with genuine depth and volume — do NOT reproduce a flat, front-on elevation.',
+    'Use parallel (axonometric / isometric) projection at roughly a 30–45 degree angle with no perspective distortion. Infer a sensible building depth and roof form from the elevation, and keep the façade details, openings and proportions consistent with it.',
   ];
-  const materials = materialsClause(a);
-  if (materials) parts.push(`Render surfaces in ${materials}.`);
-  if (MOODS[a.mood].clause) parts.push(`${MOODS[a.mood].clause}.`);
+  if (a.style === 'lineart') {
+    parts.push(
+      'Draw it as a clean colour line-art axonometric illustration: crisp confident outlines with light flat colour fills and minimal shading, centred on a plain white background.',
+    );
+  } else if (a.style === 'bw') {
+    parts.push(
+      'Draw it as a pure black-and-white line axonometric: consistent hidden-line-removed technical linework, no colour and no shading, centred on a plain white background.',
+    );
+  } else {
+    const materials = materialsClause(a);
+    if (materials) parts.push(`Materials: ${materials}.`);
+    parts.push(
+      'Render it with realistic materials, colour and texture, soft natural daylight and gentle contact shadows — a polished three-dimensional presentation model on a clean neutral background with a soft drop shadow.',
+    );
+    if (MOODS[a.mood].clause) parts.push(`${MOODS[a.mood].clause}.`);
+  }
   if (a.section) {
     parts.push(
-      'Cut it as a section-axonometric: slice through the volume to reveal interior floor plates, structure ' +
+      'Additionally cut it as a section-axonometric: slice through the volume to reveal interior floor plates, structure ' +
         'and rooms, with solid poché-filled cut surfaces.',
     );
   }
@@ -182,7 +202,7 @@ export function elevationPrompt(face: string, style: string): string {
   return buildElevationPrompt({ face: f, style, materials, customMaterials, lighting, mood });
 }
 
-export function axonometricPrompt(section: boolean): string {
+export function axonometricPrompt(section: boolean, style = 'realistic'): string {
   const { materials, customMaterials, mood } = defaultScene();
-  return buildAxonometricPrompt({ section, materials, customMaterials, mood });
+  return buildAxonometricPrompt({ section, style, materials, customMaterials, mood });
 }
