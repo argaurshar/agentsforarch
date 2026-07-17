@@ -131,8 +131,6 @@ export function buildElevationPrompt(a: { face: 'Front' | 'Side' | 'Rear' | null
 
 // --- Axonometric ------------------------------------------------------------
 
-type AxonSceneArgs = Pick<SceneOptions, 'materials' | 'customMaterials' | 'mood'>;
-
 export type AxonStyleKey = 'realistic' | 'lineart' | 'bw';
 
 /**
@@ -140,8 +138,12 @@ export type AxonStyleKey = 'realistic' | 'lineart' | 'bw';
  * to a corner view, not reproduced front-on. Without this the model just returns
  * the input elevation lightly cleaned up (the reported bug). The viewpoint
  * (NE/NW/SE/SW) is appended per-image by the provider and reinforces the corner.
+ *
+ * This is a pure conversion of an already-rendered image, so it never introduces
+ * or restyles materials — the realistic style preserves the input's materials,
+ * colours and textures exactly.
  */
-export function buildAxonometricPrompt(a: { section: boolean; style: string } & AxonSceneArgs): string {
+export function buildAxonometricPrompt(a: { section: boolean; style: string }): string {
   const parts: string[] = [
     'Rebuild the building shown in this elevation as a three-dimensional massing model and present it as an architectural axonometric view.',
     'Rotate to a three-quarter corner viewpoint seen from slightly above, so the front face, the returning side wall and the roof are all clearly visible and the building reads with genuine depth and volume — do NOT reproduce a flat, front-on elevation.',
@@ -156,12 +158,10 @@ export function buildAxonometricPrompt(a: { section: boolean; style: string } & 
       'Draw it as a pure black-and-white line axonometric: consistent hidden-line-removed technical linework, no colour and no shading, centred on a plain white background.',
     );
   } else {
-    const materials = materialsClause(a);
-    if (materials) parts.push(`Materials: ${materials}.`);
     parts.push(
-      'Render it with realistic materials, colour and texture, soft natural daylight and gentle contact shadows — a polished three-dimensional presentation model on a clean neutral background with a soft drop shadow.',
+      'Preserve the exact materials, colours and textures shown in the input image — do not change, add or restyle any material. ' +
+        'Render it as a realistic three-dimensional presentation model with soft natural daylight and gentle contact shadows, on a clean neutral background with a soft drop shadow.',
     );
-    if (MOODS[a.mood].clause) parts.push(`${MOODS[a.mood].clause}.`);
   }
   if (a.section) {
     parts.push(
@@ -203,6 +203,5 @@ export function elevationPrompt(face: string, style: string): string {
 }
 
 export function axonometricPrompt(section: boolean, style = 'realistic'): string {
-  const { materials, customMaterials, mood } = defaultScene();
-  return buildAxonometricPrompt({ section, style, materials, customMaterials, mood });
+  return buildAxonometricPrompt({ section, style });
 }

@@ -4,7 +4,6 @@ import { ImageDropzone } from '../../components/Upload/ImageDropzone';
 import { CompareSection } from '../../components/Output/CompareSection';
 import { OutputGrid } from '../../components/Output/OutputGrid';
 import { RefineChips } from '../../components/Scene/RefineChips';
-import { SceneControls } from '../../components/Scene/SceneControls';
 import { Button } from '../../components/ui/Button';
 import { ErrorBanner } from '../../components/ui/ErrorBanner';
 import { SectionHeader } from '../../components/ui/SectionHeader';
@@ -31,13 +30,15 @@ export function AxonometricFeature() {
   const exitRefine = useProjectStore((s) => s.exitRefine);
   const removeImage = useProjectStore((s) => s.removeImage);
 
-  const { viewpoints: selected, style, section, scene } = settings;
+  const { viewpoints: selected, style, section } = settings;
 
-  // Auto-assembled from the style + section toggle + scene, or (in refine mode)
-  // from the refine chips. Each viewpoint is added per-image by the provider.
+  // Auto-assembled from the style + section toggle, or (in refine mode) from the
+  // refine chips. Each viewpoint is added per-image by the provider. This is a
+  // pure conversion of the input, so there are no materials/scene controls — the
+  // input's materials are preserved.
   const suggestedPrompt = useMemo(
-    () => (mode === 'refine' ? buildRefinePrompt(refine) : buildAxonometricPrompt({ section, style, ...scene })),
-    [mode, refine, section, style, scene],
+    () => (mode === 'refine' ? buildRefinePrompt(refine) : buildAxonometricPrompt({ section, style })),
+    [mode, refine, section, style],
   );
   useEffect(() => {
     if (!promptEdited && suggestedPrompt !== prompt) setFeaturePrompt('axonometric', suggestedPrompt, false);
@@ -162,12 +163,6 @@ export function AxonometricFeature() {
               </div>
               <RefineChips value={refine} onChange={(patch) => patchFeatureRun('axonometric', { refine: { ...refine, ...patch } })} />
             </div>
-          ) : style === 'realistic' ? (
-            <SceneControls
-              value={scene}
-              onChange={(patch) => updateFeatureSettings('axonometric', { scene: patch })}
-              show={{ materials: true, mood: true }}
-            />
           ) : null}
 
           <div className="flex flex-col gap-2">
