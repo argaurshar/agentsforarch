@@ -93,7 +93,7 @@ export function RenderFeature() {
             <SceneControls
               value={scene}
               onChange={(patch) => updateFeatureSettings('render', { scene: patch })}
-              show={{ archStyle: true, materials: true }}
+              show={{ archStyle: true }}
             />
           )}
 
