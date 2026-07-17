@@ -2,11 +2,12 @@ import { RotateCcw, Sparkles, X } from 'lucide-react';
 import { useEffect, useMemo } from 'react';
 import { ImageDropzone } from '../../components/Upload/ImageDropzone';
 import { OutputGrid } from '../../components/Output/OutputGrid';
+import { SceneControls } from '../../components/Scene/SceneControls';
 import { Button } from '../../components/ui/Button';
 import { ErrorBanner } from '../../components/ui/ErrorBanner';
 import { SectionHeader } from '../../components/ui/SectionHeader';
 import { Select } from '../../components/ui/Select';
-import { elevationPrompt } from '../../lib/prompts';
+import { buildElevationPrompt } from '../../lib/prompts';
 import { useProjectStore } from '../../store/useProjectStore';
 import type { ElevationSettings } from '../../store/generation';
 import { useGenerate, usePresentationAdder } from '../hooks';
@@ -30,9 +31,12 @@ export function ElevationFeature() {
   const setFeaturePrompt = useProjectStore((s) => s.setFeaturePrompt);
   const removeImage = useProjectStore((s) => s.removeImage);
 
-  const { face, style } = settings;
+  const { face, style, scene } = settings;
 
-  const suggestedPrompt = useMemo(() => elevationPrompt(face, style), [face, style]);
+  const suggestedPrompt = useMemo(
+    () => buildElevationPrompt({ face: face === 'All' ? null : face, style, ...scene }),
+    [face, style, scene],
+  );
   useEffect(() => {
     if (!promptEdited && suggestedPrompt !== prompt) setFeaturePrompt('elevation', suggestedPrompt, false);
   }, [suggestedPrompt, promptEdited, prompt, setFeaturePrompt]);
@@ -88,6 +92,12 @@ export function ElevationFeature() {
               onChange={(v) => updateFeatureSettings('elevation', { style: v })}
             />
           </div>
+
+          <SceneControls
+            value={scene}
+            onChange={(patch) => updateFeatureSettings('elevation', { scene: patch })}
+            show={{ materials: style === 'rendered', lighting: style === 'rendered', mood: true }}
+          />
 
           <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between gap-3">

@@ -6,7 +6,10 @@
 // React, no provider imports — so this file stays cheap and in the main chunk.
 
 import { axonometricPrompt, elevationPrompt, renderPrompt } from '../lib/prompts';
+import { defaultScene } from '../lib/scene';
 import type { GeneratedImage } from '../types';
+
+export { defaultScene };
 
 export type GenerateStatus = 'idle' | 'loading' | 'error' | 'done';
 export type FeatureMode = 'compose' | 'refine';
@@ -29,20 +32,6 @@ export interface SceneOptions {
   context: ContextKey;
   setting: SettingKey;
   entourage: boolean; // include people for scale
-}
-
-export function defaultScene(): SceneOptions {
-  // Reproduces today's photoreal default (studio materials + golden hour, exterior).
-  return {
-    materials: 'studio',
-    customMaterials: '',
-    lighting: 'golden-hour',
-    season: 'none',
-    mood: 'none',
-    context: 'none',
-    setting: 'exterior',
-    entourage: false,
-  };
 }
 
 export interface RenderSettings {

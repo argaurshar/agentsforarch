@@ -21,6 +21,9 @@ export function prettyStyle(style: string | undefined, fallback: string): string
 
 /** One label per output image the request will produce, in order. */
 export function outputLabels(req: GenerateRequest): string[] {
+  if (req.options.refine) {
+    return [`${prettyStyle(req.options.style, 'Image')} — refined`];
+  }
   if (req.feature === 'axonometric') {
     const viewpoints = req.options.viewpoints?.length ? req.options.viewpoints : ['NE'];
     const section = req.options.style === 'section';

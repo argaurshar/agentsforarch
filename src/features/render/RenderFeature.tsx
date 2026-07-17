@@ -3,11 +3,12 @@ import { useEffect, useMemo } from 'react';
 import { ImageDropzone } from '../../components/Upload/ImageDropzone';
 import { ImageCompare } from '../../components/Output/ImageCompare';
 import { OutputGrid } from '../../components/Output/OutputGrid';
+import { SceneControls } from '../../components/Scene/SceneControls';
 import { Button } from '../../components/ui/Button';
 import { ErrorBanner } from '../../components/ui/ErrorBanner';
 import { SectionHeader } from '../../components/ui/SectionHeader';
 import { Select } from '../../components/ui/Select';
-import { renderPrompt } from '../../lib/prompts';
+import { buildRenderPrompt } from '../../lib/prompts';
 import { useProjectStore } from '../../store/useProjectStore';
 import { useGenerate, usePresentationAdder } from '../hooks';
 
@@ -31,10 +32,10 @@ export function RenderFeature() {
   const setFeaturePrompt = useProjectStore((s) => s.setFeaturePrompt);
   const removeImage = useProjectStore((s) => s.removeImage);
 
-  const { style, variations } = settings;
+  const { style, variations, scene } = settings;
 
-  // Prompt is auto-generated from the chosen style; the user can edit it.
-  const suggestedPrompt = useMemo(() => renderPrompt(style), [style]);
+  // Prompt is auto-assembled from the style + scene choices; the user can edit it.
+  const suggestedPrompt = useMemo(() => buildRenderPrompt({ style, ...scene }), [style, scene]);
   useEffect(() => {
     if (!promptEdited && suggestedPrompt !== prompt) setFeaturePrompt('render', suggestedPrompt, false);
   }, [suggestedPrompt, promptEdited, prompt, setFeaturePrompt]);
@@ -89,6 +90,14 @@ export function RenderFeature() {
               onChange={(v) => updateFeatureSettings('render', { variations: Number(v) })}
             />
           </div>
+
+          {style === 'photoreal' ? (
+            <SceneControls
+              value={scene}
+              onChange={(patch) => updateFeatureSettings('render', { scene: patch })}
+              show={{ materials: true, lighting: true, setting: true, context: true, season: true, mood: true, entourage: true }}
+            />
+          ) : null}
 
           <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between gap-3">

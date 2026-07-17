@@ -1,38 +1,68 @@
-// Auto-generated default prompts, tuned for Google's Nano Banana Pro
-// (Gemini 3 Pro Image) architectural image editing. Each prompt describes the
-// transformation while insisting the model PRESERVE the input geometry — the
-// key move for image-to-image edits. Users can edit these in the UI, but they
-// never have to write one from scratch.
+// Prompt builder, tuned for Google's Nano Banana Pro (Gemini 3 Pro Image)
+// architectural image editing. Each prompt describes the transformation while
+// insisting the model PRESERVE the input geometry — the key move for
+// image-to-image edits. The builders assemble a prompt from one-click scene
+// choices (src/lib/scene.ts) so architects never write a prompt for a basic
+// change; the UI textarea still lets them edit the result.
 
-const RENDER_PROMPTS: Record<string, string> = {
-  photoreal:
-    'Transform this architectural sketch or plan into a photorealistic exterior render. ' +
-    'Preserve the exact geometry, proportions, massing and composition of the original drawing. ' +
-    'Materials: board-formed concrete, warm oak slats, matte black steel, floor-to-ceiling low-iron glazing. ' +
-    'Lighting: golden-hour sun, soft directional shadows, subtle ambient occlusion, gentle reflections on glass, clear sky. ' +
-    'Physically based rendering, high dynamic range, crisp material detail, professional architectural visualization, ' +
-    '24mm architectural lens, eye-level view, ultra-detailed.',
-  clay:
-    'Turn this architectural sketch into a clean clay / white-model massing render. ' +
-    'Preserve the exact geometry and proportions of the original. ' +
-    'Uniform matte off-white clay material with no textures, soft neutral studio lighting, ' +
-    'gentle ambient occlusion in the recesses, subtle contact shadows on a plain light-grey ground, ' +
-    'monochrome architectural massing study aesthetic.',
-  line:
-    'Convert this sketch into a precise black-and-white architectural line drawing. ' +
-    'Preserve every edge, opening and proportion. ' +
-    'Clean consistent line weights, crisp hidden-line-removed linework, pure white background, ' +
-    'no shading and no colour, technical hand-drafted ink presentation aesthetic.',
-  watercolour:
-    'Render this architectural sketch as an elegant architectural watercolour illustration. ' +
-    'Preserve the geometry and composition. ' +
-    'Soft translucent washes, loose confident edges, warm muted palette, subtle paper texture, ' +
-    'gently graded skies, hand-painted presentation illustration, light and airy.',
-};
+import type { RefineChipKey } from './refine';
+import { REFINE_CHIPS } from './refine';
+import { CONTEXTS, LIGHTING, MOODS, SEASONS, defaultScene, materialsClause } from './scene';
+import type { SceneOptions } from '../store/generation';
 
-export function renderPrompt(style: string): string {
-  return RENDER_PROMPTS[style] ?? RENDER_PROMPTS.photoreal;
+// --- Render -----------------------------------------------------------------
+
+const CLAY_PROMPT =
+  'Turn this architectural sketch into a clean clay / white-model massing render. ' +
+  'Preserve the exact geometry and proportions of the original. ' +
+  'Uniform matte off-white clay material with no textures, soft neutral studio lighting, ' +
+  'gentle ambient occlusion in the recesses, subtle contact shadows on a plain light-grey ground, ' +
+  'monochrome architectural massing study aesthetic.';
+
+const LINE_PROMPT =
+  'Convert this sketch into a precise black-and-white architectural line drawing. ' +
+  'Preserve every edge, opening and proportion. ' +
+  'Clean consistent line weights, crisp hidden-line-removed linework, pure white background, ' +
+  'no shading and no colour, technical hand-drafted ink presentation aesthetic.';
+
+const WATERCOLOUR_PROMPT =
+  'Render this architectural sketch as an elegant architectural watercolour illustration. ' +
+  'Preserve the geometry and composition. ' +
+  'Soft translucent washes, loose confident edges, warm muted palette, subtle paper texture, ' +
+  'gently graded skies, hand-painted presentation illustration, light and airy.';
+
+export type RenderStyleKey = 'photoreal' | 'clay' | 'line' | 'watercolour';
+
+/** Assemble a render prompt from the style + scene choices. */
+export function buildRenderPrompt(a: { style: string } & SceneOptions): string {
+  if (a.style === 'clay') return CLAY_PROMPT;
+  if (a.style === 'line') return LINE_PROMPT;
+  if (a.style === 'watercolour') return WATERCOLOUR_PROMPT;
+
+  const interior = a.setting === 'interior';
+  const parts: string[] = [
+    `Transform this architectural sketch or plan into a photorealistic ${interior ? 'interior' : 'exterior'} render.`,
+    'Preserve the exact geometry, proportions, massing and composition of the original drawing.',
+  ];
+  const materials = materialsClause(a);
+  if (materials) parts.push(`Materials: ${materials}.`);
+  parts.push(`Lighting: ${LIGHTING[a.lighting].clause}.`);
+  if (interior) {
+    parts.push("Interior view — preserve the room's layout, openings and proportions.");
+  } else if (CONTEXTS[a.context].clause) {
+    parts.push(`Context: ${CONTEXTS[a.context].clause}.`);
+  }
+  if (SEASONS[a.season].clause) parts.push(`Season: ${SEASONS[a.season].clause}.`);
+  if (MOODS[a.mood].clause) parts.push(`Mood: ${MOODS[a.mood].clause}.`);
+  parts.push(a.entourage ? 'Include a few softly rendered people for scale.' : 'No people.');
+  parts.push(
+    'Physically based rendering, high dynamic range, crisp material detail, professional architectural ' +
+      'visualization, 24mm architectural lens, eye-level view, ultra-detailed.',
+  );
+  return parts.join(' ');
 }
+
+// --- Elevation --------------------------------------------------------------
 
 const ELEVATION_STYLE_CLAUSE: Record<string, string> = {
   line: 'Precise consistent line weights, hidden-line-removed monochrome technical drafting linework, no shading.',
@@ -42,25 +72,88 @@ const ELEVATION_STYLE_CLAUSE: Record<string, string> = {
     'Greyscale shaded elevation with soft tonal shadows describing depth and relief, restrained material hatching.',
 };
 
-export function elevationPrompt(face: string, style: string): string {
-  const clause = ELEVATION_STYLE_CLAUSE[style] ?? ELEVATION_STYLE_CLAUSE.rendered;
+type ElevationSceneArgs = Pick<SceneOptions, 'materials' | 'customMaterials' | 'lighting' | 'mood'>;
+
+/** `face === null` yields a face-neutral base (the all-faces batch appends the per-face clause). */
+export function buildElevationPrompt(a: { face: 'Front' | 'Side' | 'Rear' | null; style: string } & ElevationSceneArgs): string {
+  const faceClause =
+    a.face === null
+      ? 'elevation'
+      : a.face === 'Front'
+        ? 'front elevation, viewed straight-on'
+        : a.face === 'Rear'
+          ? 'rear elevation, viewed straight-on from behind'
+          : "side elevation, a true orthographic view of the building's flank";
+  const styleClause = ELEVATION_STYLE_CLAUSE[a.style] ?? ELEVATION_STYLE_CLAUSE.rendered;
+
+  const parts: string[] = [
+    `Produce a clean, orthographic ${faceClause} of the building shown, as a flat architectural drawing.`,
+    'Maintain accurate proportions and align every element to a true vertical and horizontal grid with no perspective. Neutral white background.',
+  ];
+  if (a.style === 'rendered') {
+    const materials = materialsClause(a);
+    if (materials) parts.push(`Materials: ${materials}.`);
+    parts.push(`Lighting: ${LIGHTING[a.lighting].clause}.`);
+  }
+  parts.push(styleClause);
+  if (MOODS[a.mood].clause) parts.push(`${MOODS[a.mood].clause}.`);
+  return parts.join(' ');
+}
+
+// --- Axonometric ------------------------------------------------------------
+
+type AxonSceneArgs = Pick<SceneOptions, 'materials' | 'customMaterials' | 'mood'>;
+
+export function buildAxonometricPrompt(a: { section: boolean } & AxonSceneArgs): string {
+  const parts: string[] = [
+    'Generate an architectural axonometric (parallel-projection, roughly 30-degree isometric) view of the ' +
+      'building from the elevation shown. Preserve façade details, openings and proportions with no perspective ' +
+      'distortion. Present it on a clean neutral background with a soft drop shadow, as a professional ' +
+      'presentation drawing.',
+  ];
+  const materials = materialsClause(a);
+  if (materials) parts.push(`Render surfaces in ${materials}.`);
+  if (MOODS[a.mood].clause) parts.push(`${MOODS[a.mood].clause}.`);
+  if (a.section) {
+    parts.push(
+      'Cut it as a section-axonometric: slice through the volume to reveal interior floor plates, structure ' +
+        'and rooms, with solid poché-filled cut surfaces.',
+    );
+  }
+  return parts.join(' ');
+}
+
+// --- Refine -----------------------------------------------------------------
+
+/** Turn the refine chips + free text into an edit instruction (P2). */
+export function buildRefinePrompt(a: { chips: string[]; freeText: string }): string {
+  const changes = a.chips
+    .map((c) => REFINE_CHIPS.find((r) => r.key === (c as RefineChipKey))?.clause)
+    .filter((c): c is string => Boolean(c));
+  const free = a.freeText.trim();
+  if (free) changes.push(free);
+  const list = changes.length ? changes.join('; ') : 'subtly improve the image';
   return (
-    `Produce a clean, orthographic ${face.toLowerCase()} elevation of the building shown, as a flat frontal ` +
-    'architectural drawing. Maintain accurate proportions and align every element to a true vertical and ' +
-    'horizontal grid with no perspective. Neutral white background. ' +
-    clause
+    'Edit this image. Keep the composition, geometry, camera angle and proportions exactly as shown. ' +
+    `Apply only these changes: ${list}.`
   );
 }
 
+// --- Legacy wrappers (default scene) ----------------------------------------
+// Used by generation.ts for the initial suggested prompt; the feature screens
+// call the builders above directly with live scene choices.
+
+export function renderPrompt(style: string): string {
+  return buildRenderPrompt({ style, ...defaultScene() });
+}
+
+export function elevationPrompt(face: string, style: string): string {
+  const { materials, customMaterials, lighting, mood } = defaultScene();
+  const f = face === 'All' ? null : (face as 'Front' | 'Side' | 'Rear');
+  return buildElevationPrompt({ face: f, style, materials, customMaterials, lighting, mood });
+}
+
 export function axonometricPrompt(section: boolean): string {
-  const base =
-    'Generate an architectural axonometric (parallel-projection, roughly 30-degree isometric) view of the ' +
-    'building from the elevation shown. Preserve façade details, openings and proportions with no perspective ' +
-    'distortion. Present it on a clean neutral background with a soft drop shadow, as a professional ' +
-    'presentation drawing.';
-  if (!section) return base;
-  return (
-    `${base} Cut it as a section-axonometric: slice through the volume to reveal interior floor plates, ` +
-    'structure and rooms, with solid poché-filled cut surfaces.'
-  );
+  const { materials, customMaterials, mood } = defaultScene();
+  return buildAxonometricPrompt({ section, materials, customMaterials, mood });
 }

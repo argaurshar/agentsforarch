@@ -2,10 +2,11 @@ import { RotateCcw, Sparkles, X } from 'lucide-react';
 import { useEffect, useMemo } from 'react';
 import { ImageDropzone } from '../../components/Upload/ImageDropzone';
 import { OutputGrid } from '../../components/Output/OutputGrid';
+import { SceneControls } from '../../components/Scene/SceneControls';
 import { Button } from '../../components/ui/Button';
 import { ErrorBanner } from '../../components/ui/ErrorBanner';
 import { SectionHeader } from '../../components/ui/SectionHeader';
-import { axonometricPrompt } from '../../lib/prompts';
+import { buildAxonometricPrompt } from '../../lib/prompts';
 import { useProjectStore } from '../../store/useProjectStore';
 import { useGenerate, usePresentationAdder } from '../hooks';
 
@@ -18,11 +19,11 @@ export function AxonometricFeature() {
   const setFeaturePrompt = useProjectStore((s) => s.setFeaturePrompt);
   const removeImage = useProjectStore((s) => s.removeImage);
 
-  const { viewpoints: selected, section } = settings;
+  const { viewpoints: selected, section, scene } = settings;
 
-  // Auto-generated from the section toggle; each viewpoint is added per-image
-  // by the provider. Editable by the user.
-  const suggestedPrompt = useMemo(() => axonometricPrompt(section), [section]);
+  // Auto-assembled from the section toggle + scene; each viewpoint is added
+  // per-image by the provider. Editable by the user.
+  const suggestedPrompt = useMemo(() => buildAxonometricPrompt({ section, ...scene }), [section, scene]);
   useEffect(() => {
     if (!promptEdited && suggestedPrompt !== prompt) setFeaturePrompt('axonometric', suggestedPrompt, false);
   }, [suggestedPrompt, promptEdited, prompt, setFeaturePrompt]);
@@ -124,6 +125,12 @@ export function AxonometricFeature() {
               />
             </button>
           </div>
+
+          <SceneControls
+            value={scene}
+            onChange={(patch) => updateFeatureSettings('axonometric', { scene: patch })}
+            show={{ materials: true, mood: true }}
+          />
 
           <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between gap-3">

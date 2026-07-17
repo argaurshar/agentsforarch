@@ -30,7 +30,13 @@ import type {
   GenerateStatus,
   GenerationState,
   RenderSettings,
+  SceneOptions,
 } from './generation';
+
+/** A settings patch: any feature option, plus a *partial* scene (deep-merged). */
+type FeatureSettingsPatch = Partial<Omit<RenderSettings & ElevationSettings & AxonSettings, 'scene'>> & {
+  scene?: Partial<SceneOptions>;
+};
 
 // All project data access lives here (spec §9 — auth/persistence seam). No
 // component reads or writes the model directly; they go through these actions.
@@ -96,10 +102,7 @@ interface ProjectState {
   generation: GenerationState;
   patchFeatureRun: (feature: FeatureKind, patch: Partial<Omit<FeatureRun<FeatureSettings>, 'settings'>>) => void;
   setFeatureInput: (feature: FeatureKind, dataURL: string | null) => void;
-  updateFeatureSettings: (
-    feature: FeatureKind,
-    patch: Partial<RenderSettings & ElevationSettings & AxonSettings>,
-  ) => void;
+  updateFeatureSettings: (feature: FeatureKind, patch: FeatureSettingsPatch) => void;
   setFeaturePrompt: (feature: FeatureKind, prompt: string, edited: boolean) => void;
   beginRefine: (feature: FeatureKind, image: GeneratedImage) => void;
   exitRefine: (feature: FeatureKind) => void;
