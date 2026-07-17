@@ -73,10 +73,30 @@ and guides you to add some.
 ### Prompts are automatic
 
 Every generation feature ships an auto-generated, model-tuned prompt
-(`src/lib/prompts.ts`) that pre-fills the prompt field — users never have to
-write one. The field stays fully editable, with a **Reset** to return to the
-suggestion; changing a control (style, elevation face, section) regenerates the
-suggestion unless you've edited it.
+(`src/lib/prompts.ts` + `src/lib/scene.ts`) that pre-fills the prompt field —
+users never have to write one. The field stays fully editable, with a **Reset**
+to return to the suggestion; changing any control regenerates the suggestion
+unless you've edited it.
+
+### Scene controls, refine loop & pipeline (no prompting for basics)
+
+- **Scene controls** — one-click chips/selects for **materials, lighting /
+  time of day, season, mood, context, interior vs exterior, and people** assemble
+  the prompt automatically (`src/components/Scene/SceneControls.tsx`). Change a
+  material or the time of day without touching the prompt.
+- **Refine loop** — every output has a **Refine** action that loads it back as
+  the input with quick-action chips (warmer light, more glass, add greenery,
+  remove people, simplify façade, …) and free text; the edit keeps the exact
+  composition, geometry and camera and changes only what you picked. Refined
+  outputs can be refined again.
+- **Cross-feature pipeline** — **Send to Elevation / Axonometric** on any output
+  seeds the next feature's input directly (no download/re-upload). Elevation also
+  has an **All faces (Front · Side · Rear)** batch.
+
+Generation state (input, settings, outputs) lives in the store, so an in-flight
+run survives a tab switch and can be **Cancelled**; a partial batch failure keeps
+the images that succeeded. Nothing is persisted (in-memory by design) — a
+`beforeunload` warning guards against losing work.
 
 ### Generating real images (Nano Banana Pro)
 
