@@ -14,7 +14,7 @@ interface NavItem {
 // All four features are always present and always clickable (spec §1). None is
 // ever locked, greyed out, or gated behind another feature.
 const NAV_ITEMS: NavItem[] = [
-  { key: 'render', index: '01', name: 'Render', sub: 'Sketch to Render', icon: PencilRuler },
+  { key: 'render', index: '01', name: 'Isometric', sub: 'Floor Plan to 3D', icon: PencilRuler },
   { key: 'elevation', index: '02', name: 'Elevation', sub: 'Sketch to Elevation', icon: Building2 },
   { key: 'axonometric', index: '03', name: 'Axonometric', sub: 'Elevation to Axonometric', icon: Box },
   { key: 'presentation', index: '04', name: 'Presentation', sub: 'Concept Presentation', icon: LayoutTemplate },
