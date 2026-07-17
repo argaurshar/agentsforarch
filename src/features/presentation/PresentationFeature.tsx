@@ -1,4 +1,4 @@
-import { FileDown, ImagePlus, Images, LayoutGrid, Plus, Sparkles, Wand2 } from 'lucide-react';
+import { FileDown, ImagePlus, Images, LayoutGrid, Plus, Sparkles, Trash2, Wand2 } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
 import { BrandPanel } from '../../components/Presentation/BrandPanel';
 import { DeckGenerator } from '../../components/Presentation/DeckGenerator';
@@ -39,6 +39,7 @@ export function PresentationFeature() {
   const setTab = useProjectStore((s) => s.setTab);
   const setComposedSlides = useProjectStore((s) => s.setComposedSlides);
   const addUploads = useProjectStore((s) => s.addUploads);
+  const removeImage = useProjectStore((s) => s.removeImage);
 
   const pool = useMemo(() => poolFromProject(project), [project]);
   const imageMap = useMemo(() => imageMapFromProject(project), [project]);
@@ -277,29 +278,42 @@ export function PresentationFeature() {
                     {groupImages.map((ref) => {
                       const isChecked = checked.has(ref.image.id);
                       return (
-                        <button
+                        <div
                           key={ref.image.id}
-                          type="button"
-                          onClick={() => toggleChecked(ref.image.id)}
-                          aria-pressed={isChecked}
-                          className={`flex items-center gap-2 border p-1.5 text-left transition-colors focus-visible:outline-ochre ${
-                            isChecked ? 'border-ochre bg-drafting' : 'border-hairline bg-paper hover:bg-drafting'
+                          className={`flex items-stretch border transition-colors ${
+                            isChecked ? 'border-ochre bg-drafting' : 'border-hairline bg-paper'
                           }`}
                         >
-                          <span
-                            className={`flex h-4 w-4 shrink-0 items-center justify-center border ${
-                              isChecked ? 'border-ochre bg-ochre' : 'border-mist bg-paper'
-                            }`}
+                          <button
+                            type="button"
+                            onClick={() => toggleChecked(ref.image.id)}
+                            aria-pressed={isChecked}
+                            className="flex min-w-0 flex-1 items-center gap-2 p-1.5 text-left hover:bg-drafting focus-visible:outline-ochre"
                           >
-                            {isChecked ? <span className="h-1.5 w-1.5 bg-bone" /> : null}
-                          </span>
-                          <span className="h-8 w-11 shrink-0 overflow-hidden border border-hairline bg-drafting">
-                            <img src={ref.image.url} alt="" className="h-full w-full object-cover" />
-                          </span>
-                          <span className="mono-meta truncate text-graphite" title={ref.image.label}>
-                            {ref.image.label}
-                          </span>
-                        </button>
+                            <span
+                              className={`flex h-4 w-4 shrink-0 items-center justify-center border ${
+                                isChecked ? 'border-ochre bg-ochre' : 'border-mist bg-paper'
+                              }`}
+                            >
+                              {isChecked ? <span className="h-1.5 w-1.5 bg-bone" /> : null}
+                            </span>
+                            <span className="h-8 w-11 shrink-0 overflow-hidden border border-hairline bg-drafting">
+                              <img src={ref.image.url} alt="" className="h-full w-full object-cover" />
+                            </span>
+                            <span className="mono-meta truncate text-graphite" title={ref.image.label}>
+                              {ref.image.label}
+                            </span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => removeImage(ref.image.id)}
+                            className="flex shrink-0 items-center border-l border-hairline px-2 text-mist hover:text-ochre focus-visible:outline-ochre"
+                            title="Remove from project"
+                            aria-label={`Remove ${ref.image.label}`}
+                          >
+                            <Trash2 size={13} strokeWidth={1.75} />
+                          </button>
+                        </div>
                       );
                     })}
                   </div>

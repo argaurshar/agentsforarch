@@ -29,6 +29,7 @@ export function RenderFeature() {
   const setFeatureInput = useProjectStore((s) => s.setFeatureInput);
   const updateFeatureSettings = useProjectStore((s) => s.updateFeatureSettings);
   const setFeaturePrompt = useProjectStore((s) => s.setFeaturePrompt);
+  const removeImage = useProjectStore((s) => s.removeImage);
 
   const { style, variations } = settings;
 
@@ -150,6 +151,7 @@ export function RenderFeature() {
               loadingCount={variations}
               onAddToPresentation={addToPresentation}
               addedIds={addedIds}
+              onDelete={removeImage}
             />
           ) : !error ? (
             <div className="flex flex-1 items-center justify-center border border-dashed border-hairline bg-paper px-6 py-16 text-center">

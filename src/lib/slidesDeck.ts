@@ -13,7 +13,19 @@ import { IMAGE_TOKEN, LOGO_TOKEN, buildSkillSystemPrompt } from './skill/fronten
 // This path is used ONLY by the Concept Presentation tab.
 
 const CLAUDE_MODEL = 'claude-opus-4-8';
-const MAX_TOKENS = 32000;
+// Adaptive thinking counts against this budget, and the deck must inline the
+// whole viewport-base.css + controller + every slide — 64k gives long decks room.
+const MAX_TOKENS = 64000;
+
+// 1×1 transparent PNG — stands in for an image token the model referenced but we
+// never provided, so the deck never ships a broken <img src="{{IMG_9}}">.
+const BLANK_PNG =
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
+
+export interface DeckResult {
+  html: string;
+  warnings: string[];
+}
 
 export type DeckPurpose = 'Pitch deck' | 'Teaching / tutorial' | 'Conference talk' | 'Internal presentation';
 export type DeckLength = 'Short (5–10 slides)' | 'Medium (10–20 slides)' | 'Long (20+ slides)';
@@ -131,9 +143,10 @@ function buildUserMessage(input: GenerateDeckInput): string {
 
 /**
  * Generate a self-contained HTML presentation with the frontend-slides skill.
- * Returns the final HTML (image tokens already replaced with embedded images).
+ * Returns the final HTML (image tokens replaced with embedded images) plus any
+ * non-fatal warnings (unused images, an unresolved token, a length cap).
  */
-export async function generateSlideDeck(input: GenerateDeckInput): Promise<string> {
+export async function generateSlideDeck(input: GenerateDeckInput): Promise<DeckResult> {
   const key = getClaudeApiKey();
   if (!key) throw new Error('Add your Claude API key in Settings to generate a presentation.');
 
@@ -166,13 +179,28 @@ export async function generateSlideDeck(input: GenerateDeckInput): Promise<strin
     .map((block) => block.text)
     .join('');
 
-  const html = extractHtml(raw);
-  if (!/<html[\s>]/i.test(html) || !/<\/html>/i.test(html)) {
+  const rawHtml = extractHtml(raw);
+  if (!/<html[\s>]/i.test(rawHtml) || !/<\/html>/i.test(rawHtml)) {
     if (message.stop_reason === 'max_tokens') {
       throw new Error('The deck was too long to finish. Try a shorter length or fewer images.');
     }
     throw new Error('Claude did not return a complete presentation. Try again.');
   }
 
-  return substituteImages(html, input.images, input.brand.logo);
+  const warnings: string[] = [];
+  const unused = input.images.filter((_, i) => !rawHtml.includes(IMAGE_TOKEN(i))).length;
+  if (unused > 0) {
+    warnings.push(`${unused} of your image${unused === 1 ? ' was' : 's were'} not used in the deck.`);
+  }
+
+  let html = substituteImages(rawHtml, input.images, input.brand.logo);
+  if (/\{\{IMG_\d+\}\}|\{\{LOGO\}\}/.test(html)) {
+    html = html.replace(/\{\{IMG_\d+\}\}|\{\{LOGO\}\}/g, BLANK_PNG);
+    warnings.push('The deck referenced an image that wasn’t provided — replaced with a blank.');
+  }
+  if (message.stop_reason === 'max_tokens') {
+    warnings.push('The deck hit the length limit and may be truncated — try a shorter length.');
+  }
+
+  return { html, warnings };
 }

@@ -1,5 +1,10 @@
-import type { GeneratedImage } from '../../types';
+import type { FeatureKind, GeneratedImage } from '../../types';
 import { OutputCard } from './OutputCard';
+
+export interface SendTarget {
+  label: string;
+  target: FeatureKind;
+}
 
 interface OutputGridProps {
   outputs: GeneratedImage[];
@@ -7,6 +12,10 @@ interface OutputGridProps {
   loadingCount: number;
   onAddToPresentation: (imageId: string) => void;
   addedIds: Set<string>;
+  onDelete?: (imageId: string) => void;
+  onRefine?: (image: GeneratedImage) => void;
+  sendTargets?: SendTarget[];
+  onSend?: (target: FeatureKind, image: GeneratedImage) => void;
 }
 
 function SkeletonCard() {
@@ -21,7 +30,17 @@ function SkeletonCard() {
   );
 }
 
-export function OutputGrid({ outputs, loading, loadingCount, onAddToPresentation, addedIds }: OutputGridProps) {
+export function OutputGrid({
+  outputs,
+  loading,
+  loadingCount,
+  onAddToPresentation,
+  addedIds,
+  onDelete,
+  onRefine,
+  sendTargets,
+  onSend,
+}: OutputGridProps) {
   if (loading) {
     return (
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -44,6 +63,10 @@ export function OutputGrid({ outputs, loading, loadingCount, onAddToPresentation
           image={image}
           onAddToPresentation={onAddToPresentation}
           added={addedIds.has(image.id)}
+          onDelete={onDelete}
+          onRefine={onRefine}
+          sendTargets={sendTargets}
+          onSend={onSend}
         />
       ))}
     </div>

@@ -127,6 +127,8 @@ interface ProjectState {
 
   addAsset: (input: AddAssetInput) => Asset;
   removeAsset: (assetId: string) => void;
+  /** Delete a single image wherever it lives (generated output or upload), scrubbing slides + feature displays. */
+  removeImage: (imageId: string) => void;
 
   addSlide: (imageIds: string[], layout: SlideLayout) => string;
   updateSlide: (slideId: string, patch: Partial<Pick<Slide, 'layout' | 'title' | 'caption' | 'imageIds'>>) => void;
@@ -324,6 +326,37 @@ export const useProjectStore = create<ProjectState>((set, get) => {
       });
       persist(next);
       set({ project: next });
+    },
+
+    removeImage: (imageId) => {
+      const state = get();
+      const project = state.project;
+      if (project.uploads.some((u) => u.id === imageId)) {
+        state.removeUpload(imageId); // handles slide scrub + persist
+      } else {
+        const asset = project.assets.find((a) => a.outputs.some((o) => o.id === imageId));
+        if (asset) {
+          const remaining = asset.outputs.filter((o) => o.id !== imageId);
+          const assets =
+            remaining.length > 0
+              ? project.assets.map((a) => (a.id === asset.id ? { ...a, outputs: remaining } : a))
+              : project.assets.filter((a) => a.id !== asset.id);
+          const slides = project.slides
+            .map((s) => ({ ...s, imageIds: s.imageIds.filter((id) => id !== imageId) }))
+            .filter((s) => s.imageIds.length > 0)
+            .map((s, index) => ({ ...s, order: index }));
+          const next = touch({ ...project, assets, slides });
+          persist(next);
+          set({ project: next });
+        }
+      }
+      // Drop it from any feature's displayed outputs so the card disappears.
+      const gen = get().generation;
+      const scrub = <S extends FeatureSettings>(run: FeatureRun<S>): FeatureRun<S> =>
+        run.outputs.some((o) => o.id === imageId) ? { ...run, outputs: run.outputs.filter((o) => o.id !== imageId) } : run;
+      set({
+        generation: { render: scrub(gen.render), elevation: scrub(gen.elevation), axonometric: scrub(gen.axonometric) },
+      });
     },
 
     addSlide: (imageIds, layout) => {
