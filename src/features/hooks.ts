@@ -1,73 +1,117 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo } from 'react';
 import { getActiveProvider } from '../providers';
-import type { GenerateRequest } from '../providers';
+import type { GenerateRequest, GenerateResult } from '../providers';
 import { useProjectStore } from '../store/useProjectStore';
-import type { GeneratedImage } from '../types';
+import type { GenerateStatus } from '../store/generation';
+import type { FeatureKind, GeneratedImage } from '../types';
+import { abortFeature, clearController, startRun } from './abortRegistry';
 
-export type GenerateStatus = 'idle' | 'loading' | 'error' | 'done';
+export type { GenerateStatus };
 
 interface UseGenerateResult {
   status: GenerateStatus;
   error: string | null;
+  warning: string | null;
   outputs: GeneratedImage[];
   inputUsed: string | null;
   engineReady: boolean; // whether an image key is configured
   run: (req: GenerateRequest) => Promise<void>;
+  cancel: () => void;
   reset: () => void;
 }
 
+/** Human summary of a partial batch (some jobs failed, or the user cancelled). */
+function partialWarning(result: GenerateResult, aborted: boolean): string | null {
+  const failures = result.failures ?? [];
+  const kept = result.images.length;
+  if (aborted && failures.length === 0) {
+    return `Cancelled — kept the ${kept} image${kept === 1 ? '' : 's'} generated so far.`;
+  }
+  if (failures.length === 0) return null;
+  const list = failures.map((f) => f.label).join(', ');
+  return `${failures.length} image${failures.length === 1 ? '' : 's'} couldn't be generated (${list}). Kept the ${kept} that succeeded.`;
+}
+
 /**
- * The shared generate flow (spec §8, shared pattern). Resolves the active
- * provider via `getActiveProvider()` — features never import a provider — and
- * appends an Asset to the project on success. When no image key is configured
- * the provider is `null`, and the flow surfaces a clear prompt to add one.
- * Loading and error states are the caller's to render.
+ * The shared generate flow, store-backed per feature. Generation state
+ * (status/outputs/input) lives in the Zustand store, so an in-flight run
+ * survives a tab switch (App.tsx remounts the routed feature) and the outputs
+ * are still there when the user returns. `run` threads an AbortSignal to the
+ * provider (Cancel + resetProject use it), and a `runId` guard makes sure a
+ * stale completion never clobbers a newer run.
  */
-export function useGenerate(): UseGenerateResult {
-  const addAsset = useProjectStore((s) => s.addAsset);
+export function useGenerate(feature: FeatureKind): UseGenerateResult {
+  const runState = useProjectStore((s) => s.generation[feature]);
   const engineReady = useProjectStore((s) => s.engineReady);
-  const [status, setStatus] = useState<GenerateStatus>('idle');
-  const [error, setError] = useState<string | null>(null);
-  const [outputs, setOutputs] = useState<GeneratedImage[]>([]);
-  const [inputUsed, setInputUsed] = useState<string | null>(null);
+  const addAsset = useProjectStore((s) => s.addAsset);
+  const patch = useProjectStore((s) => s.patchFeatureRun);
 
   const run = useCallback(
     async (req: GenerateRequest) => {
       const provider = getActiveProvider();
       if (!provider) {
-        setError('Add your Gemini API key in Settings (top-right) to generate images.');
-        setStatus('error');
+        patch(feature, { status: 'error', error: 'Add your Gemini API key in Settings (top-right) to generate images.' });
         return;
       }
-      setStatus('loading');
-      setError(null);
+      const myRunId = useProjectStore.getState().generation[feature].runId + 1;
+      patch(feature, { runId: myRunId, status: 'loading', error: null, warning: null });
+      const controller = startRun(feature);
+      const current = () => useProjectStore.getState().generation[feature].runId;
       try {
-        const result = await provider.generate(req);
-        addAsset({
-          feature: req.feature,
-          inputImage: req.inputImage,
-          outputs: result.images,
-          prompt: req.prompt,
-        });
-        setOutputs(result.images);
-        setInputUsed(req.inputImage);
-        setStatus('done');
+        const result = await provider.generate(req, controller.signal);
+        if (current() !== myRunId) return; // superseded by a newer run
+        if (result.images.length > 0) {
+          const asset = addAsset({
+            feature: req.feature,
+            inputImage: req.inputImage,
+            outputs: result.images,
+            prompt: req.prompt,
+          });
+          patch(feature, {
+            outputs: result.images,
+            inputUsed: req.inputImage,
+            status: 'done',
+            warning: partialWarning(result, controller.signal.aborted),
+            lastAssetId: asset.id,
+          });
+        } else if (controller.signal.aborted) {
+          patch(feature, { status: 'idle' });
+        } else {
+          patch(feature, { status: 'error', error: result.failures?.[0]?.error ?? 'Generation failed. Please try again.' });
+        }
       } catch (e) {
-        setError(e instanceof Error ? e.message : 'Generation failed. Please try again.');
-        setStatus('error');
+        if (current() !== myRunId) return;
+        if (controller.signal.aborted) {
+          patch(feature, { status: 'idle' });
+          return;
+        }
+        patch(feature, { status: 'error', error: e instanceof Error ? e.message : 'Generation failed. Please try again.' });
+      } finally {
+        clearController(feature, controller);
       }
     },
-    [addAsset],
+    [feature, addAsset, patch],
   );
 
-  const reset = useCallback(() => {
-    setStatus('idle');
-    setError(null);
-    setOutputs([]);
-    setInputUsed(null);
-  }, []);
+  const cancel = useCallback(() => {
+    abortFeature(feature);
+  }, [feature]);
 
-  return { status, error, outputs, inputUsed, engineReady, run, reset };
+  const reset = useCallback(() => {
+    patch(feature, { status: 'idle', error: null, warning: null, outputs: [], inputUsed: null });
+  }, [feature, patch]);
+
+  return {
+    status: runState.status,
+    error: runState.error,
+    warning: runState.warning,
+    outputs: runState.outputs,
+    inputUsed: runState.inputUsed,
+    engineReady,
+    run,
+    cancel,
+    reset,
+  };
 }
 
 interface UsePresentationAdderResult {

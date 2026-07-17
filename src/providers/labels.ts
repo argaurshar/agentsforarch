@@ -27,9 +27,9 @@ export function outputLabels(req: GenerateRequest): string[] {
     return viewpoints.map((vp) => `${vp} axonometric${section ? ' — section' : ''}`);
   }
   if (req.feature === 'elevation') {
-    const face = req.options.viewpoints?.[0];
+    const faces = req.options.viewpoints?.length ? req.options.viewpoints : [undefined];
     const styleLabel = prettyStyle(req.options.style, 'Rendered');
-    return [face ? `${face} elevation — ${styleLabel}` : `${styleLabel} elevation`];
+    return faces.map((face) => (face ? `${face} elevation — ${styleLabel}` : `${styleLabel} elevation`));
   }
   const variations = Math.max(1, req.options.variations ?? 1);
   const styleLabel = prettyStyle(req.options.style, 'Render');
