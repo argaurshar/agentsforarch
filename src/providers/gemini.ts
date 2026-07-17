@@ -102,12 +102,20 @@ async function generateOne(
   inline: { mimeType: string; data: string },
   label: string,
   signal?: AbortSignal,
+  reference?: { mimeType: string; data: string } | null,
 ): Promise<GeneratedImage> {
   // Key travels in a header, not the URL query string (URLs leak into devtools,
   // logs, and referrers).
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+  // The primary input goes first; an optional style reference (mood board)
+  // follows so the prompt can point at "the attached reference image".
+  const parts: ({ text: string } | { inlineData: { mimeType: string; data: string } })[] = [
+    { text: prompt },
+    { inlineData: inline },
+  ];
+  if (reference) parts.push({ inlineData: reference });
   const body = JSON.stringify({
-    contents: [{ role: 'user', parts: [{ text: prompt }, { inlineData: inline }] }],
+    contents: [{ role: 'user', parts }],
     // Image-only output — verified with gemini-3-pro-image-preview in production;
     // adding 'TEXT' risks the model returning prose instead of an image.
     generationConfig: { responseModalities: ['IMAGE'] },
@@ -172,6 +180,7 @@ export class GeminiProvider implements ImageProvider {
     const model = getGeminiModel();
     const start = performance.now();
     const inline = inlineFromDataUrl(req.inputImage);
+    const reference = req.options.referenceImage ? inlineFromDataUrl(req.options.referenceImage) : null;
     const base = req.prompt?.trim()
       ? req.prompt.trim()
       : 'Reimagine this architectural input as a polished presentation image while preserving its geometry and proportions.';
@@ -191,7 +200,7 @@ export class GeminiProvider implements ImageProvider {
       }
       const job = jobs[i];
       try {
-        images.push(await generateOne(key, model, job.prompt, inline, job.label, signal));
+        images.push(await generateOne(key, model, job.prompt, inline, job.label, signal, reference));
       } catch (err) {
         if (signal?.aborted) break; // cancellation — keep successes, stop
         failures.push({ label: job.label, error: err instanceof Error ? err.message : 'Generation failed.' });

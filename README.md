@@ -41,7 +41,7 @@ disabled, or gated behind another.
 | # | Feature | Input | Output |
 |---|---------|-------|--------|
 | 01 | Floor Plan → 3D Isometric | 2D floor plan | **3D isometric "dollhouse" cutaway** — walls extruded, furniture in 3D, roof removed (with before/after compare) |
-| 02 | Sketch / Model → Elevation | Sketch or SketchUp screenshot | Elevation design render (with before/after compare) |
+| 02 | Sketch / Model → Elevation | Sketch or SketchUp screenshot | Rendered elevation, styled by a **design theme** (Contemporary / Modern / Traditional / Boho chic) **or an uploaded mood board** (with before/after compare) |
 | 03 | Elevation → Axonometric | Elevation image | True 3D axonometric + section-axonometric views in **realistic / line-art / black-&-white**, one per viewpoint (with before/after compare) |
 | 04 | Concept Presentation | Selected outputs from 01–03 + brand identity | AI-generated self-contained HTML deck, or hand-arranged slides exportable to PDF |
 
