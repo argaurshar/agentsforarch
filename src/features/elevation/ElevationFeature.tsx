@@ -122,7 +122,7 @@ export function ElevationFeature() {
             <SceneControls
               value={scene}
               onChange={(patch) => updateFeatureSettings('elevation', { scene: patch })}
-              show={{ materials: style === 'rendered', lighting: style === 'rendered', mood: true }}
+              show={{ lighting: style === 'rendered', mood: true }}
             />
           )}
 

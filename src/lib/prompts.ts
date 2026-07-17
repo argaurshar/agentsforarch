@@ -49,8 +49,6 @@ function buildIsometricPrompt(a: SceneOptions): string {
   ];
   const arch = archStyleClause(a);
   if (arch) parts.push(`Architectural style: ${arch}.`);
-  const materials = materialsClause(a);
-  if (materials) parts.push(`Interior finishes and material palette: ${materials}.`);
   if (MOODS[a.mood].clause) parts.push(`Mood: ${MOODS[a.mood].clause}.`);
   parts.push(
     'Clean neutral studio background, soft even ambient lighting, a subtle contact shadow beneath the model, ' +
@@ -120,8 +118,6 @@ export function buildElevationPrompt(a: { face: 'Front' | 'Side' | 'Rear' | null
     'Maintain accurate proportions and align every element to a true vertical and horizontal grid with no perspective. Neutral white background.',
   ];
   if (a.style === 'rendered') {
-    const materials = materialsClause(a);
-    if (materials) parts.push(`Materials: ${materials}.`);
     parts.push(`Lighting: ${LIGHTING[a.lighting].clause}.`);
   }
   parts.push(styleClause);
