@@ -13,6 +13,11 @@ function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }
 
+// Keep the comparison proportional to the page rather than filling it. The box
+// never exceeds this height; its width is derived from the image's aspect ratio
+// (and still shrinks to fit narrow screens).
+const MAX_COMPARE_HEIGHT = 340;
+
 /**
  * Before/after comparison with a draggable vertical divider (spec §8.01).
  * Fidelity to the sketch is a signature moment for architects, so this is
@@ -62,7 +67,11 @@ export function ImageCompare({ before, after, beforeLabel = 'Input', afterLabel 
     <div
       ref={containerRef}
       className="relative w-full select-none overflow-hidden border border-hairline bg-drafting"
-      style={aspect ? { aspectRatio: String(aspect) } : { height: 420 }}
+      style={
+        aspect
+          ? { aspectRatio: String(aspect), maxWidth: `${Math.round(aspect * MAX_COMPARE_HEIGHT)}px` }
+          : { height: MAX_COMPARE_HEIGHT }
+      }
     >
       <img src={before} alt={beforeLabel} className="absolute inset-0 h-full w-full object-contain" draggable={false} />
       {/* Reveal the AFTER image on the right of the divider so it sits under its
