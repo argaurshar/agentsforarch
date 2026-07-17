@@ -1,6 +1,7 @@
 import { RotateCcw, Sparkles, X } from 'lucide-react';
 import { useEffect, useMemo } from 'react';
 import { ImageDropzone } from '../../components/Upload/ImageDropzone';
+import { ImageCompare } from '../../components/Output/ImageCompare';
 import { OutputGrid } from '../../components/Output/OutputGrid';
 import { RefineChips } from '../../components/Scene/RefineChips';
 import { SceneControls } from '../../components/Scene/SceneControls';
@@ -35,7 +36,7 @@ export function AxonometricFeature() {
     if (!promptEdited && suggestedPrompt !== prompt) setFeaturePrompt('axonometric', suggestedPrompt, false);
   }, [suggestedPrompt, promptEdited, prompt, setFeaturePrompt]);
 
-  const { status, error, warning, outputs, engineReady, run, cancel } = useGenerate('axonometric');
+  const { status, error, warning, outputs, inputUsed, engineReady, run, cancel } = useGenerate('axonometric');
   const { addToPresentation, addedIds } = usePresentationAdder();
 
   const loading = status === 'loading';
@@ -229,6 +230,14 @@ export function AxonometricFeature() {
           ) : null}
         </div>
       </div>
+
+      {/* Before / after — compare the axonometric against the elevation input. */}
+      {inputUsed && outputs.length > 0 ? (
+        <div className="mt-10">
+          <p className="mono-meta mb-3">Fidelity · Before / After</p>
+          <ImageCompare before={inputUsed} after={outputs[0].url} beforeLabel="Elevation" afterLabel="Axonometric" />
+        </div>
+      ) : null}
     </div>
   );
 }

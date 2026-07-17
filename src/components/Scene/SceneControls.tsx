@@ -1,10 +1,11 @@
-import { CONTEXTS, LIGHTING, MATERIAL_PRESETS, MOODS, SEASONS } from '../../lib/scene';
+import { ARCH_STYLES, CONTEXTS, LIGHTING, MATERIAL_PRESETS, MOODS, SEASONS } from '../../lib/scene';
 import type { SceneOpt } from '../../lib/scene';
 import type { SceneOptions } from '../../store/generation';
 import { ChipGroup } from '../ui/ChipGroup';
 import { Select } from '../ui/Select';
 
 interface Show {
+  archStyle?: boolean;
   materials?: boolean;
   lighting?: boolean;
   season?: boolean;
@@ -33,6 +34,25 @@ export function SceneControls({ value, onChange, show }: SceneControlsProps) {
   return (
     <div className="flex flex-col gap-4 border border-hairline bg-paper p-4">
       <p className="mono-meta text-ochre">Scene · no prompt needed</p>
+
+      {show.archStyle ? (
+        <div className="flex flex-col gap-2">
+          <Select
+            label="Architecture style"
+            value={value.archStyle}
+            options={toOptions(ARCH_STYLES)}
+            onChange={(v) => onChange({ archStyle: v as SceneOptions['archStyle'] })}
+          />
+          {value.archStyle === 'custom' ? (
+            <input
+              value={value.customArchStyle}
+              onChange={(e) => onChange({ customArchStyle: e.target.value })}
+              placeholder="Describe the style, e.g. Kerala vernacular, Gothic revival, mid-century modern…"
+              className="border border-hairline bg-paper px-3 py-2 text-sm text-graphite placeholder:text-mist focus-visible:outline-ochre"
+            />
+          ) : null}
+        </div>
+      ) : null}
 
       {show.materials ? (
         <div className="flex flex-col gap-2">

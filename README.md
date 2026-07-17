@@ -40,9 +40,9 @@ disabled, or gated behind another.
 
 | # | Feature | Input | Output |
 |---|---------|-------|--------|
-| 01 | Sketch / Plan → Render | Hand sketch or floor plan | Styled architectural render (with before/after compare) |
-| 02 | Sketch / Model → Elevation | Sketch or SketchUp screenshot | Elevation design render |
-| 03 | Elevation → Axonometric | Elevation image | Axonometric + section-axonometric views, one per viewpoint |
+| 01 | Sketch / Plan → Render | Hand sketch or floor plan | Styled architectural render, or a **3D isometric "dollhouse" cutaway** from a 2D plan (with before/after compare) |
+| 02 | Sketch / Model → Elevation | Sketch or SketchUp screenshot | Elevation design render (with before/after compare) |
+| 03 | Elevation → Axonometric | Elevation image | Axonometric + section-axonometric views, one per viewpoint (with before/after compare) |
 | 04 | Concept Presentation | Selected outputs from 01–03 + brand identity | AI-generated self-contained HTML deck, or hand-arranged slides exportable to PDF |
 
 Each feature accepts its input by direct upload, independent of anything else
@@ -80,10 +80,20 @@ unless you've edited it.
 
 ### Scene controls, refine loop & pipeline (no prompting for basics)
 
-- **Scene controls** — one-click chips/selects for **materials, lighting /
-  time of day, season, mood, context, interior vs exterior, and people** assemble
-  the prompt automatically (`src/components/Scene/SceneControls.tsx`). Change a
-  material or the time of day without touching the prompt.
+- **Scene controls** — one-click chips/selects for **architecture style,
+  materials, lighting / time of day, season, mood, context, interior vs exterior,
+  and people** assemble the prompt automatically (`src/components/Scene/SceneControls.tsx`).
+  Change a material or the time of day without touching the prompt.
+- **Architecture styles** — a one-click **Architecture style** picker
+  (Contemporary, Bauhaus, Indian vernacular, Brutalist, Minimalist, Mediterranean,
+  Scandinavian, Japanese, Art Deco, plus a Custom free-text field) reshapes the
+  design language of a photoreal or isometric render (`ARCH_STYLES` in
+  `src/lib/scene.ts`).
+- **Isometric "dollhouse" plan render** — the Render tab's **Isometric dollhouse**
+  style turns a 2D floor plan into a 3D isometric cutaway (walls extruded, furniture
+  in 3D, a strict 45° camera, no roof, exact layout preserved) instead of an exterior
+  building. Every generation tab has a draggable **before/after slider**, and a single
+  result is shown full-width at the same size as the input.
 - **Refine loop** — every output has a **Refine** action that loads it back as
   the input with quick-action chips (warmer light, more glass, add greenery,
   remove people, simplify façade, …) and free text; the edit keeps the exact

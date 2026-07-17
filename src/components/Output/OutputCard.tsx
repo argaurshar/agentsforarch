@@ -12,6 +12,8 @@ interface OutputCardProps {
   onRefine?: (image: GeneratedImage) => void;
   sendTargets?: SendTarget[];
   onSend?: (target: FeatureKind, image: GeneratedImage) => void;
+  /** 'full' shows the image at input size (single result); 'grid' is the compact card. */
+  size?: 'grid' | 'full';
 }
 
 const ICON_BTN =
@@ -27,6 +29,7 @@ export function OutputCard({
   onRefine,
   sendTargets,
   onSend,
+  size = 'grid',
 }: OutputCardProps) {
   const [confirmDelete, setConfirmDelete] = useState(false);
 
@@ -36,7 +39,9 @@ export function OutputCard({
         <img
           src={image.url}
           alt={image.label}
-          className="max-h-64 w-full object-contain transition-transform duration-500 group-hover:scale-[1.02]"
+          className={`${
+            size === 'full' ? 'max-h-72' : 'max-h-64'
+          } w-full object-contain transition-transform duration-500 group-hover:scale-[1.02]`}
         />
       </div>
       <figcaption className="flex flex-col gap-2 px-3 py-3">

@@ -1,6 +1,7 @@
 import { RotateCcw, Sparkles, X } from 'lucide-react';
 import { useEffect, useMemo } from 'react';
 import { ImageDropzone } from '../../components/Upload/ImageDropzone';
+import { ImageCompare } from '../../components/Output/ImageCompare';
 import { OutputGrid } from '../../components/Output/OutputGrid';
 import { RefineChips } from '../../components/Scene/RefineChips';
 import { SceneControls } from '../../components/Scene/SceneControls';
@@ -51,7 +52,7 @@ export function ElevationFeature() {
     if (!promptEdited && suggestedPrompt !== prompt) setFeaturePrompt('elevation', suggestedPrompt, false);
   }, [suggestedPrompt, promptEdited, prompt, setFeaturePrompt]);
 
-  const { status, error, warning, outputs, engineReady, run, cancel } = useGenerate('elevation');
+  const { status, error, warning, outputs, inputUsed, engineReady, run, cancel } = useGenerate('elevation');
   const { addToPresentation, addedIds } = usePresentationAdder();
 
   const loading = status === 'loading';
@@ -199,6 +200,14 @@ export function ElevationFeature() {
           ) : null}
         </div>
       </div>
+
+      {/* Before / after — compare the elevation against the input. */}
+      {inputUsed && outputs.length > 0 ? (
+        <div className="mt-10">
+          <p className="mono-meta mb-3">Fidelity · Before / After</p>
+          <ImageCompare before={inputUsed} after={outputs[0].url} beforeLabel="Input" afterLabel="Elevation" />
+        </div>
+      ) : null}
     </div>
   );
 }

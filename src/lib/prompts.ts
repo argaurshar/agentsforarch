@@ -7,7 +7,7 @@
 
 import type { RefineChipKey } from './refine';
 import { REFINE_CHIPS } from './refine';
-import { CONTEXTS, LIGHTING, MOODS, SEASONS, defaultScene, materialsClause } from './scene';
+import { CONTEXTS, LIGHTING, MOODS, SEASONS, archStyleClause, defaultScene, materialsClause } from './scene';
 import type { SceneOptions } from '../store/generation';
 
 // --- Render -----------------------------------------------------------------
@@ -31,19 +31,48 @@ const WATERCOLOUR_PROMPT =
   'Soft translucent washes, loose confident edges, warm muted palette, subtle paper texture, ' +
   'gently graded skies, hand-painted presentation illustration, light and airy.';
 
-export type RenderStyleKey = 'photoreal' | 'clay' | 'line' | 'watercolour';
+export type RenderStyleKey = 'photoreal' | 'isometric' | 'clay' | 'line' | 'watercolour';
+
+/**
+ * 2D plan → 3D isometric "dollhouse" cutaway. The model extrudes the plan into
+ * a roofless, open-topped volume seen at a strict 45° isometric angle so the
+ * full interior is visible — the reference output architects asked for. The
+ * geometry-preservation clauses keep the exact plan layout intact.
+ */
+function buildIsometricPrompt(a: SceneOptions): string {
+  const parts: string[] = [
+    "Transform this 2D architectural floor plan into a 3D isometric 'dollhouse' cutaway view.",
+    'Extrude the walls upward to show verticality, apply realistic flooring and wall-surface textures, and render every piece of furniture, joinery and fixture in three dimensions.',
+    'Use a strict 45-degree isometric camera angle looking down into the plan, with parallel projection and no perspective distortion.',
+    'Maintain the exact room layout, wall positions, door and window openings and overall proportions of the original plan — do not move, add or remove rooms.',
+    'Do not add a ceiling or roof: leave the rooms open from above so the whole interior is visible from the top.',
+  ];
+  const arch = archStyleClause(a);
+  if (arch) parts.push(`Architectural style: ${arch}.`);
+  const materials = materialsClause(a);
+  if (materials) parts.push(`Interior finishes and material palette: ${materials}.`);
+  if (MOODS[a.mood].clause) parts.push(`Mood: ${MOODS[a.mood].clause}.`);
+  parts.push(
+    'Clean neutral studio background, soft even ambient lighting, a subtle contact shadow beneath the model, ' +
+      'professional architectural presentation render, ultra-detailed.',
+  );
+  return parts.join(' ');
+}
 
 /** Assemble a render prompt from the style + scene choices. */
 export function buildRenderPrompt(a: { style: string } & SceneOptions): string {
   if (a.style === 'clay') return CLAY_PROMPT;
   if (a.style === 'line') return LINE_PROMPT;
   if (a.style === 'watercolour') return WATERCOLOUR_PROMPT;
+  if (a.style === 'isometric') return buildIsometricPrompt(a);
 
   const interior = a.setting === 'interior';
   const parts: string[] = [
     `Transform this architectural sketch or plan into a photorealistic ${interior ? 'interior' : 'exterior'} render.`,
     'Preserve the exact geometry, proportions, massing and composition of the original drawing.',
   ];
+  const arch = archStyleClause(a);
+  if (arch) parts.push(`Architectural style: ${arch}.`);
   const materials = materialsClause(a);
   if (materials) parts.push(`Materials: ${materials}.`);
   parts.push(`Lighting: ${LIGHTING[a.lighting].clause}.`);

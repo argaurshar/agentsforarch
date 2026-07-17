@@ -403,3 +403,34 @@ Empty states with real guidance. Keyboard focus rings in Ochre. Transitions ≤1
 5. **Multi-project.** The model supports many projects but the UI assumes one active. Do they need a project switcher now?
 
 Ask about these rather than inventing answers.
+
+---
+
+## Addendum · Plan render, architecture styles, output parity, per-tab compare
+
+Client-requested follow-ups after the automation pillars shipped:
+
+1. **Isometric "dollhouse" plan render.** Feature 01 gains an **Isometric dollhouse**
+   `style` (`'isometric'`). `buildIsometricPrompt` (`src/lib/prompts.ts`) extrudes a 2D
+   plan into a roofless, open-topped 3D volume at a strict 45° isometric angle with
+   furniture rendered in 3D and the exact plan layout/openings/proportions preserved —
+   the interior-cutaway output architects asked for, distinct from the exterior
+   photoreal render. Reuses the same geometry-preservation discipline as the other
+   builders.
+2. **Architecture styles.** `ARCH_STYLES` (`src/lib/scene.ts`) adds a design-language
+   vocabulary — `none` (studio default), contemporary, bauhaus, indian, brutalist,
+   minimalist, mediterranean, scandinavian, japanese, artdeco, and `custom` (free
+   text). `archStyle` + `customArchStyle` join `SceneOptions`; `archStyleClause`
+   mirrors `materialsClause`. The clause is injected into the photoreal and isometric
+   render prompts. Surfaced as an **Architecture style** select in `SceneControls`
+   (`show.archStyle`), shown for the photoreal and isometric render styles.
+3. **Output parity.** A single output renders full-width at the input's size
+   (`OutputGrid`/`OutputCard` `size='full'`, `max-h-72`), matching the uploaded plan
+   rather than sitting as a small grid cell; two or more keep the compact grid.
+4. **Per-tab before/after.** The `ImageCompare` slider (previously Render-only) is now
+   on Elevation and Axonometric too, driven by each feature's `inputUsed` snapshot.
+
+Invariants preserved: TS strict, no new deps, no browser persistence of project data,
+prompt textarea editable with Reset semantics, provider adapter seam unchanged,
+default (studio, golden-hour, no arch style) reproduces the previous photoreal prompt
+exactly.

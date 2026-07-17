@@ -1,4 +1,5 @@
 import type {
+  ArchStyleKey,
   ContextKey,
   LightingKey,
   MaterialsKey,
@@ -38,6 +39,60 @@ export const MATERIAL_PRESETS = {
   custom: { label: 'Custom…', clause: '' },
 } satisfies Record<MaterialsKey, SceneOpt>;
 
+// Architectural design languages. The clause names the style and its signature
+// moves so Nano Banana Pro reshapes massing, openings, materials and detailing
+// to match — the architect picks a language instead of describing one. `none`
+// keeps today's neutral behaviour; `custom` defers to the free-text field.
+export const ARCH_STYLES = {
+  none: { label: 'Studio default', clause: '' },
+  contemporary: {
+    label: 'Contemporary',
+    clause:
+      'clean contemporary architecture — crisp rectilinear volumes, large frameless glazing, flush detailing and an understated restrained palette',
+  },
+  bauhaus: {
+    label: 'Bauhaus',
+    clause:
+      'Bauhaus modernist architecture — functional geometric massing, flat roofs, horizontal ribbon windows, smooth rendered white walls with occasional primary-colour accents, tubular steel and glass, no applied ornament',
+  },
+  indian: {
+    label: 'Indian (contemporary vernacular)',
+    clause:
+      'contemporary Indian vernacular architecture — jaali perforated lattice screens, deep verandahs and projecting chajja sunshades, exposed brick and local stone, internal courtyards, carved timber and warm earthy tones',
+  },
+  brutalist: {
+    label: 'Brutalist',
+    clause:
+      'Brutalist architecture — massive board-formed exposed concrete, bold monolithic geometry, deep recesses casting strong shadow, raw honest materials and a heavy sculptural presence',
+  },
+  minimalist: {
+    label: 'Minimalist',
+    clause:
+      'minimalist architecture — pure clean volumes, a white and neutral palette, frameless glazing, hidden fixings and uncluttered restrained detailing with generous negative space',
+  },
+  mediterranean: {
+    label: 'Mediterranean',
+    clause:
+      'Mediterranean architecture — whitewashed masonry, terracotta pitched roof tiles, arched openings, timber shutters and pergolas, courtyards with climbing planting',
+  },
+  scandinavian: {
+    label: 'Scandinavian',
+    clause:
+      'Scandinavian architecture — pale timber cladding and white surfaces, simple pitched gable forms, large windows, warm minimal cosy interiors and a soft natural palette',
+  },
+  japanese: {
+    label: 'Japanese',
+    clause:
+      'contemporary Japanese architecture — exposed timber structure, shoji-like screens and sliding partitions, low horizontal roofs with deep eaves, engawa verandas, restrained natural materials and a connection to a quiet garden',
+  },
+  artdeco: {
+    label: 'Art Deco',
+    clause:
+      'Art Deco architecture — symmetrical stepped massing, strong vertical fluting, geometric ornamental motifs, rich materials with bronze, brass and marble accents',
+  },
+  custom: { label: 'Custom…', clause: '' },
+} satisfies Record<ArchStyleKey, SceneOpt>;
+
 export const LIGHTING = {
   'golden-hour': { label: 'Golden hour', clause: 'golden-hour sun, long soft directional shadows, warm rim light, clear sky' },
   midday: { label: 'Midday', clause: 'bright midday daylight, crisp shadows, clear blue sky' },
@@ -74,6 +129,8 @@ export function defaultScene(): SceneOptions {
   return {
     materials: 'studio',
     customMaterials: '',
+    archStyle: 'none',
+    customArchStyle: '',
     lighting: 'golden-hour',
     season: 'none',
     mood: 'none',
@@ -87,4 +144,10 @@ export function defaultScene(): SceneOptions {
 export function materialsClause(a: Pick<SceneOptions, 'materials' | 'customMaterials'>): string {
   if (a.materials === 'custom') return a.customMaterials.trim() || MATERIAL_PRESETS.studio.clause;
   return MATERIAL_PRESETS[a.materials].clause;
+}
+
+/** The architecture-style fragment — resolves the free-text override when 'custom' is chosen. */
+export function archStyleClause(a: Pick<SceneOptions, 'archStyle' | 'customArchStyle'>): string {
+  if (a.archStyle === 'custom') return a.customArchStyle.trim();
+  return ARCH_STYLES[a.archStyle].clause;
 }

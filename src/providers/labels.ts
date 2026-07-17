@@ -5,6 +5,7 @@ import type { GenerateRequest } from './types';
 
 const STYLE_LABELS: Record<string, string> = {
   photoreal: 'Photoreal',
+  isometric: 'Isometric',
   clay: 'Clay model',
   line: 'Line drawing',
   watercolour: 'Watercolour',

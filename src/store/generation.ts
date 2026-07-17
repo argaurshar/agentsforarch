@@ -21,11 +21,25 @@ export type SeasonKey = 'none' | 'spring' | 'summer' | 'autumn' | 'winter';
 export type MoodKey = 'none' | 'warm' | 'minimal' | 'dramatic' | 'soft';
 export type ContextKey = 'none' | 'urban' | 'landscape' | 'waterfront';
 export type SettingKey = 'exterior' | 'interior';
+export type ArchStyleKey =
+  | 'none'
+  | 'contemporary'
+  | 'bauhaus'
+  | 'indian'
+  | 'brutalist'
+  | 'minimalist'
+  | 'mediterranean'
+  | 'scandinavian'
+  | 'japanese'
+  | 'artdeco'
+  | 'custom';
 
 /** One-click scene choices that auto-assemble the prompt (P1 — no prompting for basics). */
 export interface SceneOptions {
   materials: MaterialsKey;
   customMaterials: string; // used when materials === 'custom'
+  archStyle: ArchStyleKey; // architectural design language (Bauhaus, Indian, Brutalist, …)
+  customArchStyle: string; // used when archStyle === 'custom'
   lighting: LightingKey;
   season: SeasonKey;
   mood: MoodKey;

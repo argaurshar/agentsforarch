@@ -15,10 +15,20 @@ import { useGenerate, usePresentationAdder } from '../hooks';
 
 const STYLE_OPTIONS = [
   { value: 'photoreal', label: 'Photoreal' },
+  { value: 'isometric', label: 'Isometric dollhouse' },
   { value: 'clay', label: 'Clay model' },
   { value: 'line', label: 'Line drawing' },
   { value: 'watercolour', label: 'Watercolour' },
 ];
+
+// Which output the before/after slider is labelled as, per render style.
+const AFTER_LABEL: Record<string, string> = {
+  photoreal: 'Render',
+  isometric: 'Isometric',
+  clay: 'Clay model',
+  line: 'Line drawing',
+  watercolour: 'Watercolour',
+};
 
 const VARIATION_OPTIONS = [
   { value: '1', label: '1 variation' },
@@ -118,7 +128,13 @@ export function RenderFeature() {
             <SceneControls
               value={scene}
               onChange={(patch) => updateFeatureSettings('render', { scene: patch })}
-              show={{ materials: true, lighting: true, setting: true, context: true, season: true, mood: true, entourage: true }}
+              show={{ archStyle: true, materials: true, lighting: true, setting: true, context: true, season: true, mood: true, entourage: true }}
+            />
+          ) : style === 'isometric' ? (
+            <SceneControls
+              value={scene}
+              onChange={(patch) => updateFeatureSettings('render', { scene: patch })}
+              show={{ archStyle: true, materials: true, mood: true }}
             />
           ) : null}
 
@@ -202,7 +218,12 @@ export function RenderFeature() {
       {inputUsed && outputs.length > 0 ? (
         <div className="mt-10">
           <p className="mono-meta mb-3">Fidelity · Before / After</p>
-          <ImageCompare before={inputUsed} after={outputs[0].url} beforeLabel="Sketch" afterLabel="Render" />
+          <ImageCompare
+            before={inputUsed}
+            after={outputs[0].url}
+            beforeLabel={style === 'isometric' ? 'Plan' : 'Sketch'}
+            afterLabel={AFTER_LABEL[style] ?? 'Render'}
+          />
         </div>
       ) : null}
     </div>
