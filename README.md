@@ -127,10 +127,13 @@ The Concept Presentation tab has two modes:
 
 - **AI deck** (default) — Claude generates a distinctive, self-contained HTML
   presentation from your brand identity and images: a fixed 1920×1080 stage that
-  scales to any screen, real motion, and keyboard/touch navigation. Preview it
-  inline, download the single `.html` file, open it in a new tab, or print it to
-  PDF. Choose a purpose / length / density (all optional, sensible defaults) and
-  optionally add talking points — you never have to write a prompt.
+  scales to any screen, real motion, and keyboard/touch navigation. A built-in
+  **image picker** shows every generated image (grouped by Renders / Elevations /
+  Axonometrics / Uploaded) so you choose exactly which ones Claude builds from —
+  all selected by default. Preview it inline, download the single `.html` file,
+  open it in a new tab, or print it to PDF. Choose a purpose / length / density
+  (all optional, sensible defaults) and optionally add talking points — you never
+  have to write a prompt.
 - **Manual storyboard** — arrange pooled images into `full` / `two-up` /
   `four-grid` slides by hand (or let Claude compose them), then export a branded
   PDF.

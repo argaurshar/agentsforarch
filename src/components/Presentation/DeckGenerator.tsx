@@ -1,4 +1,4 @@
-import { Sparkles, Wand2, X } from 'lucide-react';
+import { Check, Sparkles, Wand2, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { cancelDeck, runDeck } from '../../features/presentation/deckRunner';
 import type { DeckDensity, DeckImage, DeckLength, DeckOptions, DeckPurpose } from '../../lib/slidesDeck';
@@ -69,18 +69,38 @@ export function DeckGenerator() {
   const patchDeck = useProjectStore((s) => s.patchDeck);
 
   const pool = useMemo(() => poolFromProject(project), [project]);
+  const groups = useMemo(() => {
+    const seen: string[] = [];
+    for (const p of pool) if (!seen.includes(p.group)) seen.push(p.group);
+    return seen;
+  }, [pool]);
 
   const [purpose, setPurpose] = useState<DeckPurpose>('Pitch deck');
   const [length, setLength] = useState<DeckLength>('Medium (10–20 slides)');
   const [density, setDensity] = useState<DeckDensity>('Low density / speaker-led');
   const [notes, setNotes] = useState('');
+  // Which pooled images to feed Claude. Tracked as an EXCLUDE set so newly
+  // generated images are included by default (the previous behaviour was "all").
+  const [deselected, setDeselected] = useState<Set<string>>(new Set());
+
+  const selectedPool = pool.filter((p) => !deselected.has(p.image.id));
+  const selectedCount = selectedPool.length;
+  const toggleImage = (id: string) =>
+    setDeselected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  const selectAll = () => setDeselected(new Set());
+  const clearAll = () => setDeselected(new Set(pool.map((p) => p.image.id)));
 
   const generating = deckStatus === 'loading';
   const canGenerate = Boolean(claudeApiKey) && !generating;
 
   const runGenerate = () => {
     if (!claudeApiKey) return;
-    const images: DeckImage[] = pool.map((p) => ({
+    const images: DeckImage[] = selectedPool.map((p) => ({
       id: p.image.id,
       group: p.group,
       label: p.image.label,
@@ -117,11 +137,81 @@ export function DeckGenerator() {
           <div>
             <h3 className="text-lg font-light text-ink">Generate a presentation</h3>
             <p className="mt-1 text-sm text-graphite">
-              Claude builds a distinctive, self-contained HTML deck from your brand and images — a fixed 16:9 stage
-              with real motion. {pool.length} image{pool.length === 1 ? '' : 's'} available.
+              Claude builds a distinctive, self-contained HTML deck from your brand and the images you pick below — a
+              fixed 16:9 stage with real motion.
             </p>
           </div>
         </div>
+
+        {/* Image picker — choose which generated images Claude builds the deck from. */}
+        {pool.length > 0 ? (
+          <div className="mb-6 flex flex-col gap-3 border-t border-hairline pt-5">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="mono-meta">
+                Images for the deck · {selectedCount} of {pool.length} selected
+              </span>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={selectAll}
+                  className="border border-hairline bg-paper px-2.5 py-1 font-mono text-[0.6rem] uppercase tracking-[0.12em] text-graphite hover:bg-drafting focus-visible:outline-ochre"
+                >
+                  Select all
+                </button>
+                <button
+                  type="button"
+                  onClick={clearAll}
+                  className="border border-hairline bg-paper px-2.5 py-1 font-mono text-[0.6rem] uppercase tracking-[0.12em] text-graphite hover:bg-drafting focus-visible:outline-ochre"
+                >
+                  Clear
+                </button>
+              </div>
+            </div>
+            {groups.map((group) => (
+              <div key={group} className="flex flex-col gap-2">
+                <p className="font-mono text-[0.6rem] uppercase tracking-[0.14em] text-graphite">{group}</p>
+                <div className="flex flex-wrap gap-2">
+                  {pool
+                    .filter((p) => p.group === group)
+                    .map((ref) => {
+                      const isSel = !deselected.has(ref.image.id);
+                      return (
+                        <button
+                          key={ref.image.id}
+                          type="button"
+                          onClick={() => toggleImage(ref.image.id)}
+                          aria-pressed={isSel}
+                          title={ref.image.label}
+                          className={`relative h-16 w-24 overflow-hidden border transition-all focus-visible:outline-ochre ${
+                            isSel ? 'border-ochre' : 'border-hairline opacity-45 hover:opacity-75'
+                          }`}
+                        >
+                          <img src={ref.image.url} alt={ref.image.label} className="h-full w-full object-cover" />
+                          <span
+                            className={`absolute right-1 top-1 flex h-4 w-4 items-center justify-center border ${
+                              isSel ? 'border-ochre bg-ochre text-bone' : 'border-mist bg-bone/80 text-transparent'
+                            }`}
+                          >
+                            <Check size={11} strokeWidth={2.5} />
+                          </span>
+                        </button>
+                      );
+                    })}
+                </div>
+              </div>
+            ))}
+            {selectedCount === 0 ? (
+              <p className="text-[0.7rem] text-ochre">No images selected — the deck will be built from your brand only.</p>
+            ) : null}
+          </div>
+        ) : (
+          <div className="mb-6 border-t border-hairline pt-5">
+            <p className="text-sm text-graphite">
+              No generated images yet. Create some on the Isometric, Elevation, or Axonometric tabs (or upload images in
+              the Manual storyboard) and they’ll appear here to include in the deck.
+            </p>
+          </div>
+        )}
 
         <div className="grid gap-5 sm:grid-cols-2">
           <ChipGroup label="Purpose" value={purpose} options={PURPOSES} onChange={setPurpose} />
