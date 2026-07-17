@@ -1,6 +1,7 @@
 import { Check, Eye, EyeOff, KeyRound, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { DEFAULT_MODEL } from '../../providers/runtimeConfig';
+import { useDialog } from '../../lib/useDialog';
 import { useProjectStore } from '../../store/useProjectStore';
 import { Button } from '../ui/Button';
 
@@ -37,6 +38,8 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
     }
   }, [open, apiKey, model, claudeApiKey, rememberKey]);
 
+  const dialogRef = useDialog<HTMLElement>({ open, onClose });
+
   if (!open) return null;
 
   const active = engineReady;
@@ -67,10 +70,12 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
     <div className="fixed inset-0 z-40 flex justify-end">
       <div className="absolute inset-0 bg-ink/40" onClick={onClose} aria-hidden="true" />
       <aside
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-label="API keys"
-        className="relative flex h-full w-full max-w-md flex-col overflow-y-auto border-l border-hairline bg-bone"
+        tabIndex={-1}
+        className="relative flex h-full w-full max-w-md flex-col overflow-y-auto border-l border-hairline bg-bone focus:outline-none"
       >
         <div className="flex items-center justify-between border-b border-hairline px-6 py-4">
           <div className="flex items-center gap-2">

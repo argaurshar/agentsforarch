@@ -12,6 +12,20 @@
 > Presentation feature can also generate a self-contained HTML deck via the
 > vendored `frontend-slides` skill through Claude.)
 
+> **Addendum 2 — automation + hardening.** Per-feature generation state (input,
+> settings, outputs, status) moved from component `useState` into the store
+> (`src/store/generation.ts`) so an in-flight run survives a tab switch, can be
+> **Cancelled** (AbortSignal threaded to the provider), and a partial batch
+> failure keeps images already generated. Three automation pillars were added:
+> **scene controls** (`src/lib/scene.ts` + `SceneControls`) that auto-assemble
+> the prompt so architects don't write prompts for basics; an **iterative refine
+> loop** on any output; and a **cross-feature pipeline** (`sendToFeature`) plus an
+> all-faces elevation batch. Hardening: Gemini key moved to the `x-goog-api-key`
+> header; the deck preview iframe dropped `allow-same-origin` (it could read the
+> stored API keys); a `beforeunload` guard; dialog a11y (`useDialog`); WEBP
+> normalized for jsPDF; the presentation stack is lazy-loaded (main chunk
+> ~885KB → ~277KB). See README "Scene controls, refine loop & pipeline".
+
 **Read this entire document before writing any code.**
 
 You are building a single-page web application for AND Studio, an architecture practice. Their architects and interior designers will use it to turn sketches and models into renders, elevations, axonometric views, and client concept presentations.
@@ -389,3 +403,54 @@ Empty states with real guidance. Keyboard focus rings in Ochre. Transitions ≤1
 5. **Multi-project.** The model supports many projects but the UI assumes one active. Do they need a project switcher now?
 
 Ask about these rather than inventing answers.
+
+---
+
+## Addendum · Plan render, architecture styles, output parity, per-tab compare
+
+Client-requested follow-ups after the automation pillars shipped:
+
+1. **Isometric "dollhouse" plan render.** Feature 01 gains an **Isometric dollhouse**
+   `style` (`'isometric'`). `buildIsometricPrompt` (`src/lib/prompts.ts`) extrudes a 2D
+   plan into a roofless, open-topped 3D volume at a strict 45° isometric angle with
+   furniture rendered in 3D and the exact plan layout/openings/proportions preserved —
+   the interior-cutaway output architects asked for, distinct from the exterior
+   photoreal render. Reuses the same geometry-preservation discipline as the other
+   builders.
+2. **Architecture styles.** `ARCH_STYLES` (`src/lib/scene.ts`) adds a design-language
+   vocabulary — `none` (studio default), contemporary, bauhaus, indian, brutalist,
+   minimalist, mediterranean, scandinavian, japanese, artdeco, and `custom` (free
+   text). `archStyle` + `customArchStyle` join `SceneOptions`; `archStyleClause`
+   mirrors `materialsClause`. The clause is injected into the photoreal and isometric
+   render prompts. Surfaced as an **Architecture style** select in `SceneControls`
+   (`show.archStyle`), shown for the photoreal and isometric render styles.
+3. **Output parity.** A single output renders full-width at the input's size
+   (`OutputGrid`/`OutputCard` `size='full'`, `max-h-72`), matching the uploaded plan
+   rather than sitting as a small grid cell; two or more keep the compact grid.
+4. **Per-tab before/after.** The `ImageCompare` slider (previously Render-only) is now
+   on Elevation and Axonometric too, driven by each feature's `inputUsed` snapshot.
+
+Invariants preserved: TS strict, no new deps, no browser persistence of project data,
+prompt textarea editable with Reset semantics, provider adapter seam unchanged,
+default (studio, golden-hour, no arch style) reproduces the previous photoreal prompt
+exactly.
+
+## Addendum · Axonometric — true 3D reconstruction + styles
+
+Reported bug: from a flat elevation the axonometric came back as the same flat,
+front-on view (the old prompt said "preserve proportions with no perspective
+distortion", so the image model just reproduced the input). Fixes:
+
+1. **Rebuild, don't copy.** `buildAxonometricPrompt` (`src/lib/prompts.ts`) now
+   instructs the model to *rebuild the elevation as a 3D massing model*, rotate to a
+   three-quarter corner seen from slightly above (front face + returning side wall +
+   roof all visible) with genuine depth, and explicitly **not** reproduce a flat
+   front-on elevation. The per-image viewpoint (NE/NW/SE/SW) reinforces the corner.
+2. **Style options.** `AxonSettings.style` (`realistic` | `lineart` | `bw`) with an
+   **Axonometric style** select: realistic 3D render (materials + mood + shadows),
+   colour line-art illustration, or pure black-and-white technical linework. Materials/
+   mood scene controls show only for `realistic`.
+3. **Section decoupled from style.** The section-axonometric cut used to be smuggled
+   through `options.style` (`'standard'`/`'section'`); it now travels as its own
+   `options.section` boolean (`src/providers/types.ts`), freeing `style` for the real
+   axonometric style. Labels updated accordingly (`src/providers/labels.ts`).

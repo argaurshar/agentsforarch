@@ -1,5 +1,6 @@
 import { Download, ExternalLink, Printer, RefreshCw, X } from 'lucide-react';
-import { useEffect, useRef } from 'react';
+import { useMemo, useRef } from 'react';
+import { PRINT_MESSAGE, injectPrintBridge, makeViewerBlobUrl } from '../../lib/deckViewer';
 import { downloadDataURL, slugify } from '../../lib/images';
 import { Button } from '../ui/Button';
 
@@ -12,29 +13,21 @@ interface DeckPreviewProps {
 }
 
 /**
- * Renders a generated frontend-slides deck in a sandboxed iframe with the
+ * Renders a generated frontend-slides deck in a SANDBOXED iframe with the
  * natural post-generation actions: download the single HTML file, open it in a
- * new tab, or print it to PDF (the deck's own @media print rules lay out one
- * 16:9 slide per page). `allow-same-origin` lets the deck's inline JS, fonts,
- * and its own edit mode run; the content is generated from the user's own
- * inputs via their own key.
+ * new tab, or print it to PDF.
+ *
+ * Security: the deck's JavaScript is model-authored (from brand voice, talking
+ * points, image labels), so the iframe is sandboxed WITHOUT `allow-same-origin`
+ * — the deck runs at an opaque origin and cannot reach `window.parent` or the
+ * API keys the app stores in localStorage. Printing is done via a postMessage
+ * bridge injected only into the preview (see lib/deckViewer.ts); the downloaded
+ * file stays pristine.
  */
 export function DeckPreview({ html, projectName, onRegenerate, onClear, regenerating = false }: DeckPreviewProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
-  const blobUrlRef = useRef<string | null>(null);
-
-  useEffect(() => {
-    return () => {
-      if (blobUrlRef.current) URL.revokeObjectURL(blobUrlRef.current);
-    };
-  }, []);
-
-  const makeBlobUrl = (): string => {
-    if (blobUrlRef.current) URL.revokeObjectURL(blobUrlRef.current);
-    const url = URL.createObjectURL(new Blob([html], { type: 'text/html' }));
-    blobUrlRef.current = url;
-    return url;
-  };
+  // Preview HTML carries the print bridge; the download does not.
+  const previewHtml = useMemo(() => injectPrintBridge(html), [html]);
 
   const handleDownload = () => {
     const url = URL.createObjectURL(new Blob([html], { type: 'text/html' }));
@@ -43,11 +36,15 @@ export function DeckPreview({ html, projectName, onRegenerate, onClear, regenera
   };
 
   const handleOpen = () => {
-    window.open(makeBlobUrl(), '_blank', 'noopener');
+    const url = makeViewerBlobUrl(html);
+    window.open(url, '_blank', 'noopener');
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
   };
 
   const handlePrint = () => {
-    iframeRef.current?.contentWindow?.print();
+    // Cross-origin (sandboxed): postMessage is allowed even though reading the
+    // frame's DOM is not — the injected bridge calls the deck's own print().
+    iframeRef.current?.contentWindow?.postMessage(PRINT_MESSAGE, '*');
   };
 
   return (
@@ -86,9 +83,9 @@ export function DeckPreview({ html, projectName, onRegenerate, onClear, regenera
         <iframe
           ref={iframeRef}
           title="Generated presentation"
-          srcDoc={html}
+          srcDoc={previewHtml}
           className="h-full w-full"
-          sandbox="allow-scripts allow-same-origin allow-modals allow-popups allow-downloads"
+          sandbox="allow-scripts allow-modals allow-popups allow-downloads"
         />
       </div>
 

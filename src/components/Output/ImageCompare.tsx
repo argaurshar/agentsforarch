@@ -95,6 +95,8 @@ export function ImageCompare({ before, after, beforeLabel = 'Input', afterLabel 
           onKeyDown={(e) => {
             if (e.key === 'ArrowLeft') setPos((p) => clamp(p - 2, 0, 100));
             if (e.key === 'ArrowRight') setPos((p) => clamp(p + 2, 0, 100));
+            if (e.key === 'Home') setPos(0);
+            if (e.key === 'End') setPos(100);
           }}
           className="absolute left-1/2 top-1/2 flex h-9 w-9 -translate-x-1/2 -translate-y-1/2 cursor-ew-resize items-center justify-center border border-ochre bg-bone text-ochre focus-visible:outline-ochre"
         >

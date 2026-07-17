@@ -14,7 +14,7 @@ export class MagnificProvider implements ImageProvider {
     return Boolean(this.key);
   }
 
-  async generate(_req: GenerateRequest): Promise<GenerateResult> {
+  async generate(_req: GenerateRequest, _signal?: AbortSignal): Promise<GenerateResult> {
     if (!this.isConfigured()) {
       throw new Error('Provider not configured');
     }

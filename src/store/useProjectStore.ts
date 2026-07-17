@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { abortAllFeatures } from '../features/abortRegistry';
 import { newId } from '../lib/images';
 import { activeProviderName, isImageEngineReady } from '../providers';
 import {
@@ -20,6 +21,22 @@ import type {
   SlideLayout,
   TabKey,
 } from '../types';
+import { initialGeneration } from './generation';
+import type {
+  AxonSettings,
+  ElevationSettings,
+  FeatureRun,
+  FeatureSettings,
+  GenerateStatus,
+  GenerationState,
+  RenderSettings,
+  SceneOptions,
+} from './generation';
+
+/** A settings patch: any feature option, plus a *partial* scene (deep-merged). */
+type FeatureSettingsPatch = Partial<Omit<RenderSettings & ElevationSettings & AxonSettings, 'scene'>> & {
+  scene?: Partial<SceneOptions>;
+};
 
 // All project data access lives here (spec §9 — auth/persistence seam). No
 // component reads or writes the model directly; they go through these actions.
@@ -79,10 +96,29 @@ interface ProjectState {
   claudeApiKey: string | undefined; // Claude key for the presentation composer
   setApiConfig: (cfg: ApiConfigInput) => void;
 
+  // Per-feature generation state (input, settings, outputs, status). Lives in the
+  // store so an in-flight run survives a tab switch and features can seed one
+  // another (the cross-feature pipeline). See src/store/generation.ts.
+  generation: GenerationState;
+  patchFeatureRun: (feature: FeatureKind, patch: Partial<Omit<FeatureRun<FeatureSettings>, 'settings'>>) => void;
+  setFeatureInput: (feature: FeatureKind, dataURL: string | null) => void;
+  updateFeatureSettings: (feature: FeatureKind, patch: FeatureSettingsPatch) => void;
+  setFeaturePrompt: (feature: FeatureKind, prompt: string, edited: boolean) => void;
+  beginRefine: (feature: FeatureKind, image: GeneratedImage) => void;
+  exitRefine: (feature: FeatureKind) => void;
+  sendToFeature: (target: FeatureKind, dataURL: string) => void;
+
   // The frontend-slides deck generated for the Concept Presentation tab (in-memory
   // session artifact — a full self-contained HTML document, not project data).
   deckHtml: string | null;
   setDeckHtml: (html: string | null) => void;
+  // Deck generation lifecycle (owned here so an in-flight stream survives a tab
+  // or AI↔Manual toggle, and a single-flight guard prevents a second stream).
+  deckStatus: GenerateStatus;
+  deckProgress: number;
+  deckError: string | null;
+  deckWarnings: string[];
+  patchDeck: (patch: Partial<Pick<ProjectState, 'deckHtml' | 'deckStatus' | 'deckProgress' | 'deckError' | 'deckWarnings'>>) => void;
 
   setTab: (tab: TabKey) => void;
   renameProject: (name: string) => void;
@@ -94,6 +130,8 @@ interface ProjectState {
 
   addAsset: (input: AddAssetInput) => Asset;
   removeAsset: (assetId: string) => void;
+  /** Delete a single image wherever it lives (generated output or upload), scrubbing slides + feature displays. */
+  removeImage: (imageId: string) => void;
 
   addSlide: (imageIds: string[], layout: SlideLayout) => string;
   updateSlide: (slideId: string, patch: Partial<Pick<Slide, 'layout' | 'title' | 'caption' | 'imageIds'>>) => void;
@@ -142,8 +180,73 @@ export const useProjectStore = create<ProjectState>((set, get) => {
       });
     },
 
+    generation: initialGeneration(),
+
+    patchFeatureRun: (feature, patch) => {
+      const gen = get().generation;
+      set({ generation: { ...gen, [feature]: { ...gen[feature], ...patch } } });
+    },
+
+    setFeatureInput: (feature, dataURL) => {
+      const gen = get().generation;
+      const run = gen[feature];
+      // A manual input replace exits refine mode and clears the compare snapshot.
+      set({
+        generation: {
+          ...gen,
+          [feature]: { ...run, input: dataURL, mode: 'compose', inputUsed: null },
+        },
+      });
+    },
+
+    updateFeatureSettings: (feature, patch) => {
+      const gen = get().generation;
+      const run = gen[feature];
+      const scene = patch.scene ? { ...run.settings.scene, ...patch.scene } : run.settings.scene;
+      const settings = { ...run.settings, ...patch, scene } as FeatureSettings;
+      set({ generation: { ...gen, [feature]: { ...run, settings } } });
+    },
+
+    setFeaturePrompt: (feature, prompt, edited) => {
+      const gen = get().generation;
+      set({ generation: { ...gen, [feature]: { ...gen[feature], prompt, promptEdited: edited } } });
+    },
+
+    beginRefine: (feature, image) => {
+      const gen = get().generation;
+      const run = gen[feature];
+      set({
+        generation: {
+          ...gen,
+          [feature]: {
+            ...run,
+            input: image.url,
+            inputUsed: null,
+            mode: 'refine',
+            refine: { chips: [], freeText: '', sourceLabel: image.label },
+            promptEdited: false,
+          },
+        },
+      });
+    },
+
+    exitRefine: (feature) => {
+      const gen = get().generation;
+      set({ generation: { ...gen, [feature]: { ...gen[feature], mode: 'compose', promptEdited: false } } });
+    },
+
+    sendToFeature: (target, dataURL) => {
+      get().setFeatureInput(target, dataURL);
+      set({ tab: target });
+    },
+
     deckHtml: null,
     setDeckHtml: (html) => set({ deckHtml: html }),
+    deckStatus: 'idle',
+    deckProgress: 0,
+    deckError: null,
+    deckWarnings: [],
+    patchDeck: (patch) => set(patch),
 
     setTab: (tab) => set({ tab }),
 
@@ -228,6 +331,37 @@ export const useProjectStore = create<ProjectState>((set, get) => {
       set({ project: next });
     },
 
+    removeImage: (imageId) => {
+      const state = get();
+      const project = state.project;
+      if (project.uploads.some((u) => u.id === imageId)) {
+        state.removeUpload(imageId); // handles slide scrub + persist
+      } else {
+        const asset = project.assets.find((a) => a.outputs.some((o) => o.id === imageId));
+        if (asset) {
+          const remaining = asset.outputs.filter((o) => o.id !== imageId);
+          const assets =
+            remaining.length > 0
+              ? project.assets.map((a) => (a.id === asset.id ? { ...a, outputs: remaining } : a))
+              : project.assets.filter((a) => a.id !== asset.id);
+          const slides = project.slides
+            .map((s) => ({ ...s, imageIds: s.imageIds.filter((id) => id !== imageId) }))
+            .filter((s) => s.imageIds.length > 0)
+            .map((s, index) => ({ ...s, order: index }));
+          const next = touch({ ...project, assets, slides });
+          persist(next);
+          set({ project: next });
+        }
+      }
+      // Drop it from any feature's displayed outputs so the card disappears.
+      const gen = get().generation;
+      const scrub = <S extends FeatureSettings>(run: FeatureRun<S>): FeatureRun<S> =>
+        run.outputs.some((o) => o.id === imageId) ? { ...run, outputs: run.outputs.filter((o) => o.id !== imageId) } : run;
+      set({
+        generation: { render: scrub(gen.render), elevation: scrub(gen.elevation), axonometric: scrub(gen.axonometric) },
+      });
+    },
+
     addSlide: (imageIds, layout) => {
       const project = get().project;
       const id = newId('slide');
@@ -279,9 +413,18 @@ export const useProjectStore = create<ProjectState>((set, get) => {
     },
 
     resetProject: () => {
+      abortAllFeatures(); // stop any in-flight image generation
       const fresh = createEmptyProject();
       persist(fresh);
-      set({ project: fresh });
+      set({
+        project: fresh,
+        generation: initialGeneration(),
+        deckHtml: null,
+        deckStatus: 'idle',
+        deckProgress: 0,
+        deckError: null,
+        deckWarnings: [],
+      });
     },
   };
 });

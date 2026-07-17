@@ -121,13 +121,15 @@ export function exportPresentationPdf({ projectName, slides, imageMap, brand }: 
       }
     }
 
-    // Title.
+    // Title (wrapped so a long title never runs off the page or into the logo).
     if (slide.title) {
       doc.setFont(headingFont, 'normal');
       doc.setFontSize(22);
       doc.setTextColor(...titleColor);
-      doc.text(slide.title, MARGIN, MARGIN + 16);
-      contentTop = Math.max(contentTop, MARGIN + 34);
+      const titleWidth = PAGE_W - MARGIN * 2 - (brand.logo ? 120 : 0);
+      const lines = doc.splitTextToSize(slide.title, titleWidth).slice(0, 2);
+      doc.text(lines, MARGIN, MARGIN + 16);
+      contentTop = Math.max(contentTop, MARGIN + 34 + (lines.length - 1) * 24);
     }
 
     const contentBottom = PAGE_H - MARGIN - (slide.caption ? 44 : 26);

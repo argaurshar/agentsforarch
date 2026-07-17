@@ -1,7 +1,7 @@
-import { Sparkles, Wand2 } from 'lucide-react';
+import { Sparkles, Wand2, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { cancelDeck, runDeck } from '../../features/presentation/deckRunner';
 import type { DeckDensity, DeckImage, DeckLength, DeckOptions, DeckPurpose } from '../../lib/slidesDeck';
-import { generateSlideDeck } from '../../lib/slidesDeck';
 import { SKILL_ATTRIBUTION } from '../../lib/skill/frontendSlides';
 import { poolFromProject, useProjectStore } from '../../store/useProjectStore';
 import { Button } from '../ui/Button';
@@ -46,12 +46,27 @@ function ChipGroup<T extends string>({ label, value, options, onChange }: ChipGr
   );
 }
 
+function Warnings({ items }: { items: string[] }) {
+  if (items.length === 0) return null;
+  return (
+    <div className="border border-hairline bg-drafting px-3 py-2 text-xs leading-relaxed text-graphite">
+      {items.map((w, i) => (
+        <p key={i}>{w}</p>
+      ))}
+    </div>
+  );
+}
+
 export function DeckGenerator() {
   const project = useProjectStore((s) => s.project);
   const brand = project.brand;
   const claudeApiKey = useProjectStore((s) => s.claudeApiKey);
   const deckHtml = useProjectStore((s) => s.deckHtml);
-  const setDeckHtml = useProjectStore((s) => s.setDeckHtml);
+  const deckStatus = useProjectStore((s) => s.deckStatus);
+  const deckProgress = useProjectStore((s) => s.deckProgress);
+  const deckError = useProjectStore((s) => s.deckError);
+  const deckWarnings = useProjectStore((s) => s.deckWarnings);
+  const patchDeck = useProjectStore((s) => s.patchDeck);
 
   const pool = useMemo(() => poolFromProject(project), [project]);
 
@@ -59,33 +74,23 @@ export function DeckGenerator() {
   const [length, setLength] = useState<DeckLength>('Medium (10–20 slides)');
   const [density, setDensity] = useState<DeckDensity>('Low density / speaker-led');
   const [notes, setNotes] = useState('');
-  const [generating, setGenerating] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [error, setError] = useState<string | null>(null);
 
+  const generating = deckStatus === 'loading';
   const canGenerate = Boolean(claudeApiKey) && !generating;
 
-  const runGenerate = async () => {
+  const runGenerate = () => {
     if (!claudeApiKey) return;
-    setError(null);
-    setGenerating(true);
-    setProgress(0);
-    try {
-      const images: DeckImage[] = pool.map((p) => ({
-        id: p.image.id,
-        group: p.group,
-        label: p.image.label,
-        url: p.image.url,
-      }));
-      const options: DeckOptions = { purpose, length, density, notes };
-      const html = await generateSlideDeck({ projectName: project.name, brand, images, options, onProgress: setProgress });
-      setDeckHtml(html);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'The deck generator failed. Please try again.');
-    } finally {
-      setGenerating(false);
-    }
+    const images: DeckImage[] = pool.map((p) => ({
+      id: p.image.id,
+      group: p.group,
+      label: p.image.label,
+      url: p.image.url,
+    }));
+    const options: DeckOptions = { purpose, length, density, notes };
+    void runDeck({ projectName: project.name, brand, images, options });
   };
+
+  const clear = () => patchDeck({ deckHtml: null, deckStatus: 'idle', deckError: null, deckWarnings: [] });
 
   // Once a deck exists, show it with the post-generation actions.
   if (deckHtml) {
@@ -94,11 +99,12 @@ export function DeckGenerator() {
         <DeckPreview
           html={deckHtml}
           projectName={project.name}
-          onRegenerate={() => void runGenerate()}
-          onClear={() => setDeckHtml(null)}
+          onRegenerate={runGenerate}
+          onClear={clear}
           regenerating={generating}
         />
-        {error ? <ErrorBanner message={error} onRetry={() => void runGenerate()} /> : null}
+        <Warnings items={deckWarnings} />
+        {deckError ? <ErrorBanner message={deckError} onRetry={runGenerate} /> : null}
       </div>
     );
   }
@@ -140,15 +146,22 @@ export function DeckGenerator() {
         </div>
 
         <div className="mt-5 flex flex-col gap-2">
-          <Button
-            variant="primary"
-            icon={<Sparkles size={16} strokeWidth={1.75} />}
-            onClick={() => void runGenerate()}
-            disabled={!canGenerate}
-            loading={generating}
-          >
-            {generating ? 'Generating…' : 'Generate presentation'}
-          </Button>
+          <div className="flex items-center gap-3">
+            <Button
+              variant="primary"
+              icon={<Sparkles size={16} strokeWidth={1.75} />}
+              onClick={runGenerate}
+              disabled={!canGenerate}
+              loading={generating}
+            >
+              {generating ? 'Generating…' : 'Generate presentation'}
+            </Button>
+            {generating ? (
+              <Button variant="secondary" size="sm" icon={<X size={14} strokeWidth={1.75} />} onClick={cancelDeck}>
+                Cancel
+              </Button>
+            ) : null}
+          </div>
           {!claudeApiKey ? (
             <p className="text-[0.7rem] text-mist">Add a Claude API key in Settings to enable generation.</p>
           ) : null}
@@ -171,12 +184,13 @@ export function DeckGenerator() {
         <div className="flex items-center gap-3 border border-hairline bg-drafting px-4 py-3 text-sm text-graphite">
           <Spinner size={16} />
           <span>
-            Designing your deck… {progress > 0 ? `${progress.toLocaleString()} characters` : 'thinking through the structure'}
+            Designing your deck… {deckProgress > 0 ? `${deckProgress.toLocaleString()} characters` : 'thinking through the structure'}
           </span>
         </div>
       ) : null}
 
-      {error ? <ErrorBanner message={error} onRetry={() => void runGenerate()} /> : null}
+      <Warnings items={deckWarnings} />
+      {deckError ? <ErrorBanner message={deckError} onRetry={runGenerate} /> : null}
     </div>
   );
 }

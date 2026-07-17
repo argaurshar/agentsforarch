@@ -1,0 +1,30 @@
+name: CI
+
+# Build + type-check on every pull request. Deployment is handled separately
+# (deploy-pages.yml, main only) so PR CI never clobbers the live Pages site.
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # `npm run build` runs `tsc --noEmit` (strict) then `vite build`.
+      - name: Type-check and build
+        run: npm run build

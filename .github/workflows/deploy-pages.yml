@@ -3,7 +3,6 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches:
-      - claude/build-mb-setup-9tmhlw
       - main
   workflow_dispatch:
 
