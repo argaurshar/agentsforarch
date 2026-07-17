@@ -6,12 +6,14 @@ import { OutputGrid } from '../../components/Output/OutputGrid';
 import { RefineChips } from '../../components/Scene/RefineChips';
 import { SceneControls } from '../../components/Scene/SceneControls';
 import { Button } from '../../components/ui/Button';
+import { ChipGroup } from '../../components/ui/ChipGroup';
 import { ErrorBanner } from '../../components/ui/ErrorBanner';
 import { SectionHeader } from '../../components/ui/SectionHeader';
 import { Select } from '../../components/ui/Select';
+import { ELEVATION_THEMES } from '../../lib/scene';
 import { buildElevationPrompt, buildRefinePrompt } from '../../lib/prompts';
 import { useProjectStore } from '../../store/useProjectStore';
-import type { ElevationSettings } from '../../store/generation';
+import type { ElevationSettings, ElevationThemeKey } from '../../store/generation';
 import { useGenerate, usePresentationAdder } from '../hooks';
 
 const TYPE_OPTIONS = [
@@ -27,6 +29,16 @@ const STYLE_OPTIONS = [
   { value: 'shaded', label: 'Shaded' },
 ];
 
+const SOURCE_OPTIONS = [
+  { value: 'theme', label: 'Design theme' },
+  { value: 'moodboard', label: 'Mood board' },
+] as const;
+
+const THEME_OPTIONS = (Object.keys(ELEVATION_THEMES) as ElevationThemeKey[]).map((k) => ({
+  value: k,
+  label: ELEVATION_THEMES[k].label,
+}));
+
 export function ElevationFeature() {
   const { input, settings, mode, refine, prompt, promptEdited } = useProjectStore((s) => s.generation.elevation);
   const setFeatureInput = useProjectStore((s) => s.setFeatureInput);
@@ -38,15 +50,17 @@ export function ElevationFeature() {
   const sendToFeature = useProjectStore((s) => s.sendToFeature);
   const removeImage = useProjectStore((s) => s.removeImage);
 
-  const { face, style, scene } = settings;
+  const { face, style, theme, styleSource, moodboard, scene } = settings;
   const faces = face === 'All' ? ['Front', 'Side', 'Rear'] : [face];
+  // A rendered elevation is driven by a design theme OR a mood board (never both).
+  const useMoodboard = style === 'rendered' && styleSource === 'moodboard' && Boolean(moodboard);
 
   const suggestedPrompt = useMemo(
     () =>
       mode === 'refine'
         ? buildRefinePrompt(refine)
-        : buildElevationPrompt({ face: face === 'All' ? null : face, style, ...scene }),
-    [mode, refine, face, style, scene],
+        : buildElevationPrompt({ face: face === 'All' ? null : face, style, theme, useMoodboard, ...scene }),
+    [mode, refine, face, style, theme, useMoodboard, scene],
   );
   useEffect(() => {
     if (!promptEdited && suggestedPrompt !== prompt) setFeaturePrompt('elevation', suggestedPrompt, false);
@@ -64,7 +78,11 @@ export function ElevationFeature() {
       inputImage: input,
       prompt: prompt.trim() || undefined,
       // The elevation face(s) ride in `viewpoints` so each output label reflects it.
-      options: mode === 'refine' ? { style, refine: true } : { style, viewpoints: faces },
+      // A mood board (when active) is attached as a style reference image.
+      options:
+        mode === 'refine'
+          ? { style, refine: true }
+          : { style, viewpoints: faces, referenceImage: useMoodboard ? moodboard ?? undefined : undefined },
     });
   };
 
@@ -119,11 +137,46 @@ export function ElevationFeature() {
               <RefineChips value={refine} onChange={(patch) => patchFeatureRun('elevation', { refine: { ...refine, ...patch } })} />
             </div>
           ) : (
-            <SceneControls
-              value={scene}
-              onChange={(patch) => updateFeatureSettings('elevation', { scene: patch })}
-              show={{ lighting: style === 'rendered', mood: true }}
-            />
+            <>
+              {/* Rendered elevations can be driven by a design theme OR a mood board (only one at a time). */}
+              {style === 'rendered' ? (
+                <div className="flex flex-col gap-4 border border-hairline bg-paper p-4">
+                  <p className="mono-meta text-ochre">Elevation design · theme or mood board</p>
+                  <ChipGroup
+                    label="Style source"
+                    value={styleSource}
+                    options={SOURCE_OPTIONS}
+                    onChange={(v) => updateFeatureSettings('elevation', { styleSource: v })}
+                  />
+                  {styleSource === 'theme' ? (
+                    <ChipGroup
+                      label="Design theme"
+                      value={theme}
+                      options={THEME_OPTIONS}
+                      onChange={(v) => updateFeatureSettings('elevation', { theme: v })}
+                    />
+                  ) : (
+                    <div className="flex flex-col gap-2">
+                      <span className="mono-meta">Mood board</span>
+                      <ImageDropzone
+                        value={moodboard}
+                        onImage={(url) => updateFeatureSettings('elevation', { moodboard: url })}
+                        onClear={() => updateFeatureSettings('elevation', { moodboard: null })}
+                        hint="Upload a reference mood board — the render will follow its style, materials, colours and mood."
+                      />
+                      {!moodboard ? (
+                        <p className="text-xs text-mist">Upload a mood board, or switch to “Design theme”.</p>
+                      ) : null}
+                    </div>
+                  )}
+                </div>
+              ) : null}
+              <SceneControls
+                value={scene}
+                onChange={(patch) => updateFeatureSettings('elevation', { scene: patch })}
+                show={{ lighting: style === 'rendered', mood: true }}
+              />
+            </>
           )}
 
           <div className="flex flex-col gap-2">

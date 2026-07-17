@@ -1,6 +1,7 @@
 import type {
   ArchStyleKey,
   ContextKey,
+  ElevationThemeKey,
   LightingKey,
   MaterialsKey,
   MoodKey,
@@ -123,6 +124,38 @@ export const CONTEXTS = {
   landscape: { label: 'Landscape / garden', clause: 'set within a landscaped garden with lawns, planting and mature trees' },
   waterfront: { label: 'Waterfront', clause: 'set on a waterfront with reflections on calm water' },
 } satisfies Record<ContextKey, SceneOpt>;
+
+// Design themes for a rendered elevation (Feature 02). The clause names the
+// design language so Nano Banana Pro restyles the elevation's materials, colour
+// and detailing to match; `none` keeps a neutral studio render.
+export const ELEVATION_THEMES = {
+  none: { label: 'Studio default', clause: '' },
+  contemporary: {
+    label: 'Contemporary',
+    clause:
+      'a contemporary design language — clean rectilinear composition, large frameless glazing, flush minimal detailing, and a restrained neutral palette of render, stone and timber',
+  },
+  modern: {
+    label: 'Modern',
+    clause:
+      'a modern design language — bold simple volumes, strong horizontal emphasis, flat roofs, expanses of glass, smooth white render and dark metal accents',
+  },
+  traditional: {
+    label: 'Traditional',
+    clause:
+      'a traditional design language — pitched and hipped roofs, symmetrical composition, moulded cornices and sills, timber joinery, natural stone and classical proportions',
+  },
+  boho: {
+    label: 'Boho chic',
+    clause:
+      'a boho-chic design language — warm earthy tones, natural textures, arched openings, rattan, terracotta and timber accents, lime-washed walls, climbing planting and a relaxed eclectic character',
+  },
+} satisfies Record<ElevationThemeKey, SceneOpt>;
+
+/** The elevation-theme fragment for the prompt builder. */
+export function elevationThemeClause(theme: ElevationThemeKey): string {
+  return ELEVATION_THEMES[theme].clause;
+}
 
 /** The default scene — reproduces today's photoreal prompt (studio + golden hour, exterior). */
 export function defaultScene(): SceneOptions {

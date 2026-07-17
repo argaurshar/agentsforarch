@@ -53,9 +53,14 @@ export interface RenderSettings {
   variations: number; // 1 | 2 | 4
   scene: SceneOptions;
 }
+export type ElevationThemeKey = 'none' | 'contemporary' | 'modern' | 'traditional' | 'boho';
+
 export interface ElevationSettings {
   face: 'Front' | 'Side' | 'Rear' | 'All';
   style: string; // line | rendered | shaded
+  theme: ElevationThemeKey; // design language for a rendered elevation
+  styleSource: 'theme' | 'moodboard'; // drive the render from a theme OR a mood board (mutually exclusive)
+  moodboard: string | null; // dataURL of an uploaded mood-board reference image
   scene: SceneOptions;
 }
 export interface AxonSettings {
@@ -123,7 +128,10 @@ export function initialGeneration(): GenerationState {
   const scene = defaultScene();
   return {
     render: baseRun<RenderSettings>({ style: 'isometric', variations: 1, scene: defaultScene() }, renderPrompt('isometric')),
-    elevation: baseRun<ElevationSettings>({ face: 'Front', style: 'rendered', scene: defaultScene() }, elevationPrompt('Front', 'rendered')),
+    elevation: baseRun<ElevationSettings>(
+      { face: 'Front', style: 'rendered', theme: 'none', styleSource: 'theme', moodboard: null, scene: defaultScene() },
+      elevationPrompt('Front', 'rendered'),
+    ),
     axonometric: baseRun<AxonSettings>({ viewpoints: ['NE'], style: 'realistic', section: false, scene }, axonometricPrompt(false)),
   };
 }

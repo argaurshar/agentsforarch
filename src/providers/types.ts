@@ -14,6 +14,7 @@ export interface GenerateRequest {
     viewpoints?: string[]; // axonometric viewpoints, or elevation faces for the all-faces batch
     variations?: number; // how many outputs, default 1
     section?: boolean; // axonometric: also cut a section-axonometric
+    referenceImage?: string; // dataURL — a style reference (e.g. an elevation mood board) sent alongside the input
     refine?: boolean; // this is an iterative refine of an existing output (single job, refined label)
   };
 }

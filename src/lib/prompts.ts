@@ -7,8 +7,8 @@
 
 import type { RefineChipKey } from './refine';
 import { REFINE_CHIPS } from './refine';
-import { CONTEXTS, LIGHTING, MOODS, SEASONS, archStyleClause, defaultScene, materialsClause } from './scene';
-import type { SceneOptions } from '../store/generation';
+import { CONTEXTS, LIGHTING, MOODS, SEASONS, archStyleClause, defaultScene, elevationThemeClause, materialsClause } from './scene';
+import type { ElevationThemeKey, SceneOptions } from '../store/generation';
 
 // --- Render -----------------------------------------------------------------
 
@@ -94,15 +94,22 @@ export function buildRenderPrompt(a: { style: string } & SceneOptions): string {
 const ELEVATION_STYLE_CLAUSE: Record<string, string> = {
   line: 'Precise consistent line weights, hidden-line-removed monochrome technical drafting linework, no shading.',
   rendered:
-    'Fully rendered materials and colour with soft frontal daylight, subtle shadows and material texture — a presentation elevation.',
+    'Render it with photorealistic materials, colour, depth and relief — soft frontal daylight, subtle cast shadows and rich material texture, a realistic 3D-rendered presentation elevation.',
   shaded:
     'Greyscale shaded elevation with soft tonal shadows describing depth and relief, restrained material hatching.',
 };
 
 type ElevationSceneArgs = Pick<SceneOptions, 'materials' | 'customMaterials' | 'lighting' | 'mood'>;
 
+interface ElevationStyleArgs {
+  theme?: ElevationThemeKey; // design language (ignored when a mood board drives the render)
+  useMoodboard?: boolean; // a reference mood-board image is attached to the request
+}
+
 /** `face === null` yields a face-neutral base (the all-faces batch appends the per-face clause). */
-export function buildElevationPrompt(a: { face: 'Front' | 'Side' | 'Rear' | null; style: string } & ElevationSceneArgs): string {
+export function buildElevationPrompt(
+  a: { face: 'Front' | 'Side' | 'Rear' | null; style: string } & ElevationSceneArgs & ElevationStyleArgs,
+): string {
   const faceClause =
     a.face === null
       ? 'elevation'
@@ -121,6 +128,18 @@ export function buildElevationPrompt(a: { face: 'Front' | 'Side' | 'Rear' | null
     parts.push(`Lighting: ${LIGHTING[a.lighting].clause}.`);
   }
   parts.push(styleClause);
+  // A rendered elevation can be driven by a design theme OR a reference mood board
+  // (mutually exclusive). The mood board is attached to the request as a second image.
+  if (a.style === 'rendered') {
+    if (a.useMoodboard) {
+      parts.push(
+        'Restyle the elevation to match the design language, materials, colour palette, textures and overall mood of the attached reference mood-board image, ' +
+          'while keeping the exact geometry, proportions, openings and layout of the elevation unchanged.',
+      );
+    } else if (a.theme && elevationThemeClause(a.theme)) {
+      parts.push(`Design theme: ${elevationThemeClause(a.theme)}.`);
+    }
+  }
   if (MOODS[a.mood].clause) parts.push(`${MOODS[a.mood].clause}.`);
   return parts.join(' ');
 }
