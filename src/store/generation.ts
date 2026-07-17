@@ -122,7 +122,7 @@ function baseRun<S extends FeatureSettings>(settings: S, prompt: string): Featur
 export function initialGeneration(): GenerationState {
   const scene = defaultScene();
   return {
-    render: baseRun<RenderSettings>({ style: 'photoreal', variations: 2, scene: defaultScene() }, renderPrompt('photoreal')),
+    render: baseRun<RenderSettings>({ style: 'isometric', variations: 1, scene: defaultScene() }, renderPrompt('isometric')),
     elevation: baseRun<ElevationSettings>({ face: 'Front', style: 'rendered', scene: defaultScene() }, elevationPrompt('Front', 'rendered')),
     axonometric: baseRun<AxonSettings>({ viewpoints: ['NE'], style: 'realistic', section: false, scene }, axonometricPrompt(false)),
   };
