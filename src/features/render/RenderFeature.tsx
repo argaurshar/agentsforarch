@@ -30,6 +30,17 @@ const AFTER_LABEL: Record<string, string> = {
   watercolour: 'Watercolour',
 };
 
+// A one-line hint under the Style select so the right style for the input is
+// obvious — in particular that a 2D floor plan should use Isometric dollhouse,
+// not Photoreal (which renders an exterior building).
+const STYLE_HINT: Record<string, string> = {
+  photoreal: 'For a hand sketch or 3D model → a photoreal building render. Uploading a 2D floor plan? Choose “Isometric dollhouse”.',
+  isometric: 'For a 2D floor plan → a 3D isometric “dollhouse” cutaway (walls extruded, furniture in 3D, no roof, layout preserved).',
+  clay: 'A clean white clay / massing model — good for early studies.',
+  line: 'A crisp black-and-white architectural line drawing.',
+  watercolour: 'A soft architectural watercolour illustration.',
+};
+
 const VARIATION_OPTIONS = [
   { value: '1', label: '1 variation' },
   { value: '2', label: '2 variations' },
@@ -95,19 +106,26 @@ export function RenderFeature() {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <Select
-              label="Style"
-              value={style}
-              options={STYLE_OPTIONS}
-              onChange={(v) => updateFeatureSettings('render', { style: v })}
-            />
-            <Select
-              label="Variations"
-              value={String(variations)}
-              options={VARIATION_OPTIONS}
-              onChange={(v) => updateFeatureSettings('render', { variations: Number(v) })}
-            />
+          <div className="flex flex-col gap-2">
+            <div className="grid grid-cols-2 gap-4">
+              <Select
+                label="Style"
+                value={style}
+                options={STYLE_OPTIONS}
+                onChange={(v) => updateFeatureSettings('render', { style: v })}
+              />
+              <Select
+                label="Variations"
+                value={String(variations)}
+                options={VARIATION_OPTIONS}
+                onChange={(v) => updateFeatureSettings('render', { variations: Number(v) })}
+              />
+            </div>
+            {STYLE_HINT[style] ? (
+              <p className={`text-xs leading-relaxed ${style === 'isometric' ? 'text-ochre' : 'text-mist'}`}>
+                {STYLE_HINT[style]}
+              </p>
+            ) : null}
           </div>
 
           {mode === 'refine' ? (
