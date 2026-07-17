@@ -2,28 +2,35 @@ import { RotateCcw, Sparkles, X } from 'lucide-react';
 import { useEffect, useMemo } from 'react';
 import { ImageDropzone } from '../../components/Upload/ImageDropzone';
 import { OutputGrid } from '../../components/Output/OutputGrid';
+import { RefineChips } from '../../components/Scene/RefineChips';
 import { SceneControls } from '../../components/Scene/SceneControls';
 import { Button } from '../../components/ui/Button';
 import { ErrorBanner } from '../../components/ui/ErrorBanner';
 import { SectionHeader } from '../../components/ui/SectionHeader';
-import { buildAxonometricPrompt } from '../../lib/prompts';
+import { buildAxonometricPrompt, buildRefinePrompt } from '../../lib/prompts';
 import { useProjectStore } from '../../store/useProjectStore';
 import { useGenerate, usePresentationAdder } from '../hooks';
 
 const VIEWPOINTS = ['NE', 'NW', 'SE', 'SW'] as const;
 
 export function AxonometricFeature() {
-  const { input, settings, prompt, promptEdited } = useProjectStore((s) => s.generation.axonometric);
+  const { input, settings, mode, refine, prompt, promptEdited } = useProjectStore((s) => s.generation.axonometric);
   const setFeatureInput = useProjectStore((s) => s.setFeatureInput);
   const updateFeatureSettings = useProjectStore((s) => s.updateFeatureSettings);
   const setFeaturePrompt = useProjectStore((s) => s.setFeaturePrompt);
+  const patchFeatureRun = useProjectStore((s) => s.patchFeatureRun);
+  const beginRefine = useProjectStore((s) => s.beginRefine);
+  const exitRefine = useProjectStore((s) => s.exitRefine);
   const removeImage = useProjectStore((s) => s.removeImage);
 
   const { viewpoints: selected, section, scene } = settings;
 
-  // Auto-assembled from the section toggle + scene; each viewpoint is added
-  // per-image by the provider. Editable by the user.
-  const suggestedPrompt = useMemo(() => buildAxonometricPrompt({ section, ...scene }), [section, scene]);
+  // Auto-assembled from the section toggle + scene, or (in refine mode) from the
+  // refine chips. Each viewpoint is added per-image by the provider. Editable.
+  const suggestedPrompt = useMemo(
+    () => (mode === 'refine' ? buildRefinePrompt(refine) : buildAxonometricPrompt({ section, ...scene })),
+    [mode, refine, section, scene],
+  );
   useEffect(() => {
     if (!promptEdited && suggestedPrompt !== prompt) setFeaturePrompt('axonometric', suggestedPrompt, false);
   }, [suggestedPrompt, promptEdited, prompt, setFeaturePrompt]);
@@ -35,7 +42,7 @@ export function AxonometricFeature() {
 
   // Preserve the NE,NW,SE,SW ordering regardless of click order.
   const orderedSelection = VIEWPOINTS.filter((vp) => selected.includes(vp));
-  const canGenerate = input !== null && orderedSelection.length > 0;
+  const canGenerate = input !== null && (mode === 'refine' || orderedSelection.length > 0);
 
   const toggleViewpoint = (vp: string) => {
     const next = selected.includes(vp) ? selected.filter((v) => v !== vp) : [...selected, vp];
@@ -48,10 +55,10 @@ export function AxonometricFeature() {
       feature: 'axonometric',
       inputImage: input,
       prompt: prompt.trim() || undefined,
-      options: {
-        viewpoints: orderedSelection,
-        style: section ? 'section' : 'standard',
-      },
+      options:
+        mode === 'refine'
+          ? { style: section ? 'section' : 'standard', refine: true }
+          : { viewpoints: orderedSelection, style: section ? 'section' : 'standard' },
     });
   };
 
@@ -126,11 +133,27 @@ export function AxonometricFeature() {
             </button>
           </div>
 
-          <SceneControls
-            value={scene}
-            onChange={(patch) => updateFeatureSettings('axonometric', { scene: patch })}
-            show={{ materials: true, mood: true }}
-          />
+          {mode === 'refine' ? (
+            <div className="flex flex-col gap-3 border border-ochre bg-drafting p-4">
+              <div className="flex items-center justify-between">
+                <span className="mono-meta text-ochre">Refining · {refine.sourceLabel}</span>
+                <button
+                  type="button"
+                  onClick={() => exitRefine('axonometric')}
+                  className="text-xs text-ochre hover:text-ochre-deep focus-visible:outline-ochre"
+                >
+                  Exit refine
+                </button>
+              </div>
+              <RefineChips value={refine} onChange={(patch) => patchFeatureRun('axonometric', { refine: { ...refine, ...patch } })} />
+            </div>
+          ) : (
+            <SceneControls
+              value={scene}
+              onChange={(patch) => updateFeatureSettings('axonometric', { scene: patch })}
+              show={{ materials: true, mood: true }}
+            />
+          )}
 
           <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between gap-3">
@@ -191,10 +214,11 @@ export function AxonometricFeature() {
             <OutputGrid
               outputs={outputs}
               loading={loading}
-              loadingCount={orderedSelection.length}
+              loadingCount={mode === 'refine' ? 1 : orderedSelection.length}
               onAddToPresentation={addToPresentation}
               addedIds={addedIds}
               onDelete={removeImage}
+              onRefine={(image) => beginRefine('axonometric', image)}
             />
           ) : !error ? (
             <div className="flex flex-1 items-center justify-center border border-dashed border-hairline bg-paper px-6 py-16 text-center">

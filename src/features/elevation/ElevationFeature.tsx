@@ -2,12 +2,13 @@ import { RotateCcw, Sparkles, X } from 'lucide-react';
 import { useEffect, useMemo } from 'react';
 import { ImageDropzone } from '../../components/Upload/ImageDropzone';
 import { OutputGrid } from '../../components/Output/OutputGrid';
+import { RefineChips } from '../../components/Scene/RefineChips';
 import { SceneControls } from '../../components/Scene/SceneControls';
 import { Button } from '../../components/ui/Button';
 import { ErrorBanner } from '../../components/ui/ErrorBanner';
 import { SectionHeader } from '../../components/ui/SectionHeader';
 import { Select } from '../../components/ui/Select';
-import { buildElevationPrompt } from '../../lib/prompts';
+import { buildElevationPrompt, buildRefinePrompt } from '../../lib/prompts';
 import { useProjectStore } from '../../store/useProjectStore';
 import type { ElevationSettings } from '../../store/generation';
 import { useGenerate, usePresentationAdder } from '../hooks';
@@ -16,6 +17,7 @@ const TYPE_OPTIONS = [
   { value: 'Front', label: 'Front' },
   { value: 'Side', label: 'Side' },
   { value: 'Rear', label: 'Rear' },
+  { value: 'All', label: 'All faces (Front · Side · Rear)' },
 ];
 
 const STYLE_OPTIONS = [
@@ -25,17 +27,25 @@ const STYLE_OPTIONS = [
 ];
 
 export function ElevationFeature() {
-  const { input, settings, prompt, promptEdited } = useProjectStore((s) => s.generation.elevation);
+  const { input, settings, mode, refine, prompt, promptEdited } = useProjectStore((s) => s.generation.elevation);
   const setFeatureInput = useProjectStore((s) => s.setFeatureInput);
   const updateFeatureSettings = useProjectStore((s) => s.updateFeatureSettings);
   const setFeaturePrompt = useProjectStore((s) => s.setFeaturePrompt);
+  const patchFeatureRun = useProjectStore((s) => s.patchFeatureRun);
+  const beginRefine = useProjectStore((s) => s.beginRefine);
+  const exitRefine = useProjectStore((s) => s.exitRefine);
+  const sendToFeature = useProjectStore((s) => s.sendToFeature);
   const removeImage = useProjectStore((s) => s.removeImage);
 
   const { face, style, scene } = settings;
+  const faces = face === 'All' ? ['Front', 'Side', 'Rear'] : [face];
 
   const suggestedPrompt = useMemo(
-    () => buildElevationPrompt({ face: face === 'All' ? null : face, style, ...scene }),
-    [face, style, scene],
+    () =>
+      mode === 'refine'
+        ? buildRefinePrompt(refine)
+        : buildElevationPrompt({ face: face === 'All' ? null : face, style, ...scene }),
+    [mode, refine, face, style, scene],
   );
   useEffect(() => {
     if (!promptEdited && suggestedPrompt !== prompt) setFeaturePrompt('elevation', suggestedPrompt, false);
@@ -52,8 +62,8 @@ export function ElevationFeature() {
       feature: 'elevation',
       inputImage: input,
       prompt: prompt.trim() || undefined,
-      // The elevation face rides in `viewpoints` so the output label reflects it.
-      options: { style, viewpoints: [face] },
+      // The elevation face(s) ride in `viewpoints` so each output label reflects it.
+      options: mode === 'refine' ? { style, refine: true } : { style, viewpoints: faces },
     });
   };
 
@@ -93,11 +103,27 @@ export function ElevationFeature() {
             />
           </div>
 
-          <SceneControls
-            value={scene}
-            onChange={(patch) => updateFeatureSettings('elevation', { scene: patch })}
-            show={{ materials: style === 'rendered', lighting: style === 'rendered', mood: true }}
-          />
+          {mode === 'refine' ? (
+            <div className="flex flex-col gap-3 border border-ochre bg-drafting p-4">
+              <div className="flex items-center justify-between">
+                <span className="mono-meta text-ochre">Refining · {refine.sourceLabel}</span>
+                <button
+                  type="button"
+                  onClick={() => exitRefine('elevation')}
+                  className="text-xs text-ochre hover:text-ochre-deep focus-visible:outline-ochre"
+                >
+                  Exit refine
+                </button>
+              </div>
+              <RefineChips value={refine} onChange={(patch) => patchFeatureRun('elevation', { refine: { ...refine, ...patch } })} />
+            </div>
+          ) : (
+            <SceneControls
+              value={scene}
+              onChange={(patch) => updateFeatureSettings('elevation', { scene: patch })}
+              show={{ materials: style === 'rendered', lighting: style === 'rendered', mood: true }}
+            />
+          )}
 
           <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between gap-3">
@@ -156,10 +182,13 @@ export function ElevationFeature() {
             <OutputGrid
               outputs={outputs}
               loading={loading}
-              loadingCount={1}
+              loadingCount={mode === 'refine' ? 1 : faces.length}
               onAddToPresentation={addToPresentation}
               addedIds={addedIds}
               onDelete={removeImage}
+              onRefine={(image) => beginRefine('elevation', image)}
+              sendTargets={[{ label: 'Send to Axonometric', target: 'axonometric' }]}
+              onSend={(target, image) => sendToFeature(target, image.url)}
             />
           ) : !error ? (
             <div className="flex flex-1 items-center justify-center border border-dashed border-hairline bg-paper px-6 py-16 text-center">

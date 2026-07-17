@@ -3,12 +3,13 @@ import { useEffect, useMemo } from 'react';
 import { ImageDropzone } from '../../components/Upload/ImageDropzone';
 import { ImageCompare } from '../../components/Output/ImageCompare';
 import { OutputGrid } from '../../components/Output/OutputGrid';
+import { RefineChips } from '../../components/Scene/RefineChips';
 import { SceneControls } from '../../components/Scene/SceneControls';
 import { Button } from '../../components/ui/Button';
 import { ErrorBanner } from '../../components/ui/ErrorBanner';
 import { SectionHeader } from '../../components/ui/SectionHeader';
 import { Select } from '../../components/ui/Select';
-import { buildRenderPrompt } from '../../lib/prompts';
+import { buildRefinePrompt, buildRenderPrompt } from '../../lib/prompts';
 import { useProjectStore } from '../../store/useProjectStore';
 import { useGenerate, usePresentationAdder } from '../hooks';
 
@@ -26,16 +27,24 @@ const VARIATION_OPTIONS = [
 ];
 
 export function RenderFeature() {
-  const { input, settings, prompt, promptEdited } = useProjectStore((s) => s.generation.render);
+  const { input, settings, mode, refine, prompt, promptEdited } = useProjectStore((s) => s.generation.render);
   const setFeatureInput = useProjectStore((s) => s.setFeatureInput);
   const updateFeatureSettings = useProjectStore((s) => s.updateFeatureSettings);
   const setFeaturePrompt = useProjectStore((s) => s.setFeaturePrompt);
+  const patchFeatureRun = useProjectStore((s) => s.patchFeatureRun);
+  const beginRefine = useProjectStore((s) => s.beginRefine);
+  const exitRefine = useProjectStore((s) => s.exitRefine);
+  const sendToFeature = useProjectStore((s) => s.sendToFeature);
   const removeImage = useProjectStore((s) => s.removeImage);
 
   const { style, variations, scene } = settings;
 
-  // Prompt is auto-assembled from the style + scene choices; the user can edit it.
-  const suggestedPrompt = useMemo(() => buildRenderPrompt({ style, ...scene }), [style, scene]);
+  // Prompt is auto-assembled — from the style + scene choices, or (in refine
+  // mode) from the refine chips. The user can still edit it (Reset restores).
+  const suggestedPrompt = useMemo(
+    () => (mode === 'refine' ? buildRefinePrompt(refine) : buildRenderPrompt({ style, ...scene })),
+    [mode, refine, style, scene],
+  );
   useEffect(() => {
     if (!promptEdited && suggestedPrompt !== prompt) setFeaturePrompt('render', suggestedPrompt, false);
   }, [suggestedPrompt, promptEdited, prompt, setFeaturePrompt]);
@@ -51,7 +60,7 @@ export function RenderFeature() {
       feature: 'render',
       inputImage: input,
       prompt: prompt.trim() || undefined,
-      options: { style, variations },
+      options: mode === 'refine' ? { style, variations: 1, refine: true } : { style, variations },
     });
   };
 
@@ -91,7 +100,21 @@ export function RenderFeature() {
             />
           </div>
 
-          {style === 'photoreal' ? (
+          {mode === 'refine' ? (
+            <div className="flex flex-col gap-3 border border-ochre bg-drafting p-4">
+              <div className="flex items-center justify-between">
+                <span className="mono-meta text-ochre">Refining · {refine.sourceLabel}</span>
+                <button
+                  type="button"
+                  onClick={() => exitRefine('render')}
+                  className="text-xs text-ochre hover:text-ochre-deep focus-visible:outline-ochre"
+                >
+                  Exit refine
+                </button>
+              </div>
+              <RefineChips value={refine} onChange={(patch) => patchFeatureRun('render', { refine: { ...refine, ...patch } })} />
+            </div>
+          ) : style === 'photoreal' ? (
             <SceneControls
               value={scene}
               onChange={(patch) => updateFeatureSettings('render', { scene: patch })}
@@ -161,6 +184,9 @@ export function RenderFeature() {
               onAddToPresentation={addToPresentation}
               addedIds={addedIds}
               onDelete={removeImage}
+              onRefine={(image) => beginRefine('render', image)}
+              sendTargets={[{ label: 'Send to Elevation', target: 'elevation' }]}
+              onSend={(target, image) => sendToFeature(target, image.url)}
             />
           ) : !error ? (
             <div className="flex flex-1 items-center justify-center border border-dashed border-hairline bg-paper px-6 py-16 text-center">
