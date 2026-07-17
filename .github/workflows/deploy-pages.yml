@@ -54,6 +54,11 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
+    # NOTE: this job publishes through the `github-pages` environment. In repo
+    # Settings → Environments → github-pages, "Deployment branches and tags" must
+    # allow `main` (or be unrestricted), and Settings → Pages → Source must be
+    # "GitHub Actions". If either is wrong the deploy job is rejected at the
+    # environment gate (fails in ~1s with no runner) even though the build passes.
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
