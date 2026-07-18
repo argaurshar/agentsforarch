@@ -66,12 +66,32 @@ function buildIsometricPrompt(a: SceneOptions): string {
   return parts.join(' ');
 }
 
+/**
+ * 2D plan → fully furnished, coloured top-down marketing plan. Unlike the
+ * isometric, this stays strictly flat: no extrusion, no perspective — the
+ * brochure staple for residential projects.
+ */
+function buildFurnishedPlanPrompt(a: SceneOptions): string {
+  const parts: string[] = [
+    'Transform this 2D architectural floor plan into a beautifully rendered, fully furnished top-down 2D plan (a presentation / marketing plan).',
+    'Keep the view strictly top-down orthographic — flat, with no perspective and no 3D extrusion of the walls.',
+    'Maintain the exact room layout, wall positions, door and window openings and overall proportions of the original plan — do not move, add or remove rooms.',
+    'Render realistic flooring materials per room, furniture and fixtures drawn in clean top view, soft subtle drop shadows for depth, and a crisp white background around the plan.',
+  ];
+  const arch = archStyleClause(a);
+  if (arch) parts.push(`Architectural style: ${arch}.`);
+  if (MOODS[a.mood].clause) parts.push(`Mood: ${MOODS[a.mood].clause}.`);
+  parts.push('Professional architectural presentation graphics, ultra-detailed, print quality.');
+  return parts.join(' ');
+}
+
 /** Assemble a render prompt from the style + scene choices. */
 export function buildRenderPrompt(a: { style: string } & SceneOptions): string {
   if (a.style === 'clay') return CLAY_PROMPT;
   if (a.style === 'line') return LINE_PROMPT;
   if (a.style === 'watercolour') return WATERCOLOUR_PROMPT;
   if (a.style === 'isometric') return buildIsometricPrompt(a);
+  if (a.style === 'plan2d') return buildFurnishedPlanPrompt(a);
 
   const interior = a.setting === 'interior';
   const parts: string[] = [

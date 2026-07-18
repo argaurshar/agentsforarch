@@ -1,5 +1,5 @@
 import { RotateCcw, Sparkles, X } from 'lucide-react';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ImageDropzone } from '../../components/Upload/ImageDropzone';
 import { CompareSection } from '../../components/Output/CompareSection';
 import { OutputGrid } from '../../components/Output/OutputGrid';
@@ -48,6 +48,10 @@ const THEME_OPTIONS = (Object.keys(INTERIOR_THEMES) as InteriorThemeKey[]).map((
   label: INTERIOR_THEMES[k].label,
 }));
 
+// Compare-styles vocabulary — the concrete themes (no 'none').
+const COMPARE_KEYS = (Object.keys(INTERIOR_THEMES) as InteriorThemeKey[]).filter((k) => k !== 'none');
+const MAX_COMPARE = 4;
+
 export function InteriorFeature() {
   const { input, settings, mode: runMode, refine, prompt, promptEdited } = useProjectStore((s) => s.generation.interior);
   const setFeatureInput = useProjectStore((s) => s.setFeatureInput);
@@ -62,12 +66,21 @@ export function InteriorFeature() {
   // The interior is driven by a design theme OR a mood board (never both).
   const useMoodboard = styleSource === 'moodboard' && Boolean(moodboard);
 
+  // Compare-styles batch: one room × several design themes in one run.
+  const [compare, setCompare] = useState(false);
+  const [compareSel, setCompareSel] = useState<InteriorThemeKey[]>(['contemporary', 'japandi', 'boho']);
+  const compareActive = runMode !== 'refine' && styleSource === 'theme' && compare && compareSel.length >= 2;
+  const toggleCompareKey = (key: InteriorThemeKey) =>
+    setCompareSel((prev) =>
+      prev.includes(key) ? prev.filter((k) => k !== key) : prev.length >= MAX_COMPARE ? prev : [...prev, key],
+    );
+
   const suggestedPrompt = useMemo(
     () =>
       runMode === 'refine'
         ? buildRefinePrompt(refine)
-        : buildInteriorPrompt({ mode, roomType, theme, useMoodboard, mood: scene.mood }),
-    [runMode, refine, mode, roomType, theme, useMoodboard, scene.mood],
+        : buildInteriorPrompt({ mode, roomType, theme: compareActive ? 'none' : theme, useMoodboard, mood: scene.mood }),
+    [runMode, refine, mode, roomType, theme, useMoodboard, scene.mood, compareActive],
   );
   useEffect(() => {
     if (!promptEdited && suggestedPrompt !== prompt) setFeaturePrompt('interior', suggestedPrompt, false);
@@ -89,7 +102,13 @@ export function InteriorFeature() {
       options:
         runMode === 'refine'
           ? { style: mode, refine: true }
-          : { style: mode, referenceImage: useMoodboard ? moodboard ?? undefined : undefined },
+          : {
+              style: mode,
+              referenceImage: useMoodboard ? moodboard ?? undefined : undefined,
+              styleVariants: compareActive
+                ? compareSel.map((k) => ({ label: `${INTERIOR_THEMES[k].label} interior`, clause: INTERIOR_THEMES[k].clause }))
+                : undefined,
+            },
     });
   };
 
@@ -160,12 +179,63 @@ export function InteriorFeature() {
                   onChange={(v) => updateFeatureSettings('interior', { styleSource: v })}
                 />
                 {styleSource === 'theme' ? (
-                  <ChipGroup
-                    label="Design theme"
-                    value={theme}
-                    options={THEME_OPTIONS}
-                    onChange={(v) => updateFeatureSettings('interior', { theme: v })}
-                  />
+                  <>
+                    <div className="flex items-center justify-between">
+                      <span className="mono-meta">Compare styles · one image per theme</span>
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={compare}
+                        aria-label="Compare styles"
+                        onClick={() => setCompare((v) => !v)}
+                        className={`relative h-6 w-11 border transition-colors focus-visible:outline-ochre ${
+                          compare ? 'border-ochre bg-ochre' : 'border-hairline bg-drafting'
+                        }`}
+                      >
+                        <span
+                          className={`absolute top-1/2 h-4 w-4 -translate-y-1/2 bg-bone transition-all ${
+                            compare ? 'left-6' : 'left-1'
+                          }`}
+                        />
+                      </button>
+                    </div>
+                    {compare ? (
+                      <>
+                        <div className="flex flex-wrap gap-1.5">
+                          {COMPARE_KEYS.map((key) => {
+                            const active = compareSel.includes(key);
+                            return (
+                              <button
+                                key={key}
+                                type="button"
+                                aria-pressed={active}
+                                onClick={() => toggleCompareKey(key)}
+                                className={`border px-3 py-1.5 text-xs transition-colors focus-visible:outline-ochre ${
+                                  active
+                                    ? 'border-ochre bg-ochre text-bone'
+                                    : 'border-hairline bg-paper text-graphite hover:bg-drafting'
+                                }`}
+                              >
+                                {INTERIOR_THEMES[key].label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        <p className="text-xs text-mist">
+                          {compareSel.length < 2
+                            ? 'Pick at least 2 themes.'
+                            : `${compareSel.length} themes → ${compareSel.length} images in one run (max ${MAX_COMPARE}).`}
+                        </p>
+                      </>
+                    ) : (
+                      <ChipGroup
+                        label="Design theme"
+                        value={theme}
+                        options={THEME_OPTIONS}
+                        onChange={(v) => updateFeatureSettings('interior', { theme: v })}
+                      />
+                    )}
+                  </>
                 ) : (
                   <div className="flex flex-col gap-2">
                     <span className="mono-meta">Mood board</span>
@@ -246,7 +316,7 @@ export function InteriorFeature() {
             <OutputGrid
               outputs={outputs}
               loading={loading}
-              loadingCount={1}
+              loadingCount={compareActive ? compareSel.length : 1}
               onAddToPresentation={addToPresentation}
               addedIds={addedIds}
               onDelete={removeImage}

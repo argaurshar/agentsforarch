@@ -40,7 +40,8 @@ disabled, or gated behind another.
 
 | # | Feature | Input | Output |
 |---|---------|-------|--------|
-| 01 | Floor Plan → 3D Isometric | 2D floor plan | **3D isometric "dollhouse" cutaway** — walls extruded, furniture in 3D, roof removed (with before/after compare) |
+| 00 | Home | — | **Project dashboard**: pipeline map with live counts/thumbnails, recent outputs, getting-started steps and a bundled **sample floor plan** |
+| 01 | Floor Plan → 3D Isometric | 2D floor plan | **3D isometric "dollhouse" cutaway** or a **fully furnished top-down 2D marketing plan** — plus **Compare styles** (one plan × up to 4 design languages in one batch, also on the Interior tab) and a before/after compare |
 | 02 | Sketch / Model → Elevation | Sketch or SketchUp screenshot | Rendered elevation, styled by a **design theme** (Contemporary / Modern / Traditional / Boho chic) **or an uploaded mood board** (with before/after compare) |
 | 03 | Elevation → Axonometric | Elevation image | True 3D axonometric + section-axonometric views in **realistic / line-art / black-&-white**, one per viewpoint (with before/after compare) |
 | 04 | Room Photo → Interior Design | Photo of a room (furnished or empty) | **Restyled / staged / renovated interior** in a chosen design theme (Contemporary · Modern · Traditional · Boho · Minimalist · Japandi · Industrial · Luxury) or from an uploaded mood board, with interior-specific refine chips |
@@ -104,6 +105,8 @@ unless you've edited it.
 - **Cross-feature pipeline** — **Send to Elevation / Axonometric** on any output
   seeds the next feature's input directly (no download/re-upload). Elevation also
   has an **All faces (Front · Side · Rear)** batch.
+- **Lightbox viewer** — click any output (or gallery image) for a full-screen
+  viewer with zoom, drag-pan, arrow-key navigation and download.
 
 Generation state (input, settings, outputs) lives in the store, so an in-flight
 run survives a tab switch and can be **Cancelled**; a partial batch failure keeps

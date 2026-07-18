@@ -15,6 +15,7 @@ export interface GenerateRequest {
     variations?: number; // how many outputs, default 1
     section?: boolean; // axonometric: also cut a section-axonometric
     referenceImage?: string; // dataURL — a style reference (e.g. an elevation mood board) sent alongside the input
+    styleVariants?: { label: string; clause: string }[]; // compare-styles batch: one output per design language
     refine?: boolean; // this is an iterative refine of an existing output (single job, refined label)
   };
 }
