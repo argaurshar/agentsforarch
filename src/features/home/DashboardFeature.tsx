@@ -1,4 +1,4 @@
-import { ArrowRight, Box, Building2, Check, FileImage, Images, KeyRound, LayoutTemplate, PencilRuler, Sofa, Sparkles, X } from 'lucide-react';
+import { ArrowRight, Box, Building2, Check, FileImage, Images, KeyRound, LayoutTemplate, Palette, PencilRuler, Sofa, Sparkles, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
@@ -188,7 +188,19 @@ export function DashboardFeature() {
       ) : null}
 
       {/* Shortcuts */}
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-3">
+        <button
+          type="button"
+          onClick={() => setTab('moodboard')}
+          className="group flex items-center gap-4 border border-hairline bg-paper px-5 py-4 text-left transition-colors hover:border-ochre/60 focus-visible:outline-ochre"
+        >
+          <Palette size={22} strokeWidth={1.25} className="text-ochre" />
+          <span className="flex-1">
+            <span className="block text-sm font-medium text-ink">Mood Board</span>
+            <span className="block text-xs text-mist">Compose your outputs into a branded material board.</span>
+          </span>
+          <ArrowRight size={16} strokeWidth={1.75} className="text-mist transition-transform group-hover:translate-x-0.5" />
+        </button>
         <button
           type="button"
           onClick={() => setTab('presentation')}

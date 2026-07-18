@@ -45,8 +45,9 @@ disabled, or gated behind another.
 | 02 | Sketch / Model → Elevation | Sketch or SketchUp screenshot | Rendered elevation, styled by a **design theme** (Contemporary / Modern / Traditional / Boho chic) **or an uploaded mood board** (with before/after compare) |
 | 03 | Elevation → Axonometric | Elevation image | True 3D axonometric + section-axonometric views in **realistic / line-art / black-&-white**, one per viewpoint (with before/after compare) |
 | 04 | Room Photo → Interior Design | Photo of a room (furnished or empty) | **Restyled / staged / renovated interior** in a chosen design theme (Contemporary · Modern · Traditional · Boho · Minimalist · Japandi · Industrial · Luxury) or from an uploaded mood board, with interior-specific refine chips |
-| 05 | Concept Presentation | Selected outputs from 01–04 + brand identity | AI-generated self-contained HTML deck, or hand-arranged slides exportable to PDF |
-| 06 | Gallery · Save / Load | — | Every generated/uploaded image with reuse/download/delete, plus **whole-project export/import as a single file** (the no-backend persistence answer) |
+| 05 | Mood Board | Up to 9 selected outputs | A single **branded material & mood board** composed on canvas (serif header, adaptive cover-fit grid, brand footer) in Portrait / Landscape / Square — download as PNG or drop straight into a presentation |
+| 06 | Concept Presentation | Selected outputs from 01–04 + brand identity | AI-generated self-contained HTML deck, or hand-arranged slides exportable to PDF |
+| 07 | Gallery · Save / Load | — | Every generated/uploaded image with reuse/download/delete, plus **whole-project export/import as a single file** (the no-backend persistence answer) |
 
 Each feature accepts its input by direct upload, independent of anything else
 in the session. Feature 03 works from a directly uploaded elevation without
@@ -109,6 +110,11 @@ unless you've edited it.
   viewer with zoom, drag-pan, arrow-key navigation, download, and **Crop for
   social** — export the image to **1:1 / 4:5 / 9:16 / 16:9** with a brand footer,
   ready to post.
+- **Mood board** — the **Mood Board** tab composes up to nine pooled outputs into a
+  single branded material & mood board on canvas (serif header, adaptive cover-fit
+  grid with a centred partial last row, brand-accent footer) in Portrait / Landscape
+  / Square. Download it as a PNG or **Add to presentation** to reuse it in a deck —
+  no generation call, entirely client-side (`src/lib/moodboard.ts`).
 - **Deep links** — every tab has a URL (`#/interior`), so links are shareable and
   the browser back/forward buttons move between tabs.
 
