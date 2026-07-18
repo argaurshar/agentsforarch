@@ -3,6 +3,7 @@ import { AppShell } from './components/Layout/AppShell';
 import { Spinner } from './components/ui/Spinner';
 import { AxonometricFeature } from './features/axonometric/AxonometricFeature';
 import { ElevationFeature } from './features/elevation/ElevationFeature';
+import { DashboardFeature } from './features/home/DashboardFeature';
 import { GalleryFeature } from './features/gallery/GalleryFeature';
 import { InteriorFeature } from './features/interior/InteriorFeature';
 import { RenderFeature } from './features/render/RenderFeature';
@@ -16,6 +17,7 @@ import type { TabKey } from './types';
 const PresentationFeature = lazy(() => import('./features/presentation/PresentationFeature'));
 
 const FEATURES: Record<TabKey, ComponentType> = {
+  home: DashboardFeature,
   render: RenderFeature,
   elevation: ElevationFeature,
   axonometric: AxonometricFeature,

@@ -1,5 +1,6 @@
 import { ArrowUpRight, Download, FileDown, FileUp, Images, Trash2, X } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
+import { Lightbox } from '../../components/Output/Lightbox';
 import { Button } from '../../components/ui/Button';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { SectionHeader } from '../../components/ui/SectionHeader';
@@ -26,16 +27,22 @@ interface GalleryItem {
   createdAt: number;
 }
 
-function GalleryCard({ item }: { item: GalleryItem }) {
+function GalleryCard({ item, onView }: { item: GalleryItem; onView: () => void }) {
   const sendToFeature = useProjectStore((s) => s.sendToFeature);
   const removeImage = useProjectStore((s) => s.removeImage);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   return (
     <figure className="group flex flex-col border border-hairline bg-paper transition-colors hover:border-ochre/50">
-      <div className="overflow-hidden border-b border-hairline bg-drafting">
+      <button
+        type="button"
+        onClick={onView}
+        className="overflow-hidden border-b border-hairline bg-drafting focus-visible:outline-ochre"
+        title="View full screen"
+        aria-label={`View ${item.image.label} full screen`}
+      >
         <img src={item.image.url} alt={item.image.label} className="max-h-48 w-full object-contain" />
-      </div>
+      </button>
       <figcaption className="flex flex-col gap-2 px-3 py-3">
         <span className="mono-meta truncate" title={item.prompt ? `Prompt: ${item.prompt}` : item.image.label}>
           {item.image.label}
@@ -96,6 +103,7 @@ export function GalleryFeature() {
   const importRef = useRef<HTMLInputElement>(null);
   const [importError, setImportError] = useState<string | null>(null);
   const [imported, setImported] = useState(false);
+  const [viewIndex, setViewIndex] = useState<number | null>(null);
 
   // Every image in the project, newest asset first, grouped for display.
   const groups = useMemo(() => {
@@ -124,6 +132,8 @@ export function GalleryFeature() {
   }, [project.assets, project.uploads]);
 
   const total = groups.reduce((n, [, list]) => n + list.length, 0);
+  // Flat, group-ordered list for the lightbox; each card knows its flat index.
+  const flat = groups.flatMap(([, list]) => list);
 
   const onImportFile = async (files: FileList | null) => {
     const file = files?.[0];
@@ -194,13 +204,26 @@ export function GalleryFeature() {
               <p className="mono-meta mb-3">{group}</p>
               <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 {items.map((item) => (
-                  <GalleryCard key={item.image.id} item={item} />
+                  <GalleryCard
+                    key={item.image.id}
+                    item={item}
+                    onView={() => setViewIndex(flat.findIndex((f) => f.image.id === item.image.id))}
+                  />
                 ))}
               </div>
             </div>
           ))}
         </div>
       )}
+
+      {viewIndex !== null && flat.length > 0 ? (
+        <Lightbox
+          images={flat.map((f) => f.image)}
+          index={Math.min(viewIndex, flat.length - 1)}
+          onClose={() => setViewIndex(null)}
+          onIndex={setViewIndex}
+        />
+      ) : null}
 
       <input
         ref={importRef}

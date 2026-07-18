@@ -6,6 +6,7 @@ import type { GenerateRequest } from './types';
 const STYLE_LABELS: Record<string, string> = {
   photoreal: 'Photoreal',
   isometric: 'Isometric',
+  plan2d: 'Furnished plan',
   clay: 'Clay model',
   line: 'Line drawing',
   watercolour: 'Watercolour',
@@ -30,6 +31,9 @@ export function prettyStyle(style: string | undefined, fallback: string): string
 export function outputLabels(req: GenerateRequest): string[] {
   if (req.options.refine) {
     return [`${prettyStyle(req.options.style, 'Image')} — refined`];
+  }
+  if (req.options.styleVariants?.length) {
+    return req.options.styleVariants.map((v) => v.label);
   }
   if (req.feature === 'axonometric') {
     const viewpoints = req.options.viewpoints?.length ? req.options.viewpoints : ['NE'];

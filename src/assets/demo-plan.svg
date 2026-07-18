@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="900" viewBox="0 0 1200 900">
+  <!-- Bundled sample 2-bed floor plan so a first-time user can try the app
+       without any assets of their own. Hand-authored; drawn in plan convention:
+       thick outer walls, thinner partitions, door swing arcs, room labels. -->
+  <rect width="1200" height="900" fill="#ffffff"/>
+
+  <!-- Outer walls (240 thick look via double stroke) -->
+  <rect x="100" y="80" width="1000" height="720" fill="none" stroke="#111111" stroke-width="14"/>
+
+  <!-- Internal partitions -->
+  <g stroke="#111111" stroke-width="8" fill="none">
+    <!-- vertical split between living zone (left) and bedroom zone (right) -->
+    <line x1="640" y1="80" x2="640" y2="430"/>
+    <line x1="640" y1="530" x2="640" y2="800"/>
+    <!-- bedroom split -->
+    <line x1="640" y1="430" x2="1100" y2="430"/>
+    <!-- bathroom partitions -->
+    <line x1="880" y1="430" x2="880" y2="620"/>
+    <line x1="880" y1="620" x2="1100" y2="620"/>
+    <!-- kitchen partition bottom-left -->
+    <line x1="100" y1="560" x2="380" y2="560"/>
+    <line x1="380" y1="560" x2="380" y2="800"/>
+  </g>
+
+  <!-- Door openings (white gaps) + swing arcs -->
+  <g>
+    <rect x="633" y="440" width="14" height="80" fill="#ffffff"/>
+    <path d="M 647 520 A 80 80 0 0 0 727 440" fill="none" stroke="#555555" stroke-width="3"/>
+    <rect x="760" y="423" width="80" height="14" fill="#ffffff"/>
+    <path d="M 760 437 A 80 80 0 0 0 840 517" fill="none" stroke="#555555" stroke-width="3"/>
+    <rect x="880" y="500" width="8" height="70" fill="#ffffff"/>
+    <path d="M 888 570 A 70 70 0 0 0 958 500" fill="none" stroke="#555555" stroke-width="3"/>
+    <rect x="240" y="553" width="80" height="14" fill="#ffffff"/>
+    <path d="M 240 567 A 80 80 0 0 1 320 647" fill="none" stroke="#555555" stroke-width="3"/>
+    <!-- main entrance -->
+    <rect x="460" y="793" width="110" height="14" fill="#ffffff"/>
+    <path d="M 460 800 A 110 110 0 0 1 570 690" fill="none" stroke="#555555" stroke-width="3"/>
+  </g>
+
+  <!-- Windows (double lines on outer wall) -->
+  <g stroke="#111111" stroke-width="3" fill="#ffffff">
+    <rect x="200" y="73" width="180" height="14"/>
+    <rect x="760" y="73" width="180" height="14"/>
+    <rect x="1093" y="180" width="14" height="160"/>
+    <rect x="1093" y="640" width="14" height="120"/>
+    <rect x="93" y="200" width="14" height="180"/>
+    <rect x="180" y="793" width="140" height="14"/>
+  </g>
+
+  <!-- Simple furniture (thin grey linework) -->
+  <g stroke="#888888" stroke-width="3" fill="none">
+    <!-- living: sofa + table -->
+    <rect x="160" y="150" width="220" height="80"/>
+    <rect x="200" y="300" width="140" height="90"/>
+    <!-- dining table + chairs -->
+    <rect x="440" y="240" width="120" height="180"/>
+    <circle cx="420" cy="280" r="16"/><circle cx="420" cy="380" r="16"/>
+    <circle cx="580" cy="280" r="16"/><circle cx="580" cy="380" r="16"/>
+    <!-- kitchen counter -->
+    <rect x="110" y="600" width="90" height="190"/>
+    <rect x="110" y="700" width="260" height="90"/>
+    <!-- bed 1 -->
+    <rect x="700" y="120" width="200" height="150"/>
+    <rect x="700" y="120" width="200" height="40"/>
+    <!-- bed 2 -->
+    <rect x="680" y="620" width="180" height="140"/>
+    <rect x="680" y="620" width="180" height="36"/>
+    <!-- wardrobe -->
+    <rect x="980" y="90" width="110" height="60"/>
+    <!-- WC + basin -->
+    <rect x="920" y="450" width="60" height="40"/>
+    <circle cx="1050" cy="480" r="24"/>
+  </g>
+
+  <!-- Room labels -->
+  <g font-family="Arial, Helvetica, sans-serif" fill="#111111" text-anchor="middle">
+    <text x="360" y="210" font-size="30" font-weight="bold">LIVING / DINING</text>
+    <text x="360" y="245" font-size="20" fill="#666666">16'-0" x 22'-0"</text>
+    <text x="240" y="650" font-size="28" font-weight="bold">KITCHEN</text>
+    <text x="240" y="682" font-size="19" fill="#666666">9'-0" x 8'-0"</text>
+    <text x="865" y="230" font-size="28" font-weight="bold">BEDROOM 1</text>
+    <text x="865" y="262" font-size="19" fill="#666666">14'-0" x 11'-6"</text>
+    <text x="770" y="690" font-size="28" font-weight="bold">BEDROOM 2</text>
+    <text x="770" y="722" font-size="19" fill="#666666">12'-0" x 10'-6"</text>
+    <text x="990" y="540" font-size="24" font-weight="bold">BATH</text>
+    <text x="990" y="568" font-size="17" fill="#666666">7'-0" x 6'-0"</text>
+    <text x="515" y="700" font-size="22" font-weight="bold">ENTRY</text>
+    <text x="600" y="860" font-size="22" fill="#444444">SAMPLE FLOOR PLAN · AND STUDIO</text>
+  </g>
+</svg>

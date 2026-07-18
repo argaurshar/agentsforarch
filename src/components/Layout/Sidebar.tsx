@@ -1,4 +1,4 @@
-import { Box, Building2, Images, LayoutTemplate, PencilRuler, Sofa } from 'lucide-react';
+import { Box, Building2, Images, LayoutDashboard, LayoutTemplate, PencilRuler, Sofa } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useProjectStore } from '../../store/useProjectStore';
 import type { TabKey } from '../../types';
@@ -14,6 +14,7 @@ interface NavItem {
 // All features are always present and always clickable (spec §1). None is
 // ever locked, greyed out, or gated behind another feature.
 const NAV_ITEMS: NavItem[] = [
+  { key: 'home', index: '00', name: 'Home', sub: 'Project Dashboard', icon: LayoutDashboard },
   { key: 'render', index: '01', name: 'Isometric', sub: 'Floor Plan to 3D', icon: PencilRuler },
   { key: 'elevation', index: '02', name: 'Elevation', sub: 'Sketch to Elevation', icon: Building2 },
   { key: 'axonometric', index: '03', name: 'Axonometric', sub: 'Elevation to Axonometric', icon: Box },

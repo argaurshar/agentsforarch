@@ -45,6 +45,15 @@ function jobsFor(req: GenerateRequest, base: string): { label: string; prompt: s
   if (req.options.refine) {
     return [{ label: labels[0] ?? 'Refined', prompt: base }];
   }
+  // Compare-styles batch: one job per design language, same base prompt.
+  const variants = req.options.styleVariants;
+  if (variants?.length) {
+    const kind = req.feature === 'interior' ? 'Design style' : 'Architectural style';
+    return variants.map((v, i) => ({
+      label: labels[i],
+      prompt: `${base}\n\n${kind}: ${v.clause}.`,
+    }));
+  }
   if (req.feature === 'axonometric') {
     const viewpoints = req.options.viewpoints?.length ? req.options.viewpoints : ['NE'];
     return viewpoints.map((vp, i) => ({

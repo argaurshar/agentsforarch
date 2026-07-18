@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import type { FeatureKind, GeneratedImage } from '../../types';
+import { Lightbox } from './Lightbox';
 import { OutputCard } from './OutputCard';
 
 export interface SendTarget {
@@ -41,6 +43,7 @@ export function OutputGrid({
   sendTargets,
   onSend,
 }: OutputGridProps) {
+  const [viewIndex, setViewIndex] = useState<number | null>(null);
   if (loading) {
     const count = Math.max(1, loadingCount);
     return (
@@ -61,20 +64,26 @@ export function OutputGrid({
   const single = outputs.length === 1;
 
   return (
-    <div className={single ? '' : 'grid gap-4 sm:grid-cols-2 xl:grid-cols-3'}>
-      {outputs.map((image) => (
-        <OutputCard
-          key={image.id}
-          image={image}
-          size={single ? 'full' : 'grid'}
-          onAddToPresentation={onAddToPresentation}
-          added={addedIds.has(image.id)}
-          onDelete={onDelete}
-          onRefine={onRefine}
-          sendTargets={sendTargets}
-          onSend={onSend}
-        />
-      ))}
-    </div>
+    <>
+      <div className={single ? '' : 'grid gap-4 sm:grid-cols-2 xl:grid-cols-3'}>
+        {outputs.map((image, i) => (
+          <OutputCard
+            key={image.id}
+            image={image}
+            size={single ? 'full' : 'grid'}
+            onAddToPresentation={onAddToPresentation}
+            added={addedIds.has(image.id)}
+            onDelete={onDelete}
+            onRefine={onRefine}
+            sendTargets={sendTargets}
+            onSend={onSend}
+            onView={() => setViewIndex(i)}
+          />
+        ))}
+      </div>
+      {viewIndex !== null ? (
+        <Lightbox images={outputs} index={Math.min(viewIndex, outputs.length - 1)} onClose={() => setViewIndex(null)} onIndex={setViewIndex} />
+      ) : null}
+    </>
   );
 }

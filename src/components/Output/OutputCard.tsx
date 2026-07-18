@@ -14,6 +14,8 @@ interface OutputCardProps {
   onSend?: (target: FeatureKind, image: GeneratedImage) => void;
   /** 'full' shows the image at input size (single result); 'grid' is the compact card. */
   size?: 'grid' | 'full';
+  /** Open this image in the full-screen lightbox viewer. */
+  onView?: () => void;
 }
 
 const ICON_BTN =
@@ -30,12 +32,20 @@ export function OutputCard({
   sendTargets,
   onSend,
   size = 'grid',
+  onView,
 }: OutputCardProps) {
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   return (
     <figure className="group flex flex-col border border-hairline bg-paper transition-colors hover:border-ochre/50">
-      <div className="overflow-hidden border-b border-hairline bg-drafting">
+      <button
+        type="button"
+        onClick={onView}
+        disabled={!onView}
+        className="overflow-hidden border-b border-hairline bg-drafting focus-visible:outline-ochre"
+        title={onView ? 'View full screen' : undefined}
+        aria-label={onView ? `View ${image.label} full screen` : undefined}
+      >
         <img
           src={image.url}
           alt={image.label}
@@ -43,7 +53,7 @@ export function OutputCard({
             size === 'full' ? 'max-h-72' : 'max-h-64'
           } w-full object-contain transition-transform duration-500 group-hover:scale-[1.02]`}
         />
-      </div>
+      </button>
       <figcaption className="flex flex-col gap-2 px-3 py-3">
         <span className="mono-meta truncate" title={image.label}>
           {image.label}
