@@ -16,6 +16,9 @@ const STYLE_LABELS: Record<string, string> = {
   realistic: 'Realistic',
   lineart: 'Line art',
   bw: 'Black & white',
+  restyle: 'Restyled interior',
+  stage: 'Staged interior',
+  renovate: 'Renovated interior',
 };
 
 export function prettyStyle(style: string | undefined, fallback: string): string {
@@ -36,6 +39,9 @@ export function outputLabels(req: GenerateRequest): string[] {
     const faces = req.options.viewpoints?.length ? req.options.viewpoints : [undefined];
     const styleLabel = prettyStyle(req.options.style, 'Rendered');
     return faces.map((face) => (face ? `${face} elevation — ${styleLabel}` : `${styleLabel} elevation`));
+  }
+  if (req.feature === 'interior') {
+    return [prettyStyle(req.options.style, 'Interior')];
   }
   const variations = Math.max(1, req.options.variations ?? 1);
   const styleLabel = prettyStyle(req.options.style, 'Render');

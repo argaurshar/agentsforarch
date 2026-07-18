@@ -5,10 +5,19 @@
 // choices (src/lib/scene.ts) so architects never write a prompt for a basic
 // change; the UI textarea still lets them edit the result.
 
-import type { RefineChipKey } from './refine';
-import { REFINE_CHIPS } from './refine';
-import { CONTEXTS, LIGHTING, MOODS, SEASONS, archStyleClause, defaultScene, elevationThemeClause, materialsClause } from './scene';
-import type { ElevationThemeKey, SceneOptions } from '../store/generation';
+import { ALL_REFINE_CHIPS } from './refine';
+import {
+  CONTEXTS,
+  LIGHTING,
+  MOODS,
+  SEASONS,
+  archStyleClause,
+  defaultScene,
+  elevationThemeClause,
+  interiorThemeClause,
+  materialsClause,
+} from './scene';
+import type { ElevationThemeKey, InteriorMode, InteriorThemeKey, RoomTypeKey, SceneOptions } from '../store/generation';
 
 // --- Render -----------------------------------------------------------------
 
@@ -144,6 +153,63 @@ export function buildElevationPrompt(
   return parts.join(' ');
 }
 
+// --- Interior design --------------------------------------------------------
+
+const ROOM_TYPE_LABEL: Record<RoomTypeKey, string> = {
+  living: 'living room',
+  bedroom: 'bedroom',
+  kitchen: 'kitchen',
+  bathroom: 'bathroom',
+  dining: 'dining room',
+  office: 'home office / study',
+};
+
+interface InteriorPromptArgs {
+  mode: InteriorMode;
+  roomType: RoomTypeKey;
+  theme: InteriorThemeKey;
+  useMoodboard?: boolean; // a reference mood-board image is attached to the request
+  mood: SceneOptions['mood'];
+}
+
+/**
+ * Room photo → restyled / staged / renovated interior. Each mode fixes what must
+ * NOT change (the room's architecture and camera) and scopes what may change,
+ * so the output reads as the client's own room redesigned — not a random room.
+ */
+export function buildInteriorPrompt(a: InteriorPromptArgs): string {
+  const room = ROOM_TYPE_LABEL[a.roomType];
+  const parts: string[] = [];
+  if (a.mode === 'stage') {
+    parts.push(
+      `This photo shows an empty or sparsely furnished room. Fully furnish and stage it as a beautiful ${room}.`,
+      'Keep the room’s architecture exactly as shown — walls, windows, doors, ceiling, floor position and the camera angle must not change. Add furniture, lighting, rugs, curtains, art and décor appropriate to the room.',
+    );
+  } else if (a.mode === 'renovate') {
+    parts.push(
+      `Renovate this ${room}.`,
+      'You may replace the finishes — flooring, wall treatment, ceiling design, joinery, doors and fixtures — and refurnish the space, but keep the room’s overall dimensions, window and door positions and the camera angle exactly as shown.',
+    );
+  } else {
+    parts.push(
+      `Redesign the interior of this ${room}.`,
+      'Keep the room’s architecture exactly as shown — walls, windows, doors, ceiling and the camera angle must not change. Replace the furniture, finishes, colours, textiles and décor to match the new style.',
+    );
+  }
+  if (a.useMoodboard) {
+    parts.push(
+      'Style it to match the design language, furniture character, materials, colour palette, textures and overall mood of the attached reference mood-board image.',
+    );
+  } else if (interiorThemeClause(a.theme)) {
+    parts.push(`Design style: ${interiorThemeClause(a.theme)}.`);
+  }
+  if (MOODS[a.mood].clause) parts.push(`Mood: ${MOODS[a.mood].clause}.`);
+  parts.push(
+    'Photorealistic interior render, physically based lighting, soft natural light from the existing windows, crisp material detail, ultra-detailed.',
+  );
+  return parts.join(' ');
+}
+
 // --- Axonometric ------------------------------------------------------------
 
 export type AxonStyleKey = 'realistic' | 'lineart' | 'bw';
@@ -192,7 +258,7 @@ export function buildAxonometricPrompt(a: { section: boolean; style: string }): 
 /** Turn the refine chips + free text into an edit instruction (P2). */
 export function buildRefinePrompt(a: { chips: string[]; freeText: string }): string {
   const changes = a.chips
-    .map((c) => REFINE_CHIPS.find((r) => r.key === (c as RefineChipKey))?.clause)
+    .map((c) => ALL_REFINE_CHIPS.find((r) => r.key === c)?.clause)
     .filter((c): c is string => Boolean(c));
   const free = a.freeText.trim();
   if (free) changes.push(free);
@@ -219,4 +285,8 @@ export function elevationPrompt(face: string, style: string): string {
 
 export function axonometricPrompt(section: boolean, style = 'realistic'): string {
   return buildAxonometricPrompt({ section, style });
+}
+
+export function interiorPrompt(): string {
+  return buildInteriorPrompt({ mode: 'restyle', roomType: 'living', theme: 'contemporary', mood: 'none' });
 }

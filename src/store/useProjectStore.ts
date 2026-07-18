@@ -29,13 +29,20 @@ import type {
   FeatureSettings,
   GenerateStatus,
   GenerationState,
+  InteriorSettings,
   RenderSettings,
   SceneOptions,
 } from './generation';
 
 /** A settings patch: any feature option, plus a *partial* scene (deep-merged). */
-type FeatureSettingsPatch = Partial<Omit<RenderSettings & ElevationSettings & AxonSettings, 'scene'>> & {
+// `theme` exists on both the elevation and interior settings with different key
+// unions — the intersection would collapse it to their overlap, so it is widened
+// to either union here (each feature file still passes only its own keys).
+type FeatureSettingsPatch = Partial<
+  Omit<RenderSettings & ElevationSettings & AxonSettings & InteriorSettings, 'scene' | 'theme'>
+> & {
   scene?: Partial<SceneOptions>;
+  theme?: ElevationSettings['theme'] | InteriorSettings['theme'];
 };
 
 // All project data access lives here (spec §9 — auth/persistence seam). No
@@ -139,6 +146,8 @@ interface ProjectState {
   moveSlide: (slideId: string, direction: 'up' | 'down') => void;
 
   resetProject: () => void;
+  /** Replace the whole project with an imported one (project save/load). */
+  importProject: (project: Project) => void;
 }
 
 /** Fire-and-forget persistence through the storage adapter (spec §6). */
@@ -358,7 +367,12 @@ export const useProjectStore = create<ProjectState>((set, get) => {
       const scrub = <S extends FeatureSettings>(run: FeatureRun<S>): FeatureRun<S> =>
         run.outputs.some((o) => o.id === imageId) ? { ...run, outputs: run.outputs.filter((o) => o.id !== imageId) } : run;
       set({
-        generation: { render: scrub(gen.render), elevation: scrub(gen.elevation), axonometric: scrub(gen.axonometric) },
+        generation: {
+          render: scrub(gen.render),
+          elevation: scrub(gen.elevation),
+          axonometric: scrub(gen.axonometric),
+          interior: scrub(gen.interior),
+        },
       });
     },
 
@@ -426,6 +440,21 @@ export const useProjectStore = create<ProjectState>((set, get) => {
         deckWarnings: [],
       });
     },
+
+    importProject: (project) => {
+      abortAllFeatures();
+      const next = touch(project);
+      persist(next);
+      set({
+        project: next,
+        generation: initialGeneration(),
+        deckHtml: null,
+        deckStatus: 'idle',
+        deckProgress: 0,
+        deckError: null,
+        deckWarnings: [],
+      });
+    },
   };
 });
 
@@ -471,6 +500,7 @@ const POOL_GROUPS: { key: FeatureKind; label: string }[] = [
   { key: 'render', label: 'Renders' },
   { key: 'elevation', label: 'Elevations' },
   { key: 'axonometric', label: 'Axonometrics' },
+  { key: 'interior', label: 'Interiors' },
 ];
 
 /** All images available to the presentation — generated outputs + uploads. */

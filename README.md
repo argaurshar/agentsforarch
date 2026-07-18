@@ -43,7 +43,9 @@ disabled, or gated behind another.
 | 01 | Floor Plan → 3D Isometric | 2D floor plan | **3D isometric "dollhouse" cutaway** — walls extruded, furniture in 3D, roof removed (with before/after compare) |
 | 02 | Sketch / Model → Elevation | Sketch or SketchUp screenshot | Rendered elevation, styled by a **design theme** (Contemporary / Modern / Traditional / Boho chic) **or an uploaded mood board** (with before/after compare) |
 | 03 | Elevation → Axonometric | Elevation image | True 3D axonometric + section-axonometric views in **realistic / line-art / black-&-white**, one per viewpoint (with before/after compare) |
-| 04 | Concept Presentation | Selected outputs from 01–03 + brand identity | AI-generated self-contained HTML deck, or hand-arranged slides exportable to PDF |
+| 04 | Room Photo → Interior Design | Photo of a room (furnished or empty) | **Restyled / staged / renovated interior** in a chosen design theme (Contemporary · Modern · Traditional · Boho · Minimalist · Japandi · Industrial · Luxury) or from an uploaded mood board, with interior-specific refine chips |
+| 05 | Concept Presentation | Selected outputs from 01–04 + brand identity | AI-generated self-contained HTML deck, or hand-arranged slides exportable to PDF |
+| 06 | Gallery · Save / Load | — | Every generated/uploaded image with reuse/download/delete, plus **whole-project export/import as a single file** (the no-backend persistence answer) |
 
 Each feature accepts its input by direct upload, independent of anything else
 in the session. Feature 03 works from a directly uploaded elevation without

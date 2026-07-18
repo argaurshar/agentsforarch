@@ -31,7 +31,8 @@ export function AppShell({ children }: AppShellProps) {
       s.deckStatus === 'loading' ||
       s.generation.render.status === 'loading' ||
       s.generation.elevation.status === 'loading' ||
-      s.generation.axonometric.status === 'loading',
+      s.generation.axonometric.status === 'loading' ||
+      s.generation.interior.status === 'loading',
   );
 
   const [draft, setDraft] = useState(projectName);

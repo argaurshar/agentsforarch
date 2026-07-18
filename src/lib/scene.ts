@@ -2,6 +2,7 @@ import type {
   ArchStyleKey,
   ContextKey,
   ElevationThemeKey,
+  InteriorThemeKey,
   LightingKey,
   MaterialsKey,
   MoodKey,
@@ -155,6 +156,58 @@ export const ELEVATION_THEMES = {
 /** The elevation-theme fragment for the prompt builder. */
 export function elevationThemeClause(theme: ElevationThemeKey): string {
   return ELEVATION_THEMES[theme].clause;
+}
+
+// Interior design languages (Feature 04 · Interior). Same pattern as the
+// elevation themes: the clause names the style and its signature moves so the
+// model restyles furnishings, finishes and décor coherently.
+export const INTERIOR_THEMES = {
+  none: { label: 'Studio default', clause: '' },
+  contemporary: {
+    label: 'Contemporary',
+    clause:
+      'a contemporary interior — clean-lined furniture, a calm neutral palette with one or two accent tones, layered textures, matte finishes and uncluttered styling',
+  },
+  modern: {
+    label: 'Modern',
+    clause:
+      'a modern interior — sleek low-profile furniture, bold geometric forms, glass and polished metal accents, a crisp monochrome palette with statement colour',
+  },
+  traditional: {
+    label: 'Traditional',
+    clause:
+      'a traditional interior — classic silhouettes, carved and moulded timber, rich warm fabrics, patterned rugs, brass details and a formal symmetrical arrangement',
+  },
+  boho: {
+    label: 'Boho chic',
+    clause:
+      'a boho-chic interior — warm earthy tones, rattan and cane furniture, layered patterned textiles, macramé and woven wall pieces, terracotta accents and abundant plants',
+  },
+  minimalist: {
+    label: 'Minimalist',
+    clause:
+      'a minimalist interior — only essential furniture, a pale restrained palette, hidden storage, clean planes and generous negative space',
+  },
+  japandi: {
+    label: 'Japandi',
+    clause:
+      'a Japandi interior — low natural-wood furniture, soft linen textiles, a muted earthy palette, paper and ceramic accents, wabi-sabi simplicity and warmth',
+  },
+  industrial: {
+    label: 'Industrial',
+    clause:
+      'an industrial interior — exposed brick or concrete, black steel frames, reclaimed timber, leather upholstery, factory-style pendant lighting',
+  },
+  luxury: {
+    label: 'Luxury',
+    clause:
+      'a luxurious interior — marble and brushed brass, velvet upholstery, statement chandelier lighting, large-format art and rich layered materials',
+  },
+} satisfies Record<InteriorThemeKey, SceneOpt>;
+
+/** The interior-theme fragment for the prompt builder. */
+export function interiorThemeClause(theme: InteriorThemeKey): string {
+  return INTERIOR_THEMES[theme].clause;
 }
 
 /** The default scene — reproduces today's photoreal prompt (studio + golden hour, exterior). */
