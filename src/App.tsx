@@ -3,6 +3,8 @@ import { AppShell } from './components/Layout/AppShell';
 import { Spinner } from './components/ui/Spinner';
 import { AxonometricFeature } from './features/axonometric/AxonometricFeature';
 import { ElevationFeature } from './features/elevation/ElevationFeature';
+import { GalleryFeature } from './features/gallery/GalleryFeature';
+import { InteriorFeature } from './features/interior/InteriorFeature';
 import { RenderFeature } from './features/render/RenderFeature';
 import { useProjectStore } from './store/useProjectStore';
 import type { ComponentType } from 'react';
@@ -17,7 +19,9 @@ const FEATURES: Record<TabKey, ComponentType> = {
   render: RenderFeature,
   elevation: ElevationFeature,
   axonometric: AxonometricFeature,
+  interior: InteriorFeature,
   presentation: PresentationFeature,
+  gallery: GalleryFeature,
 };
 
 export default function App() {

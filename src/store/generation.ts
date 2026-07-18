@@ -5,7 +5,7 @@
 // and gives the refine loop a place to live. Types + pure defaults only — no
 // React, no provider imports — so this file stays cheap and in the main chunk.
 
-import { axonometricPrompt, elevationPrompt, renderPrompt } from '../lib/prompts';
+import { axonometricPrompt, elevationPrompt, interiorPrompt, renderPrompt } from '../lib/prompts';
 import { defaultScene } from '../lib/scene';
 import type { GeneratedImage } from '../types';
 
@@ -63,6 +63,29 @@ export interface ElevationSettings {
   moodboard: string | null; // dataURL of an uploaded mood-board reference image
   scene: SceneOptions;
 }
+
+// --- Interior design (Feature: room photo → restyled / staged / renovated) ---
+export type InteriorThemeKey =
+  | 'none'
+  | 'contemporary'
+  | 'modern'
+  | 'traditional'
+  | 'boho'
+  | 'minimalist'
+  | 'japandi'
+  | 'industrial'
+  | 'luxury';
+export type InteriorMode = 'restyle' | 'stage' | 'renovate';
+export type RoomTypeKey = 'living' | 'bedroom' | 'kitchen' | 'bathroom' | 'dining' | 'office';
+
+export interface InteriorSettings {
+  mode: InteriorMode; // restyle keeps the room; stage furnishes an empty room; renovate allows bigger changes
+  roomType: RoomTypeKey;
+  theme: InteriorThemeKey;
+  styleSource: 'theme' | 'moodboard'; // same mutually-exclusive pattern as the elevation
+  moodboard: string | null; // dataURL of an uploaded mood-board reference image
+  scene: SceneOptions;
+}
 export interface AxonSettings {
   viewpoints: string[]; // NE/NW/SE/SW
   style: string; // realistic | lineart | bw
@@ -70,7 +93,7 @@ export interface AxonSettings {
   scene: SceneOptions;
 }
 
-export type FeatureSettings = RenderSettings | ElevationSettings | AxonSettings;
+export type FeatureSettings = RenderSettings | ElevationSettings | AxonSettings | InteriorSettings;
 
 /** Quick-action refinement of a specific output (P2). */
 export interface RefineState {
@@ -104,6 +127,7 @@ export interface GenerationState {
   render: FeatureRun<RenderSettings>;
   elevation: FeatureRun<ElevationSettings>;
   axonometric: FeatureRun<AxonSettings>;
+  interior: FeatureRun<InteriorSettings>;
 }
 
 function baseRun<S extends FeatureSettings>(settings: S, prompt: string): FeatureRun<S> {
@@ -133,5 +157,9 @@ export function initialGeneration(): GenerationState {
       elevationPrompt('Front', 'rendered'),
     ),
     axonometric: baseRun<AxonSettings>({ viewpoints: ['NE'], style: 'realistic', section: false, scene }, axonometricPrompt(false)),
+    interior: baseRun<InteriorSettings>(
+      { mode: 'restyle', roomType: 'living', theme: 'contemporary', styleSource: 'theme', moodboard: null, scene: defaultScene() },
+      interiorPrompt(),
+    ),
   };
 }

@@ -3,7 +3,7 @@
 // ALL generation goes through this interface. No component may call an image
 // API directly — features resolve a provider via `getActiveProvider()`.
 
-export type FeatureKind = 'render' | 'elevation' | 'axonometric';
+export type FeatureKind = 'render' | 'elevation' | 'axonometric' | 'interior';
 
 export interface GenerateRequest {
   feature: FeatureKind;
