@@ -454,3 +454,28 @@ distortion", so the image model just reproduced the input). Fixes:
    through `options.style` (`'standard'`/`'section'`); it now travels as its own
    `options.section` boolean (`src/providers/types.ts`), freeing `style` for the real
    axonometric style. Labels updated accordingly (`src/providers/labels.ts`).
+
+## Addendum · Mood Board tab (composed material board)
+
+A new sidebar destination — **Mood Board** (index 05, between Interior and
+Presentation) — turns pooled outputs into the client-facing artefact studios hand
+over alongside renders. Frontend-only, no generation call, no new dependency.
+
+1. **Canvas renderer.** `src/lib/moodboard.ts` → `renderMoodboard(urls, orientation,
+   opts)` composes 1–9 images onto a branded board: a mono ochre eyebrow + serif
+   title/subtitle header, an adaptive cover-fit grid (`cols = ceil(sqrt(n))`, cells
+   clipped and centre-cropped, partial last row centred), hairline tile frames, and a
+   brand-accent tick footer with the project name + studio mark. Portrait 1600×2000 /
+   Landscape 2000×1500 / Square 1800×1800; decoded images are cached by URL so the
+   live preview re-renders instantly. Returns a PNG dataURL.
+2. **Tab UI.** `src/features/moodboard/MoodboardFeature.tsx` — an ordered pool picker
+   (max 9, position badges), Board-shape chips, optional title/subtitle, a live
+   preview, **Download PNG** (`downloadDataURL`) and **Add to presentation**
+   (`addUploads`, lands under *Uploaded*). Empty-state guides users with no images yet.
+3. **Wiring.** `TabKey += 'moodboard'` (`src/types/index.ts`), the `FEATURES` map
+   (`src/App.tsx`), the sidebar (renumbered Presentation→06, Gallery→07), the hash
+   router (`src/lib/useHashRoute.ts` → `#/moodboard`), and a dashboard shortcut.
+
+Invariants preserved: TS strict, no new deps, no browser persistence of project data,
+provider adapter seam untouched (the board never calls an image API), the four
+generation tabs and their nav indices unchanged (the tab is inserted after Interior).

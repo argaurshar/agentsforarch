@@ -1,4 +1,4 @@
-import { Box, Building2, Images, LayoutDashboard, LayoutTemplate, PencilRuler, Sofa } from 'lucide-react';
+import { Box, Building2, Images, LayoutDashboard, LayoutTemplate, Palette, PencilRuler, Sofa } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useProjectStore } from '../../store/useProjectStore';
 import type { TabKey } from '../../types';
@@ -19,8 +19,9 @@ const NAV_ITEMS: NavItem[] = [
   { key: 'elevation', index: '02', name: 'Elevation', sub: 'Sketch to Elevation', icon: Building2 },
   { key: 'axonometric', index: '03', name: 'Axonometric', sub: 'Elevation to Axonometric', icon: Box },
   { key: 'interior', index: '04', name: 'Interior', sub: 'Room Photo to Design', icon: Sofa },
-  { key: 'presentation', index: '05', name: 'Presentation', sub: 'Concept Presentation', icon: LayoutTemplate },
-  { key: 'gallery', index: '06', name: 'Gallery', sub: 'All Outputs · Save / Load', icon: Images },
+  { key: 'moodboard', index: '05', name: 'Mood Board', sub: 'Composed Material Board', icon: Palette },
+  { key: 'presentation', index: '06', name: 'Presentation', sub: 'Concept Presentation', icon: LayoutTemplate },
+  { key: 'gallery', index: '07', name: 'Gallery', sub: 'All Outputs · Save / Load', icon: Images },
 ];
 
 interface SidebarProps {

@@ -6,6 +6,7 @@ import { ElevationFeature } from './features/elevation/ElevationFeature';
 import { DashboardFeature } from './features/home/DashboardFeature';
 import { GalleryFeature } from './features/gallery/GalleryFeature';
 import { InteriorFeature } from './features/interior/InteriorFeature';
+import { MoodboardFeature } from './features/moodboard/MoodboardFeature';
 import { RenderFeature } from './features/render/RenderFeature';
 import { useHashRoute } from './lib/useHashRoute';
 import { useProjectStore } from './store/useProjectStore';
@@ -23,6 +24,7 @@ const FEATURES: Record<TabKey, ComponentType> = {
   elevation: ElevationFeature,
   axonometric: AxonometricFeature,
   interior: InteriorFeature,
+  moodboard: MoodboardFeature,
   presentation: PresentationFeature,
   gallery: GalleryFeature,
 };

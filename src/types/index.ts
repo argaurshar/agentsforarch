@@ -5,8 +5,8 @@ export type { FeatureKind, GeneratedImage };
 
 export type SlideLayout = 'full' | 'two-up' | 'four-grid';
 
-/** The sidebar destinations. Home, Presentation and Gallery are not generation features. */
-export type TabKey = FeatureKind | 'home' | 'presentation' | 'gallery';
+/** The sidebar destinations. Home, Moodboard, Presentation and Gallery are not generation features. */
+export type TabKey = FeatureKind | 'home' | 'moodboard' | 'presentation' | 'gallery';
 
 /** The studio/client's brand identity, applied to slides and the PDF export. */
 export interface Brand {

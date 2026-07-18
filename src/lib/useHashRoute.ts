@@ -6,7 +6,7 @@ import type { TabKey } from '../types';
 // (#/interior) and the browser back/forward buttons move between them. Keeps the
 // in-memory model as the source of truth; the hash is just a mirror.
 
-const TAB_SLUGS: TabKey[] = ['home', 'render', 'elevation', 'axonometric', 'interior', 'presentation', 'gallery'];
+const TAB_SLUGS: TabKey[] = ['home', 'render', 'elevation', 'axonometric', 'interior', 'moodboard', 'presentation', 'gallery'];
 
 function hashToTab(hash: string): TabKey | null {
   const slug = hash.replace(/^#\/?/, '');
