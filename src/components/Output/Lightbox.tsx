@@ -1,8 +1,9 @@
-import { ChevronLeft, ChevronRight, Download, Minus, Plus, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Crop, Download, Minus, Plus, X } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { downloadDataURL, slugify } from '../../lib/images';
 import { useDialog } from '../../lib/useDialog';
 import type { GeneratedImage } from '../../types';
+import { SocialExport } from './SocialExport';
 
 interface LightboxProps {
   images: GeneratedImage[];
@@ -22,6 +23,7 @@ export function Lightbox({ images, index, onClose, onIndex }: LightboxProps) {
   const ref = useDialog<HTMLDivElement>({ open: true, onClose });
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [social, setSocial] = useState(false);
   const drag = useRef<{ startX: number; startY: number; baseX: number; baseY: number } | null>(null);
 
   const image = images[index];
@@ -39,12 +41,13 @@ export function Lightbox({ images, index, onClose, onIndex }: LightboxProps) {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if (social) return; // the social dialog is on top — don't navigate behind it
       if (e.key === 'ArrowLeft') go(-1);
       if (e.key === 'ArrowRight') go(1);
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, [go]);
+  }, [go, social]);
 
   if (!image) return null;
 
@@ -91,8 +94,17 @@ export function Lightbox({ images, index, onClose, onIndex }: LightboxProps) {
           </button>
           <button
             type="button"
-            onClick={() => downloadDataURL(image.url, `${slugify(image.label)}.jpg`)}
+            onClick={() => setSocial(true)}
             className="ml-2 flex items-center justify-center border border-white/20 p-1.5 text-bone hover:bg-white/10 focus-visible:outline-ochre"
+            title="Crop for social"
+            aria-label="Crop for social media"
+          >
+            <Crop size={15} strokeWidth={1.75} />
+          </button>
+          <button
+            type="button"
+            onClick={() => downloadDataURL(image.url, `${slugify(image.label)}.jpg`)}
+            className="flex items-center justify-center border border-white/20 p-1.5 text-bone hover:bg-white/10 focus-visible:outline-ochre"
             title="Download"
             aria-label="Download image"
           >
@@ -158,6 +170,8 @@ export function Lightbox({ images, index, onClose, onIndex }: LightboxProps) {
       <p className="px-4 pb-3 text-center font-mono text-[0.6rem] uppercase tracking-[0.14em] text-bone/40">
         ← → navigate · double-click to zoom · drag to pan · Esc to close
       </p>
+
+      {social ? <SocialExport image={image} onClose={() => setSocial(false)} /> : null}
     </div>
   );
 }
