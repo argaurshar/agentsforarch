@@ -7,6 +7,7 @@ import { DashboardFeature } from './features/home/DashboardFeature';
 import { GalleryFeature } from './features/gallery/GalleryFeature';
 import { InteriorFeature } from './features/interior/InteriorFeature';
 import { RenderFeature } from './features/render/RenderFeature';
+import { useHashRoute } from './lib/useHashRoute';
 import { useProjectStore } from './store/useProjectStore';
 import type { ComponentType } from 'react';
 import type { TabKey } from './types';
@@ -27,6 +28,7 @@ const FEATURES: Record<TabKey, ComponentType> = {
 };
 
 export default function App() {
+  useHashRoute();
   const tab = useProjectStore((s) => s.tab);
   const ActiveFeature = FEATURES[tab];
 

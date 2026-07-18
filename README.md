@@ -106,7 +106,11 @@ unless you've edited it.
   seeds the next feature's input directly (no download/re-upload). Elevation also
   has an **All faces (Front · Side · Rear)** batch.
 - **Lightbox viewer** — click any output (or gallery image) for a full-screen
-  viewer with zoom, drag-pan, arrow-key navigation and download.
+  viewer with zoom, drag-pan, arrow-key navigation, download, and **Crop for
+  social** — export the image to **1:1 / 4:5 / 9:16 / 16:9** with a brand footer,
+  ready to post.
+- **Deep links** — every tab has a URL (`#/interior`), so links are shareable and
+  the browser back/forward buttons move between tabs.
 
 Generation state (input, settings, outputs) lives in the store, so an in-flight
 run survives a tab switch and can be **Cancelled**; a partial batch failure keeps
