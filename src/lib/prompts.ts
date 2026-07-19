@@ -42,6 +42,12 @@ const WATERCOLOUR_PROMPT =
 
 export type RenderStyleKey = 'photoreal' | 'isometric' | 'clay' | 'line' | 'watercolour';
 
+// Reference-chaining: when a pooled image is picked as a style reference it rides
+// alongside the input as a second image, and this clause tells the model to match
+// its visual language so a whole set shares one palette/materials/mood.
+const STYLE_REF_CLAUSE =
+  'Match the overall material palette, colours, textures, finish and mood of the attached reference image so this output belongs to the same visual family — while keeping this drawing’s exact geometry, layout, viewpoint and composition unchanged.';
+
 /**
  * 2D plan → 3D isometric "dollhouse" cutaway. The model extrudes the plan into
  * a roofless, open-topped volume seen at a strict 45° isometric angle so the
@@ -85,8 +91,13 @@ function buildFurnishedPlanPrompt(a: SceneOptions): string {
   return parts.join(' ');
 }
 
-/** Assemble a render prompt from the style + scene choices. */
-export function buildRenderPrompt(a: { style: string } & SceneOptions): string {
+/** Assemble a render prompt from the style + scene choices (+ optional style reference). */
+export function buildRenderPrompt(a: { style: string; useStyleRef?: boolean } & SceneOptions): string {
+  const base = renderBase(a);
+  return a.useStyleRef ? `${base} ${STYLE_REF_CLAUSE}` : base;
+}
+
+function renderBase(a: { style: string } & SceneOptions): string {
   if (a.style === 'clay') return CLAY_PROMPT;
   if (a.style === 'line') return LINE_PROMPT;
   if (a.style === 'watercolour') return WATERCOLOUR_PROMPT;
@@ -131,8 +142,9 @@ const ELEVATION_STYLE_CLAUSE: Record<string, string> = {
 type ElevationSceneArgs = Pick<SceneOptions, 'materials' | 'customMaterials' | 'lighting' | 'mood'>;
 
 interface ElevationStyleArgs {
-  theme?: ElevationThemeKey; // design language (ignored when a mood board drives the render)
+  theme?: ElevationThemeKey; // design language (ignored when a mood board / style reference drives the render)
   useMoodboard?: boolean; // a reference mood-board image is attached to the request
+  useStyleRef?: boolean; // a pooled image is attached as a style reference (reference-chaining)
 }
 
 /** `face === null` yields a face-neutral base (the all-faces batch appends the per-face clause). */
@@ -165,6 +177,11 @@ export function buildElevationPrompt(
         'Restyle the elevation to match the design language, materials, colour palette, textures and overall mood of the attached reference mood-board image, ' +
           'while keeping the exact geometry, proportions, openings and layout of the elevation unchanged.',
       );
+    } else if (a.useStyleRef) {
+      parts.push(
+        'Restyle the elevation to match the design language, materials, colour palette, textures and overall mood of the attached reference image, ' +
+          'while keeping the exact geometry, proportions, openings and layout of the elevation unchanged.',
+      );
     } else if (a.theme && elevationThemeClause(a.theme)) {
       parts.push(`Design theme: ${elevationThemeClause(a.theme)}.`);
     }
@@ -189,6 +206,7 @@ interface InteriorPromptArgs {
   roomType: RoomTypeKey;
   theme: InteriorThemeKey;
   useMoodboard?: boolean; // a reference mood-board image is attached to the request
+  useStyleRef?: boolean; // a pooled image is attached as a style reference (reference-chaining)
   mood: SceneOptions['mood'];
 }
 
@@ -219,6 +237,10 @@ export function buildInteriorPrompt(a: InteriorPromptArgs): string {
   if (a.useMoodboard) {
     parts.push(
       'Style it to match the design language, furniture character, materials, colour palette, textures and overall mood of the attached reference mood-board image.',
+    );
+  } else if (a.useStyleRef) {
+    parts.push(
+      'Style it to match the design language, furniture character, materials, colour palette, textures and overall mood of the attached reference image.',
     );
   } else if (interiorThemeClause(a.theme)) {
     parts.push(`Design style: ${interiorThemeClause(a.theme)}.`);

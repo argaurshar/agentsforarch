@@ -112,6 +112,8 @@ export interface FeatureRun<S extends FeatureSettings> {
   settings: S;
   mode: FeatureMode;
   refine: RefineState;
+  styleRef: string | null; // reference-chaining: id of a pooled image whose style this run should match
+
   prompt: string; // the editable textarea value
   promptEdited: boolean; // once true, changing controls no longer overwrites it
   status: GenerateStatus;
@@ -136,6 +138,7 @@ function baseRun<S extends FeatureSettings>(settings: S, prompt: string): Featur
     settings,
     mode: 'compose',
     refine: emptyRefine(),
+    styleRef: null,
     prompt,
     promptEdited: false,
     status: 'idle',

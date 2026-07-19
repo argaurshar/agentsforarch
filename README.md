@@ -106,6 +106,11 @@ unless you've edited it.
 - **Cross-feature pipeline** — **Send to Elevation / Axonometric** on any output
   seeds the next feature's input directly (no download/re-upload). Elevation also
   has an **All faces (Front · Side · Rear)** batch.
+- **Reference-chaining** — a **Match a reference style** picker on the Isometric,
+  Elevation and Interior tabs lets you pick any earlier output as a style reference;
+  it rides alongside the input as a second image so a whole set (render → elevation →
+  interior) shares one palette, materials and mood. A tab's own uploaded mood board
+  takes precedence, and it's mutually exclusive with Compare styles.
 - **Lightbox viewer** — click any output (or gallery image) for a full-screen
   viewer with zoom, drag-pan, arrow-key navigation, download, and **Crop for
   social** — export the image to **1:1 / 4:5 / 9:16 / 16:9** with a brand footer,

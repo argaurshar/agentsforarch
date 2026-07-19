@@ -368,10 +368,15 @@ export const useProjectStore = create<ProjectState>((set, get) => {
           set({ project: next });
         }
       }
-      // Drop it from any feature's displayed outputs so the card disappears.
+      // Drop it from any feature's displayed outputs (so the card disappears) and
+      // clear it as a style reference if a feature was pointing at it.
       const gen = get().generation;
-      const scrub = <S extends FeatureSettings>(run: FeatureRun<S>): FeatureRun<S> =>
-        run.outputs.some((o) => o.id === imageId) ? { ...run, outputs: run.outputs.filter((o) => o.id !== imageId) } : run;
+      const scrub = <S extends FeatureSettings>(run: FeatureRun<S>): FeatureRun<S> => {
+        let next = run;
+        if (run.outputs.some((o) => o.id === imageId)) next = { ...next, outputs: next.outputs.filter((o) => o.id !== imageId) };
+        if (next.styleRef === imageId) next = { ...next, styleRef: null };
+        return next;
+      };
       set({
         generation: {
           render: scrub(gen.render),

@@ -1,7 +1,7 @@
 import { useCallback, useMemo } from 'react';
 import { getActiveProvider } from '../providers';
 import type { GenerateRequest, GenerateResult } from '../providers';
-import { useProjectStore } from '../store/useProjectStore';
+import { poolFromProject, useProjectStore } from '../store/useProjectStore';
 import type { GenerateStatus } from '../store/generation';
 import type { FeatureKind, GeneratedImage } from '../types';
 import { abortFeature, clearController, startRun } from './abortRegistry';
@@ -112,6 +112,21 @@ export function useGenerate(feature: FeatureKind): UseGenerateResult {
     cancel,
     reset,
   };
+}
+
+/**
+ * Reference-chaining: resolve a feature's `styleRef` (a pooled image id) to its
+ * dataURL, so the feature can attach it as a second image and flag the prompt.
+ * Returns nulls when nothing is selected or the referenced image no longer exists.
+ */
+export function useStyleRef(feature: FeatureKind): { id: string | null; url: string | null } {
+  const id = useProjectStore((s) => s.generation[feature].styleRef);
+  const project = useProjectStore((s) => s.project);
+  const url = useMemo(() => {
+    if (!id) return null;
+    return poolFromProject(project).find((p) => p.image.id === id)?.image.url ?? null;
+  }, [id, project]);
+  return { id, url };
 }
 
 interface UsePresentationAdderResult {

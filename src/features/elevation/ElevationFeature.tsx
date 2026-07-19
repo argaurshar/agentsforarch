@@ -5,6 +5,7 @@ import { CompareSection } from '../../components/Output/CompareSection';
 import { OutputGrid } from '../../components/Output/OutputGrid';
 import { RefineChips } from '../../components/Scene/RefineChips';
 import { SceneControls } from '../../components/Scene/SceneControls';
+import { StyleRefPicker } from '../../components/Scene/StyleRefPicker';
 import { Button } from '../../components/ui/Button';
 import { ChipGroup } from '../../components/ui/ChipGroup';
 import { ErrorBanner } from '../../components/ui/ErrorBanner';
@@ -14,7 +15,7 @@ import { ELEVATION_THEMES } from '../../lib/scene';
 import { buildElevationPrompt, buildRefinePrompt } from '../../lib/prompts';
 import { useProjectStore } from '../../store/useProjectStore';
 import type { ElevationSettings, ElevationThemeKey } from '../../store/generation';
-import { useGenerate, usePresentationAdder } from '../hooks';
+import { useGenerate, usePresentationAdder, useStyleRef } from '../hooks';
 
 const TYPE_OPTIONS = [
   { value: 'Front', label: 'Front' },
@@ -54,13 +55,16 @@ export function ElevationFeature() {
   const faces = face === 'All' ? ['Front', 'Side', 'Rear'] : [face];
   // A rendered elevation is driven by a design theme OR a mood board (never both).
   const useMoodboard = style === 'rendered' && styleSource === 'moodboard' && Boolean(moodboard);
+  // Reference-chaining — match a pooled image (theme mode only; a mood board wins).
+  const { url: styleRefUrl } = useStyleRef('elevation');
+  const useRefStyle = !useMoodboard && style === 'rendered' && styleSource === 'theme' && Boolean(styleRefUrl);
 
   const suggestedPrompt = useMemo(
     () =>
       mode === 'refine'
         ? buildRefinePrompt(refine)
-        : buildElevationPrompt({ face: face === 'All' ? null : face, style, theme, useMoodboard, ...scene }),
-    [mode, refine, face, style, theme, useMoodboard, scene],
+        : buildElevationPrompt({ face: face === 'All' ? null : face, style, theme, useMoodboard, useStyleRef: useRefStyle, ...scene }),
+    [mode, refine, face, style, theme, useMoodboard, useRefStyle, scene],
   );
   useEffect(() => {
     if (!promptEdited && suggestedPrompt !== prompt) setFeaturePrompt('elevation', suggestedPrompt, false);
@@ -82,7 +86,11 @@ export function ElevationFeature() {
       options:
         mode === 'refine'
           ? { style, refine: true }
-          : { style, viewpoints: faces, referenceImage: useMoodboard ? moodboard ?? undefined : undefined },
+          : {
+              style,
+              viewpoints: faces,
+              referenceImage: useMoodboard ? (moodboard ?? undefined) : useRefStyle ? (styleRefUrl ?? undefined) : undefined,
+            },
     });
   };
 
@@ -149,12 +157,15 @@ export function ElevationFeature() {
                     onChange={(v) => updateFeatureSettings('elevation', { styleSource: v })}
                   />
                   {styleSource === 'theme' ? (
-                    <ChipGroup
-                      label="Design theme"
-                      value={theme}
-                      options={THEME_OPTIONS}
-                      onChange={(v) => updateFeatureSettings('elevation', { theme: v })}
-                    />
+                    <div className="flex flex-col gap-4">
+                      <ChipGroup
+                        label="Design theme"
+                        value={theme}
+                        options={THEME_OPTIONS}
+                        onChange={(v) => updateFeatureSettings('elevation', { theme: v })}
+                      />
+                      <StyleRefPicker feature="elevation" note="Overrides the design theme above." />
+                    </div>
                   ) : (
                     <div className="flex flex-col gap-2">
                       <span className="mono-meta">Mood board</span>

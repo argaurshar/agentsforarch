@@ -479,3 +479,32 @@ over alongside renders. Frontend-only, no generation call, no new dependency.
 Invariants preserved: TS strict, no new deps, no browser persistence of project data,
 provider adapter seam untouched (the board never calls an image API), the four
 generation tabs and their nav indices unchanged (the tab is inserted after Interior).
+
+## Addendum · Reference-chaining (match a reference style)
+
+So a whole set (render → elevation → interior) can share one visual language, any
+generation tab can now take a previously generated / uploaded image as a **style
+reference**. It reuses the existing second-image seam (`options.referenceImage`)
+that the mood-board feature already rides on — no provider change.
+
+1. **State.** `FeatureRun.styleRef: string | null` — the id of a pooled image
+   (`src/store/generation.ts`); `removeImage` scrubs it if that image is deleted.
+2. **Resolver + picker.** `useStyleRef(feature)` (`src/features/hooks.ts`) resolves
+   the id to its dataURL from `poolFromProject`. `StyleRefPicker`
+   (`src/components/Scene/StyleRefPicker.tsx`) is a collapsible single-select of the
+   pool that reads/writes `styleRef`.
+3. **Prompt clauses.** `buildRenderPrompt` gains a `useStyleRef` flag that appends a
+   generic "match the reference's palette / materials / mood, keep geometry" clause;
+   `buildElevationPrompt` / `buildInteriorPrompt` add a `useStyleRef` branch with
+   precedence **own mood board > style reference > design theme** (the mood-board
+   wording is left untouched so its test still matches).
+4. **Scope + exclusivity.** Wired into **render, elevation, interior** — the three
+   restyle-capable tabs. **Axonometric is deliberately excluded**: it is a pure
+   geometric conversion that must preserve the input's materials (per the earlier
+   "no materials on axonometric" requirement), which a style reference would fight.
+   Reference-chaining is mutually exclusive with Compare styles (a fixed reference
+   vs. varying the style) and is offered only in a tab's theme mode (a tab's own
+   uploaded mood board takes precedence and hides the picker).
+
+Invariants preserved: TS strict, no new deps, provider adapter seam unchanged, the
+mood-board flows and their prompts unchanged, no nav change.

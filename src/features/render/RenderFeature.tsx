@@ -5,6 +5,7 @@ import { CompareSection } from '../../components/Output/CompareSection';
 import { OutputGrid } from '../../components/Output/OutputGrid';
 import { RefineChips } from '../../components/Scene/RefineChips';
 import { SceneControls } from '../../components/Scene/SceneControls';
+import { StyleRefPicker } from '../../components/Scene/StyleRefPicker';
 import { Button } from '../../components/ui/Button';
 import { ChipGroup } from '../../components/ui/ChipGroup';
 import { ErrorBanner } from '../../components/ui/ErrorBanner';
@@ -14,7 +15,7 @@ import { buildRefinePrompt, buildRenderPrompt } from '../../lib/prompts';
 import { ARCH_STYLES } from '../../lib/scene';
 import { useProjectStore } from '../../store/useProjectStore';
 import type { ArchStyleKey } from '../../store/generation';
-import { useGenerate, usePresentationAdder } from '../hooks';
+import { useGenerate, usePresentationAdder, useStyleRef } from '../hooks';
 
 // This feature turns a 2D floor plan into either a 3D isometric cutaway
 // ("dollhouse") or a fully furnished top-down 2D marketing plan. No prompt box —
@@ -74,14 +75,19 @@ export function RenderFeature() {
       prev.includes(key) ? prev.filter((k) => k !== key) : prev.length >= MAX_COMPARE ? prev : [...prev, key],
     );
 
+  // Reference-chaining — match a pooled image's style. Mutually exclusive with
+  // compare-styles (which varies the style, so a fixed reference makes no sense).
+  const { url: styleRefUrl } = useStyleRef('render');
+  const useRef = mode !== 'refine' && !compareActive && Boolean(styleRefUrl);
+
   // The prompt is assembled internally (no prompt box). In compare mode the base
   // prompt carries no style — the provider appends one per variant.
   const builtPrompt = useMemo(
     () =>
       mode === 'refine'
         ? buildRefinePrompt(refine)
-        : buildRenderPrompt({ style, ...scene, ...(compareActive ? { archStyle: 'none' as const } : {}) }),
-    [mode, refine, style, scene, compareActive],
+        : buildRenderPrompt({ style, ...scene, ...(compareActive ? { archStyle: 'none' as const } : {}), useStyleRef: useRef }),
+    [mode, refine, style, scene, compareActive, useRef],
   );
 
   const { status, error, warning, outputs, inputUsed, engineReady, run, cancel } = useGenerate('render');
@@ -99,6 +105,7 @@ export function RenderFeature() {
         style,
         variations: 1,
         refine: mode === 'refine' ? true : undefined,
+        referenceImage: useRef ? (styleRefUrl ?? undefined) : undefined,
         styleVariants: compareActive
           ? compareSel.map((k) => ({ label: `${ARCH_STYLES[k].label} — ${VIEW_LABEL[style]}`, clause: ARCH_STYLES[k].clause }))
           : undefined,
@@ -203,11 +210,14 @@ export function RenderFeature() {
               </div>
 
               {!compareActive ? (
-                <SceneControls
-                  value={scene}
-                  onChange={(patch) => updateFeatureSettings('render', { scene: patch })}
-                  show={{ archStyle: true }}
-                />
+                <>
+                  <StyleRefPicker feature="render" />
+                  <SceneControls
+                    value={scene}
+                    onChange={(patch) => updateFeatureSettings('render', { scene: patch })}
+                    show={{ archStyle: true }}
+                  />
+                </>
               ) : null}
             </>
           )}
