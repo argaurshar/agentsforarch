@@ -5,6 +5,7 @@ import { CompareSection } from '../../components/Output/CompareSection';
 import { OutputGrid } from '../../components/Output/OutputGrid';
 import { RefineChips } from '../../components/Scene/RefineChips';
 import { SceneControls } from '../../components/Scene/SceneControls';
+import { StyleRefPicker } from '../../components/Scene/StyleRefPicker';
 import { Button } from '../../components/ui/Button';
 import { ChipGroup } from '../../components/ui/ChipGroup';
 import { ErrorBanner } from '../../components/ui/ErrorBanner';
@@ -15,7 +16,7 @@ import { INTERIOR_THEMES } from '../../lib/scene';
 import { buildInteriorPrompt, buildRefinePrompt } from '../../lib/prompts';
 import { useProjectStore } from '../../store/useProjectStore';
 import type { InteriorMode, InteriorThemeKey, RoomTypeKey } from '../../store/generation';
-import { useGenerate, usePresentationAdder } from '../hooks';
+import { useGenerate, usePresentationAdder, useStyleRef } from '../hooks';
 
 const MODE_OPTIONS: { value: InteriorMode; label: string }[] = [
   { value: 'restyle', label: 'Restyle' },
@@ -75,12 +76,16 @@ export function InteriorFeature() {
       prev.includes(key) ? prev.filter((k) => k !== key) : prev.length >= MAX_COMPARE ? prev : [...prev, key],
     );
 
+  // Reference-chaining — match a pooled image (theme mode, not comparing; a mood board wins).
+  const { url: styleRefUrl } = useStyleRef('interior');
+  const useRefStyle = runMode !== 'refine' && styleSource === 'theme' && !compareActive && Boolean(styleRefUrl);
+
   const suggestedPrompt = useMemo(
     () =>
       runMode === 'refine'
         ? buildRefinePrompt(refine)
-        : buildInteriorPrompt({ mode, roomType, theme: compareActive ? 'none' : theme, useMoodboard, mood: scene.mood }),
-    [runMode, refine, mode, roomType, theme, useMoodboard, scene.mood, compareActive],
+        : buildInteriorPrompt({ mode, roomType, theme: compareActive ? 'none' : theme, useMoodboard, useStyleRef: useRefStyle, mood: scene.mood }),
+    [runMode, refine, mode, roomType, theme, useMoodboard, useRefStyle, scene.mood, compareActive],
   );
   useEffect(() => {
     if (!promptEdited && suggestedPrompt !== prompt) setFeaturePrompt('interior', suggestedPrompt, false);
@@ -104,7 +109,7 @@ export function InteriorFeature() {
           ? { style: mode, refine: true }
           : {
               style: mode,
-              referenceImage: useMoodboard ? moodboard ?? undefined : undefined,
+              referenceImage: useMoodboard ? (moodboard ?? undefined) : useRefStyle ? (styleRefUrl ?? undefined) : undefined,
               styleVariants: compareActive
                 ? compareSel.map((k) => ({ label: `${INTERIOR_THEMES[k].label} interior`, clause: INTERIOR_THEMES[k].clause }))
                 : undefined,
@@ -228,12 +233,15 @@ export function InteriorFeature() {
                         </p>
                       </>
                     ) : (
-                      <ChipGroup
-                        label="Design theme"
-                        value={theme}
-                        options={THEME_OPTIONS}
-                        onChange={(v) => updateFeatureSettings('interior', { theme: v })}
-                      />
+                      <div className="flex flex-col gap-4">
+                        <ChipGroup
+                          label="Design theme"
+                          value={theme}
+                          options={THEME_OPTIONS}
+                          onChange={(v) => updateFeatureSettings('interior', { theme: v })}
+                        />
+                        <StyleRefPicker feature="interior" note="Overrides the design theme above." />
+                      </div>
                     )}
                   </>
                 ) : (
