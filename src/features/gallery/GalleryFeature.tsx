@@ -14,6 +14,7 @@ const FEATURE_LABEL: Record<FeatureKind, string> = {
   elevation: 'Elevation',
   axonometric: 'Axonometric',
   interior: 'Interior',
+  moodboard: 'Material board',
 };
 
 const ICON_BTN =

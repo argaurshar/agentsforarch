@@ -5,7 +5,7 @@
 // and gives the refine loop a place to live. Types + pure defaults only — no
 // React, no provider imports — so this file stays cheap and in the main chunk.
 
-import { axonometricPrompt, elevationPrompt, interiorPrompt, renderPrompt } from '../lib/prompts';
+import { axonometricPrompt, buildMoodboardPrompt, elevationPrompt, interiorPrompt, renderPrompt } from '../lib/prompts';
 import { defaultScene } from '../lib/scene';
 import type { GeneratedImage } from '../types';
 
@@ -93,7 +93,13 @@ export interface AxonSettings {
   scene: SceneOptions;
 }
 
-export type FeatureSettings = RenderSettings | ElevationSettings | AxonSettings | InteriorSettings;
+// --- Material & mood board (Feature 05: any image → AI board) ---------------
+export type BoardAspectKey = '4:5' | '1:1' | '16:9';
+export interface MoodboardSettings {
+  aspect: BoardAspectKey; // board shape (portrait presentation default)
+}
+
+export type FeatureSettings = RenderSettings | ElevationSettings | AxonSettings | InteriorSettings | MoodboardSettings;
 
 /** Quick-action refinement of a specific output (P2). */
 export interface RefineState {
@@ -130,6 +136,7 @@ export interface GenerationState {
   elevation: FeatureRun<ElevationSettings>;
   axonometric: FeatureRun<AxonSettings>;
   interior: FeatureRun<InteriorSettings>;
+  moodboard: FeatureRun<MoodboardSettings>;
 }
 
 function baseRun<S extends FeatureSettings>(settings: S, prompt: string): FeatureRun<S> {
@@ -164,5 +171,6 @@ export function initialGeneration(): GenerationState {
       { mode: 'restyle', roomType: 'living', theme: 'contemporary', styleSource: 'theme', moodboard: null, scene: defaultScene() },
       interiorPrompt(),
     ),
+    moodboard: baseRun<MoodboardSettings>({ aspect: '4:5' }, buildMoodboardPrompt()),
   };
 }

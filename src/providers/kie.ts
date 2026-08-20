@@ -108,6 +108,7 @@ async function generateOne(
   imageUrls: string[],
   label: string,
   signal?: AbortSignal,
+  aspectRatio?: string,
 ): Promise<GeneratedImage> {
   const created = await kieFetch<{ taskId?: string }>(
     key,
@@ -120,7 +121,7 @@ async function generateOne(
         input: {
           prompt,
           image_input: imageUrls,
-          aspect_ratio: 'auto', // follow the input image's shape
+          aspect_ratio: aspectRatio ?? 'auto', // default: follow the input image's shape
           resolution: '1K',
           output_format: 'png',
         },
@@ -208,7 +209,7 @@ export class KieProvider implements ImageProvider {
       }
       const job = jobs[i];
       try {
-        images.push(await generateOne(key, job.prompt, imageUrls, job.label, signal));
+        images.push(await generateOne(key, job.prompt, imageUrls, job.label, signal, req.options.aspectRatio));
       } catch (err) {
         if (signal?.aborted) break;
         failures.push({ label: job.label, error: err instanceof Error ? err.message : 'Generation failed.' });

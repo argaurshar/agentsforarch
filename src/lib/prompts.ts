@@ -281,6 +281,29 @@ export function buildInteriorPrompt(a: InteriorPromptArgs): string {
   return parts.join(' ');
 }
 
+// --- Material & mood board (Feature 05) --------------------------------------
+
+/**
+ * Any image → a professional flat-lay material & mood board extracting the
+ * input's design DNA. This board deliberately CONTAINS text (its labels), so it
+ * gets a spell-correctly instruction instead of the shared no-text guard.
+ * Live-validated on Nano Banana Pro against a studio reference board.
+ */
+export function buildMoodboardPrompt(): string {
+  return [
+    'You are an architecture and interior design stylist. Study the attached image — a render, sketch or photo of a designed space — and extract its design DNA: the exact materials, colour palette, fabrics, textures, furniture character and overall mood.',
+    "Then compose a single professional flat-lay MATERIAL & MOOD BOARD that presents that DNA, in the style of a high-end design studio's client presentation board:",
+    'A warm off-white studio background, viewed top-down as a styled flat-lay with soft realistic drop shadows.',
+    'Overlapping physical material samples in the centre — wood boards, stone or terrazzo tiles, fabric and linen swatches, a metal finish sample, woven textures — each drawn from the actual materials visible in the input image.',
+    "A few isolated 3D furniture suggestions matching the input's style (a sofa or an accent chair, a small console or side table), one framed artwork suggestion, and a plant sprig or leaf for life.",
+    'Elegant small serif labels with thin underline rules naming each element and its material (e.g. "SOFA SUGGESTION — Bouclé Fabric in Warm Beige", "FLOORING — Natural Oak"), placed beside the elements they describe.',
+    'A "COLOR PALETTE" row of five plain solid colour dots sampled from the input image, with any names set beside or below the dots — never inside them.',
+    'A "MATERIAL PALETTE" strip of five labelled rectangular swatches: wall colour, flooring, primary fabric, curtain, metal.',
+    'A closing "VIBE" line naming the mood of the input space in three to five words.',
+    'Typography: refined serif with letter-spaced small caps, generous whitespace — a page from a luxury design deck. Photorealistic samples, ultra-detailed. The only text on the board are these labels — spell every word correctly.',
+  ].join(' ');
+}
+
 // --- Axonometric ------------------------------------------------------------
 
 export type AxonStyleKey = 'realistic' | 'lineart' | 'bw';

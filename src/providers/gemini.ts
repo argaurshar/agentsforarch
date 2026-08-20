@@ -43,6 +43,7 @@ async function generateOne(
   label: string,
   signal?: AbortSignal,
   reference?: { mimeType: string; data: string } | null,
+  aspectRatio?: string,
 ): Promise<GeneratedImage> {
   // Key travels in a header, not the URL query string (URLs leak into devtools,
   // logs, and referrers).
@@ -57,8 +58,12 @@ async function generateOne(
   const body = JSON.stringify({
     contents: [{ role: 'user', parts }],
     // Image-only output — verified with gemini-3-pro-image-preview in production;
-    // adding 'TEXT' risks the model returning prose instead of an image.
-    generationConfig: { responseModalities: ['IMAGE'] },
+    // adding 'TEXT' risks the model returning prose instead of an image. The
+    // optional aspect override (also live-verified) shapes e.g. the 4:5 board.
+    generationConfig: {
+      responseModalities: ['IMAGE'],
+      ...(aspectRatio ? { imageConfig: { aspectRatio } } : {}),
+    },
   });
 
   // One retry on a transient 429/503 (rate limit / overload) with jitter.
@@ -140,7 +145,7 @@ export class GeminiProvider implements ImageProvider {
       }
       const job = jobs[i];
       try {
-        images.push(await generateOne(key, model, job.prompt, inline, job.label, signal, reference));
+        images.push(await generateOne(key, model, job.prompt, inline, job.label, signal, reference, req.options.aspectRatio));
       } catch (err) {
         if (signal?.aborted) break; // cancellation — keep successes, stop
         failures.push({ label: job.label, error: err instanceof Error ? err.message : 'Generation failed.' });

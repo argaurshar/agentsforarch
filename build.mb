@@ -555,3 +555,29 @@ is mock-verified; confirm once live in a browser. API keys are never committed.
 Invariants preserved: TS strict, no new deps, provider adapter seam unchanged
 (one new implementation behind it), no nav changes, project data still never
 persisted.
+
+## Addendum · Mood Board tab v2 — AI material & mood board
+
+The tab's primary function is now generative (per the studio's reference
+board): upload ANY image — a render, sketch or photo — or pick a pooled
+output, and the engine extracts its design DNA into a professional flat-lay
+material & mood board (labelled material samples, furniture suggestions, a
+framed-artwork suggestion, a plant sprig, a COLOR PALETTE dot row, a
+5-swatch MATERIAL PALETTE strip, and a closing VIBE line). Implementation:
+
+- `moodboard` is now a fifth FeatureKind with its own FeatureRun (store slice,
+  labels, pool group "Material boards", gallery label, delete-scrub).
+- `buildMoodboardPrompt()` (prompts.ts) — live-validated on Nano Banana Pro
+  against the reference board; this prompt deliberately CONTAINS text (its
+  labels) so it carries a spell-correctly instruction instead of the shared
+  no-text guard.
+- `options.aspectRatio` threaded through BOTH engines (Gemini
+  `generationConfig.imageConfig.aspectRatio` — live-verified; kie.ai
+  `input.aspect_ratio`); the tab offers Portrait 4:5 / Square / Landscape.
+- The previous canvas collage remains as the tab's second mode ("Collage") —
+  no functionality removed. Sidebar subtitle now "Image → Material Board".
+- updateFeatureSettings deep-merges `scene` only for features that have one.
+
+Live-verified through the real app UI with a real Gemini response: the board
+generated from the boho elevation extracted its terracotta stucco, aged teak,
+rattan, macramé, bougainvillea and bronze — matching the reference layout.
