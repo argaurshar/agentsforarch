@@ -1,0 +1,174 @@
+// End-to-end verification of both image engines against a `vite preview` build
+// (default http://localhost:4173). All network calls are mocked — no API keys
+// or credits needed. Run: node qa/verifyEngines.cjs
+//
+// Covers: the Settings engine picker (Gemini ⇄ kie.ai), the full kie.ai task
+// flow (upload → createTask → poll → result fetch), the Gemini flow, the
+// overhauled prompts (no-text guard, dollhouse label handling, elevation
+// grammar/lighting fix), and the Isometric tab's editable prompt box.
+
+let chromium;
+try {
+  ({ chromium } = require('playwright'));
+} catch {
+  ({ chromium } = require('/opt/node22/lib/node_modules/playwright'));
+}
+const path = require('path');
+const fs = require('fs');
+
+const BASE = process.env.QA_BASE_URL || 'http://localhost:4173/';
+const PLAN = path.join(__dirname, '..', 'test-assets', 'sample-plan.png');
+const PNG_1PX = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+  'base64',
+);
+const CORS = { 'access-control-allow-origin': '*', 'access-control-allow-methods': '*', 'access-control-allow-headers': '*' };
+
+const results = [];
+const check = (name, ok, detail = '') => {
+  results.push({ ok });
+  console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail ? '  — ' + detail : ''}`);
+};
+
+(async () => {
+  const exe = fs.existsSync('/opt/pw-browsers/chromium-1194/chrome-linux/chrome')
+    ? '/opt/pw-browsers/chromium-1194/chrome-linux/chrome'
+    : undefined;
+  const browser = await chromium.launch({ headless: true, executablePath: exe });
+  const page = await browser.newContext({ viewport: { width: 1440, height: 1100 } }).then((c) => c.newPage());
+  const perr = [];
+  page.on('pageerror', (e) => perr.push(String(e)));
+
+  // --- Gemini mock -----------------------------------------------------------
+  const geminiBodies = [];
+  await page.route('**generativelanguage.googleapis.com/**', (r) => {
+    if (r.request().method() === 'OPTIONS') return r.fulfill({ status: 204, headers: CORS, body: '' });
+    geminiBodies.push(r.request().postData() || '');
+    return r.fulfill({
+      status: 200,
+      headers: { ...CORS, 'content-type': 'application/json' },
+      body: JSON.stringify({
+        candidates: [
+          { content: { parts: [{ inlineData: { mimeType: 'image/png', data: PNG_1PX.toString('base64') } }] }, finishReason: 'STOP' },
+        ],
+      }),
+    });
+  });
+
+  // --- kie.ai mocks ----------------------------------------------------------
+  const kie = { uploads: 0, createBodies: [], polls: 0 };
+  await page.route('**kieai.redpandaai.co/**', (r) => {
+    if (r.request().method() === 'OPTIONS') return r.fulfill({ status: 204, headers: CORS, body: '' });
+    kie.uploads += 1;
+    return r.fulfill({
+      status: 200,
+      headers: { ...CORS, 'content-type': 'application/json' },
+      body: JSON.stringify({ code: 200, msg: 'success', data: { downloadUrl: 'https://kie-cdn.mock/in.png' } }),
+    });
+  });
+  await page.route('**api.kie.ai/**', (r) => {
+    if (r.request().method() === 'OPTIONS') return r.fulfill({ status: 204, headers: CORS, body: '' });
+    const url = r.request().url();
+    if (url.includes('createTask')) {
+      kie.createBodies.push(r.request().postData() || '');
+      return r.fulfill({
+        status: 200,
+        headers: { ...CORS, 'content-type': 'application/json' },
+        body: JSON.stringify({ code: 200, msg: 'success', data: { taskId: 'task-qa-1' } }),
+      });
+    }
+    if (url.includes('recordInfo')) {
+      kie.polls += 1;
+      const done = kie.polls >= 2; // first poll: still generating; second: success
+      return r.fulfill({
+        status: 200,
+        headers: { ...CORS, 'content-type': 'application/json' },
+        body: JSON.stringify({
+          code: 200,
+          msg: 'success',
+          data: done
+            ? { state: 'success', resultJson: JSON.stringify({ resultUrls: ['https://kie-cdn.mock/out.png'] }) }
+            : { state: 'generating' },
+        }),
+      });
+    }
+    return r.fulfill({ status: 404, headers: CORS, body: '{}' });
+  });
+  await page.route('**kie-cdn.mock/**', (r) =>
+    r.fulfill({ status: 200, headers: { ...CORS, 'content-type': 'image/png' }, body: PNG_1PX }),
+  );
+
+  // --- Boot: settings open automatically (no key yet) ------------------------
+  await page.goto(BASE, { waitUntil: 'domcontentloaded' });
+  await page.waitForSelector('[role="dialog"]');
+
+  // 1. Engine picker exists with both engines.
+  const geminiRadio = page.getByRole('radio', { name: /Google Gemini/ });
+  const kieRadio = page.getByRole('radio', { name: /kie\.ai/ });
+  check('engine picker shows Gemini + kie.ai', (await geminiRadio.count()) === 1 && (await kieRadio.count()) === 1);
+
+  // 2. Gemini path first.
+  await page.fill('#api-key', 'AIza-qa-test');
+  await page.getByRole('button', { name: /^Save$/ }).click();
+  await page.locator('[role="dialog"] button[aria-label="Close settings"]').click();
+  await page.waitForTimeout(250);
+  const enginePill = page.locator('button[title="API keys"], button[title="Connect your API key to generate"]').first();
+  check('header pill shows Nano Banana Pro on Gemini', /Nano Banana Pro/i.test(await enginePill.innerText()));
+
+  const nav = page.locator('nav[aria-label="Features"] button');
+  await nav.nth(1).click();
+  await page.waitForTimeout(300);
+
+  // 3. The Isometric tab now has the editable prompt box.
+  const promptBox = page.locator('#render-prompt');
+  check('isometric tab has a prompt box', (await promptBox.count()) === 1);
+  const autoPrompt = await promptBox.inputValue();
+  check('dollhouse prompt visible in the box', /dollhouse/i.test(autoPrompt));
+  check('dollhouse prompt strips plan labels', /no text at all/i.test(autoPrompt));
+
+  // 4. Edited prompt → Reset appears and restores the suggestion.
+  await promptBox.fill('my custom prompt');
+  const resetBtn = page.getByRole('button', { name: /^Reset$/ });
+  check('editing the prompt reveals Reset', await resetBtn.isVisible());
+  await resetBtn.click();
+  check('Reset restores the auto prompt', /dollhouse/i.test(await promptBox.inputValue()));
+
+  // 5. Gemini generation end-to-end with the sample plan.
+  await page.setInputFiles('input[type=file]', PLAN);
+  await page.waitForTimeout(200);
+  await page.getByRole('button', { name: /^Generate$/ }).click();
+  await page.waitForSelector('figure img[src^="data:image"]', { timeout: 20000 });
+  check('gemini generation renders an output', true);
+  const gBody = geminiBodies[geminiBodies.length - 1] || '';
+  check('gemini request carried the no-text guard', /watermark, signature, caption or stray text/.test(gBody));
+
+  // 6. Switch to kie.ai and generate an elevation.
+  await enginePill.click();
+  await page.waitForSelector('[role="dialog"]');
+  await page.getByRole('radio', { name: /kie\.ai/ }).click();
+  await page.fill('#kie-key', 'kie-qa-test');
+  await page.getByRole('button', { name: /^Save$/ }).click();
+  await page.locator('[role="dialog"] button[aria-label="Close settings"]').click();
+  await page.waitForTimeout(250);
+  check('header pill shows Nano Banana 2 · kie.ai', /Nano Banana 2/i.test(await enginePill.innerText()));
+
+  await nav.nth(2).click(); // Elevation
+  await page.waitForTimeout(300);
+  await page.setInputFiles('input[type=file]', PLAN);
+  await page.waitForTimeout(200);
+  await page.getByRole('button', { name: /^Generate$/ }).click();
+  await page.waitForSelector('figure img[src^="data:image"]', { timeout: 30000 }); // includes two 3s polls
+  check('kie.ai generation renders an output', true);
+  check('kie.ai input was uploaded first', kie.uploads >= 1, `${kie.uploads} uploads`);
+  const kBody = kie.createBodies[kie.createBodies.length - 1] || '';
+  check('kie.ai task uses model nano-banana-2', /"model":"nano-banana-2"/.test(kBody));
+  check('kie.ai task carries the uploaded image URL', /kie-cdn\.mock\/in\.png/.test(kBody));
+  check('elevation prompt grammar fixed', /elevation of the building shown in the input image/.test(kBody));
+  check('elevation lighting scoped to the flat façade', /applied purely as illumination/.test(kBody));
+
+  check('no page crashes', perr.length === 0, perr.slice(0, 2).join(' | '));
+  await browser.close();
+  const failed = results.filter((r) => !r.ok).length;
+  console.log(`\n${results.length - failed}/${results.length} checks passed`);
+  process.exit(failed === 0 ? 0 : 1);
+})();

@@ -99,7 +99,7 @@ export function DashboardFeature() {
                 {engineReady ? <Check size={14} strokeWidth={2.5} /> : <KeyRound size={13} strokeWidth={1.75} />}
               </span>
               <div>
-                <p className="text-sm font-medium text-ink">Connect your Gemini key</p>
+                <p className="text-sm font-medium text-ink">Connect your API key</p>
                 <p className="mt-0.5 text-xs leading-relaxed text-mist">
                   Settings (top right) — the key stays in your browser.
                 </p>

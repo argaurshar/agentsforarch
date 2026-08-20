@@ -1,5 +1,5 @@
-import { FileImage, Sparkles, X } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { FileImage, RotateCcw, Sparkles, X } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
 import { ImageDropzone } from '../../components/Upload/ImageDropzone';
 import { CompareSection } from '../../components/Output/CompareSection';
 import { OutputGrid } from '../../components/Output/OutputGrid';
@@ -18,8 +18,9 @@ import type { ArchStyleKey } from '../../store/generation';
 import { useGenerate, usePresentationAdder, useStyleRef } from '../hooks';
 
 // This feature turns a 2D floor plan into either a 3D isometric cutaway
-// ("dollhouse") or a fully furnished top-down 2D marketing plan. No prompt box —
-// the prompt is assembled internally from the view + architecture-style choices.
+// ("dollhouse") or a fully furnished top-down 2D marketing plan. The prompt is
+// assembled from the view + architecture-style choices and stays visible and
+// editable in the prompt box, same as every other generation tab.
 
 const VIEW_OPTIONS = [
   { value: 'isometric', label: '3D isometric' },
@@ -53,9 +54,10 @@ function SamplePlanButton() {
 }
 
 export function RenderFeature() {
-  const { input, settings, mode, refine } = useProjectStore((s) => s.generation.render);
+  const { input, settings, mode, refine, prompt, promptEdited } = useProjectStore((s) => s.generation.render);
   const setFeatureInput = useProjectStore((s) => s.setFeatureInput);
   const updateFeatureSettings = useProjectStore((s) => s.updateFeatureSettings);
+  const setFeaturePrompt = useProjectStore((s) => s.setFeaturePrompt);
   const patchFeatureRun = useProjectStore((s) => s.patchFeatureRun);
   const beginRefine = useProjectStore((s) => s.beginRefine);
   const exitRefine = useProjectStore((s) => s.exitRefine);
@@ -80,15 +82,19 @@ export function RenderFeature() {
   const { url: styleRefUrl } = useStyleRef('render');
   const useRef = mode !== 'refine' && !compareActive && Boolean(styleRefUrl);
 
-  // The prompt is assembled internally (no prompt box). In compare mode the base
-  // prompt carries no style — the provider appends one per variant.
-  const builtPrompt = useMemo(
+  // The prompt is assembled from the controls but stays visible and editable in
+  // the textarea below (same as every other generation tab). In compare mode the
+  // base prompt carries no style — the provider appends one per variant.
+  const suggestedPrompt = useMemo(
     () =>
       mode === 'refine'
         ? buildRefinePrompt(refine)
         : buildRenderPrompt({ style, ...scene, ...(compareActive ? { archStyle: 'none' as const } : {}), useStyleRef: useRef }),
     [mode, refine, style, scene, compareActive, useRef],
   );
+  useEffect(() => {
+    if (!promptEdited && suggestedPrompt !== prompt) setFeaturePrompt('render', suggestedPrompt, false);
+  }, [suggestedPrompt, promptEdited, prompt, setFeaturePrompt]);
 
   const { status, error, warning, outputs, inputUsed, engineReady, run, cancel } = useGenerate('render');
   const { addToPresentation, addedIds } = usePresentationAdder();
@@ -100,7 +106,7 @@ export function RenderFeature() {
     void run({
       feature: 'render',
       inputImage: input,
-      prompt: builtPrompt,
+      prompt: prompt.trim() || undefined,
       options: {
         style,
         variations: 1,
@@ -221,6 +227,31 @@ export function RenderFeature() {
               ) : null}
             </>
           )}
+
+          {/* Prompt — visible + editable, same as every other generation tab. */}
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center justify-between gap-3">
+              <label htmlFor="render-prompt" className="mono-meta">
+                Prompt · auto-generated
+              </label>
+              {promptEdited ? (
+                <button
+                  type="button"
+                  onClick={() => setFeaturePrompt('render', suggestedPrompt, false)}
+                  className="flex items-center gap-1 text-[0.7rem] text-ochre hover:text-ochre-deep focus-visible:outline-ochre"
+                >
+                  <RotateCcw size={12} strokeWidth={1.75} /> Reset
+                </button>
+              ) : null}
+            </div>
+            <textarea
+              id="render-prompt"
+              value={prompt}
+              onChange={(e) => setFeaturePrompt('render', e.target.value, true)}
+              rows={4}
+              className="resize-none border border-hairline bg-paper px-3 py-2.5 text-sm leading-relaxed text-graphite placeholder:text-mist focus-visible:outline-ochre"
+            />
+          </div>
 
           <div className="flex items-center gap-3">
             <Button

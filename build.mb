@@ -508,3 +508,50 @@ that the mood-board feature already rides on — no provider change.
 
 Invariants preserved: TS strict, no new deps, provider adapter seam unchanged, the
 mood-board flows and their prompts unchanged, no nav change.
+
+## Addendum · Prompt overhaul + dual engines (Gemini / kie.ai)
+
+Root cause of "prompts not working": the app accepted only a Google Gemini key,
+so a kie.ai key pasted into Settings failed every generation. Fixes:
+
+1. **Engine picker** (`SettingsPanel`) — choose **Google Gemini · Nano Banana
+   Pro** or **kie.ai · Nano Banana 2**; each gated by its own key.
+   `runtimeConfig.ts` stores `engine` + `kie-key` (opt-in localStorage, same as
+   before); providers activate only when chosen AND keyed.
+2. **KieProvider** (`src/providers/kie.ts`) — kie.ai task API: multipart upload
+   of the input dataURL(s) to `kieai.redpandaai.co/api/file-stream-upload`,
+   `POST /api/v1/jobs/createTask` (`model: nano-banana-2`, `image_input` URLs,
+   `aspect_ratio: auto`), 3s polling of `recordInfo` (abortable, 4-min cap),
+   `resultJson.resultUrls[0]` fetched back to a dataURL (kie URLs expire in
+   ~20 min; falls back to the remote URL if the CDN blocks a browser fetch).
+   Friendly 401/402/422/429 + envelope (`code !== 200`) errors; key never echoed.
+3. **Shared batch semantics** (`src/providers/shared.ts`) — `jobsFor`,
+   `abortableDelay`, `inlineFromDataUrl`, fallback prompt extracted from the
+   Gemini provider so both engines expand batches identically.
+4. **Prompt overhaul** (`src/lib/prompts.ts`) — a shared **no-text guard** on
+   every builder (the model otherwise copies plan labels / adds captions);
+   dollhouse prompt now converts plan labels into the rooms they describe;
+   furnished plan re-sets room names as clean labels and drops dimensions;
+   photoreal render gets a 24mm tilt-shift camera line, natural-colour-grade
+   finish and no-warped-glass exclusions; elevation opening line grammar fixed
+   ("…elevation of the building shown in the input image") and scene lighting
+   scoped to façade illumination so it can't tilt the flat drawing into 3D;
+   axon/isometric outputs pinned centred-in-frame.
+5. **UI** — the Isometric tab now has the same editable
+   **Prompt · auto-generated** textarea (+ Reset) as every other generation tab
+   (it was the only one hiding its prompt); stale strings updated
+   ("Scene · one-click controls", "Connect your API key").
+6. **QA** (`qa/verifyEngines.cjs`, committed this time — scratchpad suites died
+   with container recycles) — 17 mocked end-to-end checks across both engines:
+   engine picker, per-engine header pill, kie upload→createTask→poll→result
+   with model/image_input/prompt assertions, Gemini flow, prompt box
+   edit/Reset, no page errors. `test-assets/sample-plan.png` is the rasterized
+   bundled demo plan used as the QA input fixture.
+
+Note: kie.ai calls could not be live-tested from the dev environment (its
+egress proxy blocks api.kie.ai) — the request contract follows docs.kie.ai and
+is mock-verified; confirm once live in a browser. API keys are never committed.
+
+Invariants preserved: TS strict, no new deps, provider adapter seam unchanged
+(one new implementation behind it), no nav changes, project data still never
+persisted.

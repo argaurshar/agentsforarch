@@ -1,5 +1,6 @@
 import { FluxProvider } from './flux';
 import { GeminiProvider } from './gemini';
+import { KieProvider } from './kie';
 import { MagnificProvider } from './magnific';
 import type { ImageProvider } from './types';
 
@@ -11,11 +12,11 @@ export type {
   ImageProvider,
 } from './types';
 
-// Real image providers, in priority order. Nano Banana Pro activates once the
-// user adds their Gemini key in Settings; Magnific/Flux remain env-keyed seams.
-// There is no demo/placeholder engine — the app generates real images only, so
-// a provider is available only when a key is configured.
-const realProviders: ImageProvider[] = [new GeminiProvider(), new MagnificProvider(), new FluxProvider()];
+// Real image providers. Gemini (Nano Banana Pro) and kie.ai (Nano Banana 2)
+// are gated by the engine picker in Settings — each activates only when it is
+// the chosen engine AND its key is set; Magnific/Flux remain env-keyed seams.
+// There is no demo/placeholder engine — the app generates real images only.
+const realProviders: ImageProvider[] = [new GeminiProvider(), new KieProvider(), new MagnificProvider(), new FluxProvider()];
 
 /**
  * The first configured real provider, or `null` when no key is set. This is the
