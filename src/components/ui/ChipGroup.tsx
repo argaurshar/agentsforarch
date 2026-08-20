@@ -24,9 +24,9 @@ export function ChipGroup<T extends string>({ label, value, options, onChange }:
               type="button"
               aria-pressed={active}
               onClick={() => onChange(opt.value)}
-              className={`pill border px-3.5 py-1.5 text-[0.8125rem] font-medium focus-visible:outline-ochre ${
+              className={`pill border px-3.5 py-1.5 text-label transition-colors active:scale-[0.98] ${
                 active
-                  ? 'border-ochre bg-ochre text-white shadow-btn'
+                  ? 'border-ochre-deep bg-ochre-deep text-white'
                   : 'border-hairline bg-paper text-graphite hover:border-mist/50 hover:bg-drafting'
               }`}
             >

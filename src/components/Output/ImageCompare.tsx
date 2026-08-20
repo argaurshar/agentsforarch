@@ -66,7 +66,7 @@ export function ImageCompare({ before, after, beforeLabel = 'Input', afterLabel 
   return (
     <div
       ref={containerRef}
-      className="relative w-full select-none overflow-hidden rounded-xl border border-hairline bg-drafting"
+      className="relative w-full select-none overflow-hidden rounded-card border border-hairline bg-drafting"
       style={
         aspect
           ? { aspectRatio: String(aspect), maxWidth: `${Math.round(aspect * MAX_COMPARE_HEIGHT)}px` }
@@ -81,15 +81,17 @@ export function ImageCompare({ before, after, beforeLabel = 'Input', afterLabel 
       </div>
 
       {/* Corner labels */}
-      <span className="absolute left-3 top-3 rounded-full bg-ink/75 px-2.5 py-1 text-[0.75rem] font-medium text-white backdrop-blur-sm">
+      <span className="absolute left-3 top-3 rounded-full bg-ink/75 px-2.5 py-1 text-caption font-medium text-white backdrop-blur-sm">
         {beforeLabel}
       </span>
-      <span className="absolute right-3 top-3 rounded-full bg-ochre px-2.5 py-1 text-[0.75rem] font-medium text-white shadow-btn">
+      {/* Filled accent under 18.66px is not AA in white — the deep ochre is. */}
+      <span className="absolute right-3 top-3 rounded-full bg-ochre-deep px-2.5 py-1 text-caption font-medium text-white">
         {afterLabel}
       </span>
 
-      {/* Divider + handle */}
-      <div className="absolute bottom-0 top-0 w-px bg-ochre" style={{ left: `${pos}%` }}>
+      {/* Divider + handle — a neutral rule reads over both images; a saturated
+          accent line competed with the accent on the handle itself. */}
+      <div className="absolute bottom-0 top-0 w-0.5 bg-white/80 shadow" style={{ left: `${pos}%` }}>
         <button
           type="button"
           role="slider"
@@ -107,7 +109,7 @@ export function ImageCompare({ before, after, beforeLabel = 'Input', afterLabel 
             if (e.key === 'Home') setPos(0);
             if (e.key === 'End') setPos(100);
           }}
-          className="absolute left-1/2 top-1/2 flex h-10 w-10 -translate-x-1/2 -translate-y-1/2 cursor-ew-resize items-center justify-center rounded-full border border-ochre bg-white text-ochre shadow-card-lg focus-visible:outline-ochre"
+          className="absolute left-1/2 top-1/2 flex h-10 w-10 -translate-x-1/2 -translate-y-1/2 cursor-ew-resize items-center justify-center rounded-full border border-white/70 bg-paper text-ochre shadow-card-lg transition-transform hover:scale-105 active:scale-95"
         >
           <MoveHorizontal size={16} strokeWidth={1.75} />
         </button>

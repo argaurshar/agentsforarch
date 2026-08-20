@@ -1,8 +1,11 @@
 import { ArrowUpRight, Download, FileDown, FileUp, Images, Trash2, X } from 'lucide-react';
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Lightbox } from '../../components/Output/Lightbox';
 import { Button } from '../../components/ui/Button';
 import { EmptyState } from '../../components/ui/EmptyState';
+import { ErrorBanner } from '../../components/ui/ErrorBanner';
+import { IconButton } from '../../components/ui/IconButton';
+import { Notice } from '../../components/ui/Notice';
 import { SectionHeader } from '../../components/ui/SectionHeader';
 import { downloadDataURL, slugify } from '../../lib/images';
 import { downloadProjectFile, parseProjectFile } from '../../lib/projectFile';
@@ -17,8 +20,8 @@ const FEATURE_LABEL: Record<FeatureKind, string> = {
   moodboard: 'Material board',
 };
 
-const ICON_BTN =
-  'flex items-center justify-center rounded-lg border border-hairline bg-paper p-1.5 text-graphite hover:bg-drafting focus-visible:outline-ochre';
+/** How long the "project imported" confirmation stays on screen. */
+const IMPORTED_NOTICE_MS = 6000;
 
 interface GalleryItem {
   image: GeneratedImage;
@@ -34,63 +37,69 @@ function GalleryCard({ item, onView }: { item: GalleryItem; onView: () => void }
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   return (
-    <figure className="group flex flex-col overflow-hidden rounded-xl border border-hairline bg-paper shadow-card transition-colors hover:border-ochre/50">
+    <figure className="group flex flex-col overflow-hidden rounded-card border border-hairline bg-paper shadow-card transition-all hover:-translate-y-0.5 hover:border-ochre/50 hover:shadow-card-lg">
       <button
         type="button"
         onClick={onView}
-        className="overflow-hidden border-b border-hairline bg-drafting focus-visible:outline-ochre"
+        className="aspect-[4/3] w-full overflow-hidden border-b border-hairline bg-drafting"
         title="View full screen"
         aria-label={`View ${item.image.label} full screen`}
       >
-        <img src={item.image.url} alt={item.image.label} className="max-h-48 w-full object-contain" />
+        {/* Fixed ratio: mixed intrinsic heights left ragged dead space under the
+            shorter cards while the grid stretched every row to equal height. */}
+        <img
+          src={item.image.url}
+          alt={item.image.label}
+          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+        />
       </button>
-      <figcaption className="flex flex-col gap-2 px-3 py-3">
-        <span className="mono-meta truncate" title={item.prompt ? `Prompt: ${item.prompt}` : item.image.label}>
+      <figcaption className="flex flex-col gap-3 px-4 py-4">
+        <span
+          className="truncate text-label text-graphite"
+          title={item.prompt ? `Prompt: ${item.prompt}` : item.image.label}
+        >
           {item.image.label}
         </span>
-        <div className="flex flex-wrap items-center gap-1.5">
+        <div className="flex flex-wrap items-center gap-2">
           {item.feature ? (
-            <button
-              type="button"
+            <Button
+              variant="secondary"
+              size="sm"
+              icon={<ArrowUpRight size={14} strokeWidth={1.75} />}
               onClick={() => sendToFeature(item.feature as FeatureKind, item.image.url)}
-              className={`${ICON_BTN} gap-1 px-2 text-[0.75rem] font-medium`}
               title={`Reuse as the ${FEATURE_LABEL[item.feature]} input`}
             >
-              <ArrowUpRight size={13} strokeWidth={1.75} /> Reuse
-            </button>
+              Reuse
+            </Button>
           ) : null}
-          <button
-            type="button"
-            onClick={() => downloadDataURL(item.image.url, `${slugify(item.image.label)}.jpg`)}
-            className={ICON_BTN}
+          {/* title keeps the short form; the accessible name is unchanged. */}
+          <IconButton
+            icon={<Download size={16} strokeWidth={1.75} />}
+            label={`Download ${item.image.label}`}
             title="Download"
-            aria-label={`Download ${item.image.label}`}
-          >
-            <Download size={15} strokeWidth={1.75} />
-          </button>
+            onClick={() => downloadDataURL(item.image.url, `${slugify(item.image.label)}.jpg`)}
+          />
           {confirmDelete ? (
-            <span className="ml-auto flex items-center gap-1">
-              <button
-                type="button"
-                onClick={() => removeImage(item.image.id)}
-                className="rounded-lg border border-ochre/40 bg-paper px-2.5 py-1 text-[0.75rem] font-medium text-ochre transition-colors hover:bg-ochre/8 focus-visible:outline-ochre"
-              >
+            <span className="ml-auto flex items-center gap-2">
+              <Button variant="danger" size="sm" onClick={() => removeImage(item.image.id)}>
                 Delete
-              </button>
-              <button type="button" onClick={() => setConfirmDelete(false)} className={ICON_BTN} title="Cancel" aria-label="Cancel delete">
-                <X size={14} strokeWidth={1.75} />
-              </button>
+              </Button>
+              <IconButton
+                icon={<X size={16} strokeWidth={1.75} />}
+                label="Cancel delete"
+                title="Cancel"
+                onClick={() => setConfirmDelete(false)}
+              />
             </span>
           ) : (
-            <button
-              type="button"
-              onClick={() => setConfirmDelete(true)}
-              className={`${ICON_BTN} ml-auto`}
+            <IconButton
+              icon={<Trash2 size={16} strokeWidth={1.75} />}
+              label={`Delete ${item.image.label}`}
               title="Delete this image"
-              aria-label={`Delete ${item.image.label}`}
-            >
-              <Trash2 size={15} strokeWidth={1.75} />
-            </button>
+              tone="danger"
+              className="ml-auto"
+              onClick={() => setConfirmDelete(true)}
+            />
           )}
         </div>
       </figcaption>
@@ -105,6 +114,14 @@ export function GalleryFeature() {
   const [importError, setImportError] = useState<string | null>(null);
   const [imported, setImported] = useState(false);
   const [viewIndex, setViewIndex] = useState<number | null>(null);
+
+  // The confirmation used to have no counterpart to setImported(true), so it sat
+  // on the page for the rest of the session.
+  useEffect(() => {
+    if (!imported) return undefined;
+    const t = window.setTimeout(() => setImported(false), IMPORTED_NOTICE_MS);
+    return () => window.clearTimeout(t);
+  }, [imported]);
 
   // Every image in the project, newest asset first, grouped for display.
   const groups = useMemo(() => {
@@ -176,12 +193,18 @@ export function GalleryFeature() {
       />
 
       {importError ? (
-        <p className="mb-6 rounded-xl border border-ochre/30 bg-ochre/8 px-3.5 py-2.5 text-xs leading-relaxed text-ochre">{importError}</p>
+        <div className="mb-6">
+          <ErrorBanner message={importError} onRetry={() => importRef.current?.click()} />
+        </div>
       ) : null}
       {imported ? (
-        <p className="mb-6 rounded-xl border border-hairline bg-drafting px-3.5 py-2 text-xs leading-relaxed text-graphite">
-          Project imported — all its images are below, and every tab has been reset to the imported project.
-        </p>
+        <div className="mb-6">
+          <Notice
+            tone="success"
+            message="Project imported — all its images are below, and every tab has been reset to the imported project."
+            onDismiss={() => setImported(false)}
+          />
+        </div>
       ) : null}
 
       {total === 0 ? (
@@ -197,13 +220,14 @@ export function GalleryFeature() {
         />
       ) : (
         <div className="flex flex-col gap-8">
-          <p className="mono-meta text-mist">
+          <p className="text-caption text-mist">
             {total} image{total === 1 ? '' : 's'} in this project
           </p>
           {groups.map(([group, items]) => (
             <div key={group}>
-              <p className="mono-meta mb-3">{group}</p>
-              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+              <p className="section-heading mb-3">{group}</p>
+              {/* lg step included: 2→4 columns ballooned the cards between 1024 and 1280px. */}
+              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {items.map((item) => (
                   <GalleryCard
                     key={item.image.id}

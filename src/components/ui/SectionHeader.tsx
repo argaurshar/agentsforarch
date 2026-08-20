@@ -23,16 +23,16 @@ export function SectionHeader({ index, eyebrow, title, description, actions }: S
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
         <div>
           <p className="reveal reveal-1 flex items-center gap-2.5">
-            <span className="rounded-full bg-ochre/10 px-2.5 py-1 font-mono text-[0.6875rem] font-medium text-ochre">
+            <span className="rounded-full bg-ochre/10 px-2.5 py-1 font-mono text-caption font-medium text-ochre-deep">
               {index}
             </span>
             <span className="eyebrow">{eyebrow}</span>
           </p>
-          <h1 className="reveal reveal-2 mt-3.5 font-display text-[2rem] font-semibold tracking-tight text-ink sm:text-[2.375rem]">
+          <h1 className="reveal reveal-2 mt-3.5 font-display text-display-lg text-ink sm:text-display-xl">
             {title}
           </h1>
           {description ? (
-            <p className="reveal reveal-3 mt-3 max-w-2xl text-[0.9375rem] leading-relaxed text-graphite">{description}</p>
+            <p className="reveal reveal-3 mt-3 max-w-2xl text-body text-graphite">{description}</p>
           ) : null}
         </div>
         {actions ? <div className="shrink-0">{actions}</div> : null}

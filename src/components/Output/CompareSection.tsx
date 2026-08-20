@@ -1,5 +1,6 @@
 import { MoveHorizontal } from 'lucide-react';
 import { useState } from 'react';
+import { Button } from '../ui/Button';
 import { ImageCompare } from './ImageCompare';
 
 interface CompareSectionProps {
@@ -20,18 +21,18 @@ export function CompareSection({ before, after, beforeLabel, afterLabel, default
   const [open, setOpen] = useState(defaultOpen);
 
   return (
-    <div className="mt-10">
+    <div className="mt-8">
       <div className="mb-3 flex items-center justify-between gap-3">
-        <p className="mono-meta">Fidelity · Before / After</p>
-        <button
-          type="button"
+        <p className="section-heading">Fidelity · Before / After</p>
+        <Button
+          variant="secondary"
+          size="sm"
           onClick={() => setOpen((v) => !v)}
           aria-pressed={open}
-          className="flex items-center gap-1.5 rounded-full border border-hairline bg-paper px-3.5 py-1.5 text-[0.8125rem] font-medium text-graphite shadow-sm transition-colors hover:bg-drafting focus-visible:outline-ochre"
+          icon={<MoveHorizontal size={14} strokeWidth={1.75} />}
         >
-          <MoveHorizontal size={13} strokeWidth={1.75} />
           {open ? 'Hide comparison' : 'Compare before / after'}
-        </button>
+        </Button>
       </div>
       {open ? <ImageCompare before={before} after={after} beforeLabel={beforeLabel} afterLabel={afterLabel} /> : null}
     </div>

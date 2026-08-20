@@ -3,6 +3,7 @@ import type { SceneOpt } from '../../lib/scene';
 import type { SceneOptions } from '../../store/generation';
 import { ChipGroup } from '../ui/ChipGroup';
 import { Select } from '../ui/Select';
+import { Switch } from '../ui/Switch';
 
 interface Show {
   archStyle?: boolean;
@@ -32,8 +33,11 @@ function toOptions<T extends string>(map: Record<T, SceneOpt>): { value: T; labe
  */
 export function SceneControls({ value, onChange, show }: SceneControlsProps) {
   return (
-    <div className="flex flex-col gap-4 rounded-xl border border-hairline bg-paper p-4 shadow-sm">
-      <p className="mono-meta text-ochre">Scene · one-click controls</p>
+    <div className="flex flex-col gap-4 rounded-field border border-hairline bg-paper p-4 shadow-card">
+      <div className="flex flex-col gap-1">
+        <p className="section-heading">Scene</p>
+        <p className="text-caption text-mist">One-click controls — every choice rewrites the prompt.</p>
+      </div>
 
       {show.archStyle ? (
         <div className="flex flex-col gap-2">
@@ -48,7 +52,7 @@ export function SceneControls({ value, onChange, show }: SceneControlsProps) {
               value={value.customArchStyle}
               onChange={(e) => onChange({ customArchStyle: e.target.value })}
               placeholder="Describe the style, e.g. Kerala vernacular, Gothic revival, mid-century modern…"
-              className="rounded-xl border border-hairline bg-paper px-3.5 py-2 text-sm text-graphite placeholder:text-mist focus-visible:outline-ochre"
+              className="rounded-field border border-hairline bg-paper px-3.5 py-2 text-body text-graphite placeholder:text-mist"
             />
           ) : null}
         </div>
@@ -67,7 +71,7 @@ export function SceneControls({ value, onChange, show }: SceneControlsProps) {
               value={value.customMaterials}
               onChange={(e) => onChange({ customMaterials: e.target.value })}
               placeholder="Describe the materials, e.g. corten steel, travertine, ash timber…"
-              className="rounded-xl border border-hairline bg-paper px-3.5 py-2 text-sm text-graphite placeholder:text-mist focus-visible:outline-ochre"
+              className="rounded-field border border-hairline bg-paper px-3.5 py-2 text-body text-graphite placeholder:text-mist"
             />
           ) : null}
         </div>
@@ -122,25 +126,13 @@ export function SceneControls({ value, onChange, show }: SceneControlsProps) {
       ) : null}
 
       {show.entourage ? (
-        <div className="flex items-center justify-between">
-          <span className="mono-meta">People for scale</span>
-          <button
-            type="button"
-            role="switch"
-            aria-checked={value.entourage}
-            aria-label="People for scale"
-            onClick={() => onChange({ entourage: !value.entourage })}
-            className={`relative h-6 w-11 border transition-colors focus-visible:outline-ochre ${
-              value.entourage ? 'border-ochre bg-ochre' : 'border-hairline bg-drafting'
-            }`}
-          >
-            <span
-              className={`absolute top-1/2 h-4 w-4 -translate-y-1/2 bg-bone transition-all ${
-                value.entourage ? 'left-6' : 'left-1'
-              }`}
-            />
-          </button>
-        </div>
+        <Switch
+          checked={value.entourage}
+          onChange={(next) => onChange({ entourage: next })}
+          label="People for scale"
+        >
+          <span className="text-label text-graphite">People for scale</span>
+        </Switch>
       ) : null}
     </div>
   );

@@ -2,6 +2,8 @@ import { ArrowRight, Check, Download, Plus, Sparkles, Trash2, X } from 'lucide-r
 import { useState } from 'react';
 import { downloadDataURL, slugify } from '../../lib/images';
 import type { FeatureKind, GeneratedImage } from '../../types';
+import { Button } from '../ui/Button';
+import { IconButton } from '../ui/IconButton';
 import type { SendTarget } from './OutputGrid';
 
 interface OutputCardProps {
@@ -18,10 +20,7 @@ interface OutputCardProps {
   onView?: () => void;
 }
 
-const ICON_BTN =
-  'flex items-center justify-center rounded-lg border border-hairline bg-paper p-1.5 text-graphite hover:bg-drafting focus-visible:outline-ochre';
-
-const SHORT_TARGET: Record<string, string> = { elevation: 'Elevation', axonometric: 'Axon.', render: 'Render' };
+const TARGET_LABEL: Record<string, string> = { elevation: 'Elevation', axonometric: 'Axonometric', render: 'Render' };
 
 export function OutputCard({
   image,
@@ -37,12 +36,12 @@ export function OutputCard({
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   return (
-    <figure className="group flex flex-col overflow-hidden rounded-xl border border-hairline bg-paper shadow-card transition-colors hover:border-ochre/50">
+    <figure className="group flex flex-col overflow-hidden rounded-card border border-hairline bg-paper shadow-card transition-all hover:-translate-y-0.5 hover:border-ochre/50 hover:shadow-card-lg">
       <button
         type="button"
         onClick={onView}
         disabled={!onView}
-        className="overflow-hidden border-b border-hairline bg-drafting focus-visible:outline-ochre"
+        className="overflow-hidden border-b border-hairline bg-drafting"
         title={onView ? 'View full screen' : undefined}
         aria-label={onView ? `View ${image.label} full screen` : undefined}
       >
@@ -54,81 +53,86 @@ export function OutputCard({
           } w-full object-contain transition-transform duration-500 group-hover:scale-[1.02]`}
         />
       </button>
-      <figcaption className="flex flex-col gap-2 px-3 py-3">
-        <span className="mono-meta truncate" title={image.label}>
+      <figcaption className="flex flex-col gap-3 px-4 py-4">
+        <span className="truncate text-label text-graphite" title={image.label}>
           {image.label}
         </span>
-        <div className="flex flex-wrap items-center gap-1.5">
-          {onRefine ? (
-            <button type="button" onClick={() => onRefine(image)} className={ICON_BTN} title="Refine this image">
-              <Sparkles size={15} strokeWidth={1.75} className="text-ochre" />
-            </button>
-          ) : null}
-          {sendTargets && onSend
-            ? sendTargets.map((t) => (
-                <button
-                  key={t.target}
-                  type="button"
-                  onClick={() => onSend(t.target, image)}
-                  className={`${ICON_BTN} gap-1.5 px-2.5 text-[0.75rem] font-medium`}
-                  title={t.label}
-                >
-                  <ArrowRight size={13} strokeWidth={1.75} /> {SHORT_TARGET[t.target] ?? t.target}
-                </button>
-              ))
-            : null}
-          <button
-            type="button"
-            onClick={() => downloadDataURL(image.url, `${slugify(image.label)}.jpg`)}
-            className={ICON_BTN}
-            title="Download"
-            aria-label={`Download ${image.label}`}
-          >
-            <Download size={15} strokeWidth={1.75} />
-          </button>
-          <button
-            type="button"
-            onClick={() => onAddToPresentation(image.id)}
-            disabled={added}
-            className={
-              added
-                ? 'flex items-center justify-center rounded-lg border border-hairline bg-drafting p-1.5 text-mist'
-                : 'flex items-center justify-center rounded-lg border border-ochre bg-ochre p-1.5 text-white shadow-btn hover:bg-ochre-deep focus-visible:outline-ochre'
-            }
-            title={added ? 'Already in presentation' : 'Add to presentation'}
-            aria-label={added ? 'Already in presentation' : `Add ${image.label} to presentation`}
-          >
-            {added ? <Check size={15} strokeWidth={2} /> : <Plus size={15} strokeWidth={1.75} />}
-          </button>
-          {onDelete ? (
-            confirmDelete ? (
-              <span className="ml-auto flex items-center gap-1">
-                <button
-                  type="button"
-                  onClick={() => {
-                    onDelete(image.id);
-                    setConfirmDelete(false);
-                  }}
-                  className="rounded-lg border border-ochre/40 bg-paper px-2.5 py-1 text-[0.75rem] font-medium text-ochre transition-colors hover:bg-ochre/8 focus-visible:outline-ochre"
-                >
-                  Delete
-                </button>
-                <button type="button" onClick={() => setConfirmDelete(false)} className={ICON_BTN} title="Cancel" aria-label="Cancel delete">
-                  <X size={14} strokeWidth={1.75} />
-                </button>
-              </span>
-            ) : (
-              <button
-                type="button"
-                onClick={() => setConfirmDelete(true)}
-                className={`${ICON_BTN} ml-auto`}
-                title="Delete this image"
-                aria-label={`Delete ${image.label}`}
-              >
-                <Trash2 size={15} strokeWidth={1.75} />
-              </button>
-            )
-          ) : null}
+        {/* Two groups: the decision the card is asking for (add / refine) stays
+            visible; the housekeeping actions only surface on hover or keyboard
+            focus, so a grid of results no longer reads as a wall of buttons. */}
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            {/* title stays the short form the rest of the app uses; the longer
+                accessible name is unchanged. */}
+            <IconButton
+              icon={added ? <Check size={16} strokeWidth={2} /> : <Plus size={16} strokeWidth={1.75} />}
+              label={added ? 'Already in presentation' : `Add ${image.label} to presentation`}
+              title={added ? 'Already in presentation' : 'Add to presentation'}
+              tone={added ? 'neutral' : 'accent'}
+              disabled={added}
+              className={added ? 'cursor-default border-hairline bg-drafting text-mist' : ''}
+              onClick={() => onAddToPresentation(image.id)}
+            />
+            {onRefine ? (
+              <IconButton
+                icon={<Sparkles size={16} strokeWidth={1.75} />}
+                label="Refine this image"
+                onClick={() => onRefine(image)}
+              />
+            ) : null}
+          </div>
+          <div className="flex flex-wrap items-center gap-2 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
+            {sendTargets && onSend
+              ? sendTargets.map((t) => (
+                  <Button
+                    key={t.target}
+                    variant="secondary"
+                    size="sm"
+                    icon={<ArrowRight size={14} strokeWidth={1.75} />}
+                    onClick={() => onSend(t.target, image)}
+                    title={t.label}
+                  >
+                    {TARGET_LABEL[t.target] ?? t.target}
+                  </Button>
+                ))
+              : null}
+            <IconButton
+              icon={<Download size={16} strokeWidth={1.75} />}
+              label={`Download ${image.label}`}
+              title="Download"
+              onClick={() => downloadDataURL(image.url, `${slugify(image.label)}.jpg`)}
+            />
+            {onDelete ? (
+              confirmDelete ? (
+                <span className="flex items-center gap-2">
+                  <Button
+                    variant="danger"
+                    size="sm"
+                    onClick={() => {
+                      onDelete(image.id);
+                      setConfirmDelete(false);
+                    }}
+                  >
+                    Delete
+                  </Button>
+                  <IconButton
+                    icon={<X size={16} strokeWidth={1.75} />}
+                    label="Cancel delete"
+                    title="Cancel"
+                    onClick={() => setConfirmDelete(false)}
+                  />
+                </span>
+              ) : (
+                <IconButton
+                  icon={<Trash2 size={16} strokeWidth={1.75} />}
+                  label={`Delete ${image.label}`}
+                  title="Delete this image"
+                  tone="danger"
+                  onClick={() => setConfirmDelete(true)}
+                />
+              )
+            ) : null}
+          </div>
         </div>
       </figcaption>
     </figure>
