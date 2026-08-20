@@ -37,7 +37,7 @@ export function SlideList({ slides, selectedId, imageMap, onSelect, onMove, onDe
                 <span className="mono-meta w-6 shrink-0 text-center text-mist">
                   {String(index + 1).padStart(2, '0')}
                 </span>
-                <span className="h-10 w-14 shrink-0 overflow-hidden border border-hairline bg-drafting">
+                <span className="h-10 w-14 shrink-0 overflow-hidden rounded-md border border-hairline bg-drafting">
                   {firstImage ? (
                     <img src={firstImage.url} alt="" className="h-full w-full object-cover" />
                   ) : null}

@@ -66,7 +66,7 @@ export function ImageCompare({ before, after, beforeLabel = 'Input', afterLabel 
   return (
     <div
       ref={containerRef}
-      className="relative w-full select-none overflow-hidden border border-hairline bg-drafting"
+      className="relative w-full select-none overflow-hidden rounded-xl border border-hairline bg-drafting"
       style={
         aspect
           ? { aspectRatio: String(aspect), maxWidth: `${Math.round(aspect * MAX_COMPARE_HEIGHT)}px` }
@@ -81,10 +81,10 @@ export function ImageCompare({ before, after, beforeLabel = 'Input', afterLabel 
       </div>
 
       {/* Corner labels */}
-      <span className="absolute left-2 top-2 bg-ink/80 px-2 py-1 font-mono text-[0.6rem] uppercase tracking-[0.14em] text-bone">
+      <span className="absolute left-3 top-3 rounded-full bg-ink/75 px-2.5 py-1 text-[0.75rem] font-medium text-white backdrop-blur-sm">
         {beforeLabel}
       </span>
-      <span className="absolute right-2 top-2 bg-ochre px-2 py-1 font-mono text-[0.6rem] uppercase tracking-[0.14em] text-bone">
+      <span className="absolute right-3 top-3 rounded-full bg-ochre px-2.5 py-1 text-[0.75rem] font-medium text-white shadow-btn">
         {afterLabel}
       </span>
 
@@ -107,7 +107,7 @@ export function ImageCompare({ before, after, beforeLabel = 'Input', afterLabel 
             if (e.key === 'Home') setPos(0);
             if (e.key === 'End') setPos(100);
           }}
-          className="absolute left-1/2 top-1/2 flex h-9 w-9 -translate-x-1/2 -translate-y-1/2 cursor-ew-resize items-center justify-center border border-ochre bg-bone text-ochre focus-visible:outline-ochre"
+          className="absolute left-1/2 top-1/2 flex h-10 w-10 -translate-x-1/2 -translate-y-1/2 cursor-ew-resize items-center justify-center rounded-full border border-ochre bg-white text-ochre shadow-card-lg focus-visible:outline-ochre"
         >
           <MoveHorizontal size={16} strokeWidth={1.75} />
         </button>

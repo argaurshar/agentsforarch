@@ -39,14 +39,14 @@ export function MoodboardFeature() {
       />
 
       {/* Mode toggle — AI-generated board vs. the canvas collage. */}
-      <div className="mb-8 flex w-fit border border-hairline bg-paper" role="tablist" aria-label="Board mode">
+      <div className="mb-8 flex w-fit gap-1 rounded-full border border-hairline bg-paper p-1 shadow-sm" role="tablist" aria-label="Board mode">
         <button
           type="button"
           role="tab"
           aria-selected={mode === 'ai'}
           onClick={() => setMode('ai')}
-          className={`flex items-center gap-1.5 px-4 py-2 text-sm transition-colors focus-visible:outline-ochre ${
-            mode === 'ai' ? 'bg-ochre text-white' : 'text-graphite hover:bg-drafting'
+          className={`flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-medium transition-all focus-visible:outline-ochre ${
+            mode === 'ai' ? 'bg-ochre text-white shadow-btn' : 'text-graphite hover:bg-drafting'
           }`}
         >
           <Wand2 size={15} strokeWidth={1.75} /> AI board
@@ -56,8 +56,8 @@ export function MoodboardFeature() {
           role="tab"
           aria-selected={mode === 'collage'}
           onClick={() => setMode('collage')}
-          className={`flex items-center gap-1.5 px-4 py-2 text-sm transition-colors focus-visible:outline-ochre ${
-            mode === 'collage' ? 'bg-ochre text-white' : 'text-graphite hover:bg-drafting'
+          className={`flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-medium transition-all focus-visible:outline-ochre ${
+            mode === 'collage' ? 'bg-ochre text-white shadow-btn' : 'text-graphite hover:bg-drafting'
           }`}
         >
           <LayoutGrid size={15} strokeWidth={1.75} /> Collage
@@ -367,7 +367,7 @@ function CollageComposer() {
               <button
                 type="button"
                 onClick={() => setSelectedIds([])}
-                className="border border-hairline bg-paper px-2.5 py-1 font-mono text-[0.6rem] uppercase tracking-[0.12em] text-graphite hover:bg-drafting focus-visible:outline-ochre"
+                className="rounded-full border border-hairline bg-paper px-3 py-1 text-[0.75rem] font-medium text-graphite hover:bg-drafting focus-visible:outline-ochre"
               >
                 Clear
               </button>
@@ -375,7 +375,7 @@ function CollageComposer() {
           </div>
           {groups.map((group) => (
             <div key={group} className="flex flex-col gap-2">
-              <p className="font-mono text-[0.6rem] uppercase tracking-[0.14em] text-graphite">{group}</p>
+              <p className="text-[0.75rem] font-medium text-graphite">{group}</p>
               <div className="flex flex-wrap gap-2">
                 {pool
                   .filter((p) => p.group === group)
@@ -401,7 +401,7 @@ function CollageComposer() {
                       >
                         <img src={ref.image.url} alt={ref.image.label} className="h-full w-full object-cover" />
                         {isSel ? (
-                          <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center border border-ochre bg-ochre font-mono text-[0.6rem] text-bone">
+                          <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-md border border-ochre bg-ochre text-[0.6875rem] font-semibold text-white">
                             {pos + 1}
                           </span>
                         ) : null}

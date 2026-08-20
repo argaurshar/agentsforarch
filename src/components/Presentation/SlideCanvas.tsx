@@ -56,7 +56,7 @@ export function SlideCanvas({ slide, imageMap, brand, projectName, slideNumber, 
   if (!slide) {
     return (
       <div
-        className="flex items-center justify-center border border-hairline bg-paper"
+        className="flex items-center justify-center rounded-xl border border-hairline bg-paper"
         style={{ aspectRatio: '297 / 210' }}
       >
         <p className="max-w-xs text-center text-sm text-mist">
@@ -67,7 +67,7 @@ export function SlideCanvas({ slide, imageMap, brand, projectName, slideNumber, 
   }
 
   return (
-    <div className="relative border border-hairline bg-drafting" style={{ aspectRatio: '297 / 210' }}>
+    <div className="relative overflow-hidden rounded-xl border border-hairline bg-drafting shadow-card" style={{ aspectRatio: '297 / 210' }}>
       {page ? (
         <img src={page} alt={slide.title || `Slide ${slideNumber}`} className="h-full w-full object-contain" />
       ) : null}

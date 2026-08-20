@@ -9,7 +9,7 @@ interface ErrorBannerProps {
 /** Inline, human error message with a retry — never a raw stack trace (spec §8). */
 export function ErrorBanner({ message, onRetry }: ErrorBannerProps) {
   return (
-    <div className="flex items-center justify-between gap-4 border border-ochre bg-drafting px-4 py-3">
+    <div className="flex items-center justify-between gap-4 rounded-xl border border-ochre/30 bg-ochre/8 px-4 py-3">
       <div className="flex items-center gap-3">
         <AlertTriangle size={18} strokeWidth={1.75} className="shrink-0 text-ochre" />
         <p className="text-sm text-graphite">{message}</p>

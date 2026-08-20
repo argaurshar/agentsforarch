@@ -131,7 +131,7 @@ export function DeckGenerator() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="border border-hairline bg-paper p-5">
+      <div className="rounded-2xl border border-hairline bg-paper p-5 shadow-card">
         <div className="mb-5 flex items-start gap-3">
           <Wand2 size={18} strokeWidth={1.75} className="mt-0.5 shrink-0 text-ochre" />
           <div>
@@ -154,14 +154,14 @@ export function DeckGenerator() {
                 <button
                   type="button"
                   onClick={selectAll}
-                  className="border border-hairline bg-paper px-2.5 py-1 font-mono text-[0.6rem] uppercase tracking-[0.12em] text-graphite hover:bg-drafting focus-visible:outline-ochre"
+                  className="rounded-full border border-hairline bg-paper px-3 py-1 text-[0.75rem] font-medium text-graphite hover:bg-drafting focus-visible:outline-ochre"
                 >
                   Select all
                 </button>
                 <button
                   type="button"
                   onClick={clearAll}
-                  className="border border-hairline bg-paper px-2.5 py-1 font-mono text-[0.6rem] uppercase tracking-[0.12em] text-graphite hover:bg-drafting focus-visible:outline-ochre"
+                  className="rounded-full border border-hairline bg-paper px-3 py-1 text-[0.75rem] font-medium text-graphite hover:bg-drafting focus-visible:outline-ochre"
                 >
                   Clear
                 </button>
@@ -169,7 +169,7 @@ export function DeckGenerator() {
             </div>
             {groups.map((group) => (
               <div key={group} className="flex flex-col gap-2">
-                <p className="font-mono text-[0.6rem] uppercase tracking-[0.14em] text-graphite">{group}</p>
+                <p className="text-[0.75rem] font-medium text-graphite">{group}</p>
                 <div className="flex flex-wrap gap-2">
                   {pool
                     .filter((p) => p.group === group)
@@ -271,7 +271,7 @@ export function DeckGenerator() {
       </div>
 
       {generating ? (
-        <div className="flex items-center gap-3 border border-hairline bg-drafting px-4 py-3 text-sm text-graphite">
+        <div className="flex items-center gap-3 rounded-xl border border-hairline bg-drafting px-4 py-3 text-sm text-graphite">
           <Spinner size={16} />
           <span>
             Designing your deck… {deckProgress > 0 ? `${deckProgress.toLocaleString()} characters` : 'thinking through the structure'}

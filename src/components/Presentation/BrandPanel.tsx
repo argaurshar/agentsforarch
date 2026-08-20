@@ -40,7 +40,7 @@ function ColorRow({ label, value, onChange }: ColorRowProps) {
           type="color"
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="h-7 w-9 cursor-pointer border border-hairline bg-paper p-0.5"
+          className="h-8 w-10 cursor-pointer rounded-lg border border-hairline bg-paper p-0.5"
           aria-label={label}
         />
         <input
@@ -48,7 +48,7 @@ function ColorRow({ label, value, onChange }: ColorRowProps) {
           onChange={(e) => onChange(e.target.value)}
           spellCheck={false}
           aria-label={`${label} hex`}
-          className="w-20 border border-hairline bg-paper px-2 py-1 font-mono text-xs text-graphite focus-visible:outline-ochre"
+          className="w-24 rounded-lg border border-hairline bg-paper px-2.5 py-1.5 font-mono text-xs text-graphite focus-visible:outline-ochre"
         />
       </span>
     </label>
@@ -80,7 +80,7 @@ export function BrandPanel() {
   };
 
   return (
-    <div className="mb-8 border border-hairline bg-paper">
+    <div className="mb-8 overflow-hidden rounded-2xl border border-hairline bg-paper shadow-card">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
@@ -157,7 +157,7 @@ export function BrandPanel() {
               <span className="mono-meta">Logo</span>
               <div className="flex items-center gap-3">
                 {brand.logo ? (
-                  <span className="flex h-10 w-16 items-center justify-center border border-hairline bg-drafting">
+                  <span className="flex h-10 w-16 items-center justify-center rounded-lg border border-hairline bg-drafting">
                     <img src={brand.logo} alt="Brand logo" className="max-h-8 max-w-full object-contain" />
                   </span>
                 ) : null}
@@ -171,7 +171,7 @@ export function BrandPanel() {
                 <button
                   type="button"
                   onClick={() => fileRef.current?.click()}
-                  className="flex items-center gap-1.5 border border-hairline bg-paper px-3 py-1.5 text-xs text-graphite hover:bg-drafting focus-visible:outline-ochre"
+                  className="flex items-center gap-1.5 rounded-full border border-hairline bg-paper px-3.5 py-1.5 text-xs text-graphite hover:bg-drafting focus-visible:outline-ochre"
                 >
                   <Upload size={13} strokeWidth={1.75} /> {brand.logo ? 'Replace' : 'Upload'}
                 </button>

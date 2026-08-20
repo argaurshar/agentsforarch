@@ -27,7 +27,7 @@ export function CompareSection({ before, after, beforeLabel, afterLabel, default
           type="button"
           onClick={() => setOpen((v) => !v)}
           aria-pressed={open}
-          className="flex items-center gap-1.5 border border-hairline bg-paper px-3 py-1.5 font-mono text-[0.65rem] uppercase tracking-[0.12em] text-graphite transition-colors hover:bg-drafting focus-visible:outline-ochre"
+          className="flex items-center gap-1.5 rounded-full border border-hairline bg-paper px-3.5 py-1.5 text-[0.8125rem] font-medium text-graphite shadow-sm transition-colors hover:bg-drafting focus-visible:outline-ochre"
         >
           <MoveHorizontal size={13} strokeWidth={1.75} />
           {open ? 'Hide comparison' : 'Compare before / after'}

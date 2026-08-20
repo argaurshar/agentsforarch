@@ -71,23 +71,23 @@ export function Lightbox({ images, index, onClose, onIndex }: LightboxProps) {
         <span className="mono-meta truncate text-bone" title={image.label}>
           {image.label}
         </span>
-        <span className="font-mono text-[0.65rem] text-bone/50">
+        <span className="text-[0.8125rem] text-bone/55">
           {index + 1} / {count}
         </span>
         <div className="ml-auto flex items-center gap-1.5">
           <button
             type="button"
             onClick={() => setZoomClamped(zoom - 0.5)}
-            className="flex items-center justify-center border border-white/20 p-1.5 text-bone hover:bg-white/10 focus-visible:outline-ochre"
+            className="flex items-center justify-center rounded-lg border border-white/15 p-1.5 text-bone transition-colors hover:bg-white/10 focus-visible:outline-ochre"
             aria-label="Zoom out"
           >
             <Minus size={15} strokeWidth={1.75} />
           </button>
-          <span className="w-12 text-center font-mono text-[0.65rem] text-bone/70">{Math.round(zoom * 100)}%</span>
+          <span className="w-12 text-center text-[0.8125rem] tabular-nums text-bone/70">{Math.round(zoom * 100)}%</span>
           <button
             type="button"
             onClick={() => setZoomClamped(zoom + 0.5)}
-            className="flex items-center justify-center border border-white/20 p-1.5 text-bone hover:bg-white/10 focus-visible:outline-ochre"
+            className="flex items-center justify-center rounded-lg border border-white/15 p-1.5 text-bone transition-colors hover:bg-white/10 focus-visible:outline-ochre"
             aria-label="Zoom in"
           >
             <Plus size={15} strokeWidth={1.75} />
@@ -95,7 +95,7 @@ export function Lightbox({ images, index, onClose, onIndex }: LightboxProps) {
           <button
             type="button"
             onClick={() => setSocial(true)}
-            className="ml-2 flex items-center justify-center border border-white/20 p-1.5 text-bone hover:bg-white/10 focus-visible:outline-ochre"
+            className="ml-2 flex items-center justify-center rounded-lg border border-white/15 p-1.5 text-bone transition-colors hover:bg-white/10 focus-visible:outline-ochre"
             title="Crop for social"
             aria-label="Crop for social media"
           >
@@ -104,7 +104,7 @@ export function Lightbox({ images, index, onClose, onIndex }: LightboxProps) {
           <button
             type="button"
             onClick={() => downloadDataURL(image.url, `${slugify(image.label)}.jpg`)}
-            className="flex items-center justify-center border border-white/20 p-1.5 text-bone hover:bg-white/10 focus-visible:outline-ochre"
+            className="flex items-center justify-center rounded-lg border border-white/15 p-1.5 text-bone transition-colors hover:bg-white/10 focus-visible:outline-ochre"
             title="Download"
             aria-label="Download image"
           >
@@ -113,7 +113,7 @@ export function Lightbox({ images, index, onClose, onIndex }: LightboxProps) {
           <button
             type="button"
             onClick={onClose}
-            className="ml-2 flex items-center justify-center border border-ochre bg-ochre p-1.5 text-bone hover:bg-ochre-deep focus-visible:outline-ochre"
+            className="ml-2 flex items-center justify-center rounded-lg border border-ochre bg-ochre p-1.5 text-white shadow-btn transition-colors hover:bg-ochre-deep focus-visible:outline-ochre"
             aria-label="Close viewer"
           >
             <X size={15} strokeWidth={1.75} />
@@ -150,7 +150,7 @@ export function Lightbox({ images, index, onClose, onIndex }: LightboxProps) {
             <button
               type="button"
               onClick={() => go(-1)}
-              className="absolute left-3 top-1/2 -translate-y-1/2 border border-white/20 bg-ink/60 p-2 text-bone hover:bg-white/10 focus-visible:outline-ochre"
+              className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full border border-white/15 bg-ink/60 p-2.5 text-bone backdrop-blur-sm transition-colors hover:bg-white/15 focus-visible:outline-ochre"
               aria-label="Previous image"
             >
               <ChevronLeft size={18} strokeWidth={1.75} />
@@ -158,7 +158,7 @@ export function Lightbox({ images, index, onClose, onIndex }: LightboxProps) {
             <button
               type="button"
               onClick={() => go(1)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 border border-white/20 bg-ink/60 p-2 text-bone hover:bg-white/10 focus-visible:outline-ochre"
+              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full border border-white/15 bg-ink/60 p-2.5 text-bone backdrop-blur-sm transition-colors hover:bg-white/15 focus-visible:outline-ochre"
               aria-label="Next image"
             >
               <ChevronRight size={18} strokeWidth={1.75} />
@@ -167,7 +167,7 @@ export function Lightbox({ images, index, onClose, onIndex }: LightboxProps) {
         ) : null}
       </div>
 
-      <p className="px-4 pb-3 text-center font-mono text-[0.6rem] uppercase tracking-[0.14em] text-bone/40">
+      <p className="px-4 pb-3 text-center text-[0.8125rem] text-bone/45">
         ← → navigate · double-click to zoom · drag to pan · Esc to close
       </p>
 

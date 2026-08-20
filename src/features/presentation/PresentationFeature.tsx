@@ -179,14 +179,14 @@ export function PresentationFeature() {
       />
 
       {/* Mode toggle — AI deck (frontend-slides skill) vs. manual storyboard. */}
-      <div className="mb-6 inline-flex border border-hairline bg-paper" role="tablist" aria-label="Presentation mode">
+      <div className="mb-6 inline-flex gap-1 rounded-full border border-hairline bg-paper p-1 shadow-sm" role="tablist" aria-label="Presentation mode">
         <button
           type="button"
           role="tab"
           aria-selected={mode === 'ai'}
           onClick={() => setMode('ai')}
-          className={`flex items-center gap-2 px-4 py-2 text-sm transition-colors focus-visible:outline-ochre ${
-            mode === 'ai' ? 'bg-ochre text-white' : 'text-graphite hover:bg-drafting'
+          className={`flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-medium transition-all focus-visible:outline-ochre ${
+            mode === 'ai' ? 'bg-ochre text-white shadow-btn' : 'text-graphite hover:bg-drafting'
           }`}
         >
           <Wand2 size={15} strokeWidth={1.75} /> AI deck
@@ -196,8 +196,8 @@ export function PresentationFeature() {
           role="tab"
           aria-selected={mode === 'manual'}
           onClick={() => setMode('manual')}
-          className={`flex items-center gap-2 border-l border-hairline px-4 py-2 text-sm transition-colors focus-visible:outline-ochre ${
-            mode === 'manual' ? 'bg-ochre text-white' : 'text-graphite hover:bg-drafting'
+          className={`flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-medium transition-all focus-visible:outline-ochre ${
+            mode === 'manual' ? 'bg-ochre text-white shadow-btn' : 'text-graphite hover:bg-drafting'
           }`}
         >
           <LayoutGrid size={15} strokeWidth={1.75} /> Manual storyboard
@@ -276,7 +276,7 @@ export function PresentationFeature() {
               const groupImages = pool.filter((p) => p.group === group);
               return (
                 <div key={group} className="flex flex-col gap-2">
-                  <p className="font-mono text-[0.6rem] uppercase tracking-[0.14em] text-graphite">{group}</p>
+                  <p className="text-[0.75rem] font-medium text-graphite">{group}</p>
                   <div className="flex flex-col gap-1.5">
                     {groupImages.map((ref) => {
                       const isChecked = checked.has(ref.image.id);
@@ -300,7 +300,7 @@ export function PresentationFeature() {
                             >
                               {isChecked ? <span className="h-1.5 w-1.5 bg-bone" /> : null}
                             </span>
-                            <span className="h-8 w-11 shrink-0 overflow-hidden border border-hairline bg-drafting">
+                            <span className="h-8 w-11 shrink-0 overflow-hidden rounded-md border border-hairline bg-drafting">
                               <img src={ref.image.url} alt="" className="h-full w-full object-cover" />
                             </span>
                             <span className="mono-meta truncate text-graphite" title={ref.image.label}>
@@ -340,7 +340,7 @@ export function PresentationFeature() {
               <button
                 type="button"
                 onClick={() => uploadRef.current?.click()}
-                className="flex items-center justify-center gap-1.5 border border-hairline bg-paper px-3 py-1.5 text-xs text-graphite hover:bg-drafting focus-visible:outline-ochre"
+                className="flex items-center justify-center gap-1.5 rounded-full border border-hairline bg-paper px-3.5 py-1.5 text-xs text-graphite hover:bg-drafting focus-visible:outline-ochre"
               >
                 <ImagePlus size={14} strokeWidth={1.75} /> Upload images
               </button>
@@ -387,7 +387,7 @@ export function PresentationFeature() {
                 <p className="mono-meta">Slide settings</p>
 
                 <div className="flex flex-col gap-2">
-                  <span className="flex items-center gap-1.5 font-mono text-[0.6rem] uppercase tracking-[0.14em] text-graphite">
+                  <span className="flex items-center gap-1.5 text-[0.75rem] font-medium text-graphite">
                     <LayoutGrid size={12} strokeWidth={1.75} /> Layout
                   </span>
                   <div className="grid grid-cols-3 gap-1.5">

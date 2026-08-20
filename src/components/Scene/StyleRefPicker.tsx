@@ -74,7 +74,7 @@ export function StyleRefPicker({ feature, note }: StyleRefPickerProps) {
                   >
                     <img src={ref.image.url} alt={ref.image.label} className="h-full w-full object-cover" />
                     {active ? (
-                      <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center border border-ochre bg-ochre text-white">
+                      <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-md border border-ochre bg-ochre text-white">
                         <Check size={11} strokeWidth={2.5} />
                       </span>
                     ) : null}

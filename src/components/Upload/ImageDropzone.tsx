@@ -65,7 +65,7 @@ export function ImageDropzone({ value, onImage, onClear, hint }: ImageDropzonePr
   if (value) {
     return (
       <div className="flex flex-col gap-3">
-        <div className="relative border border-hairline bg-drafting">
+        <div className="relative overflow-hidden rounded-2xl border border-hairline bg-drafting">
           <img src={value} alt="Uploaded input" className="max-h-72 w-full object-contain" />
           {processing ? (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-bone/80">
@@ -77,7 +77,7 @@ export function ImageDropzone({ value, onImage, onClear, hint }: ImageDropzonePr
             <button
               type="button"
               onClick={open}
-              className="flex items-center gap-1.5 bg-ink/85 px-3 py-2 font-mono text-[0.65rem] uppercase tracking-[0.14em] text-bone hover:bg-ink"
+              className="flex items-center gap-1.5 rounded-full bg-ink/85 px-3 py-1.5 text-[0.75rem] font-medium backdrop-blur-sm text-bone hover:bg-ink"
             >
               <RefreshCw size={13} strokeWidth={1.75} /> Replace
             </button>

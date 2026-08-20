@@ -70,7 +70,7 @@ export function OutputCard({
                   key={t.target}
                   type="button"
                   onClick={() => onSend(t.target, image)}
-                  className={`${ICON_BTN} gap-1 px-2 font-mono text-[0.6rem] uppercase tracking-[0.12em]`}
+                  className={`${ICON_BTN} gap-1.5 px-2.5 text-[0.75rem] font-medium`}
                   title={t.label}
                 >
                   <ArrowRight size={13} strokeWidth={1.75} /> {SHORT_TARGET[t.target] ?? t.target}
@@ -92,8 +92,8 @@ export function OutputCard({
             disabled={added}
             className={
               added
-                ? 'flex items-center justify-center rounded-xl border border-hairline bg-drafting p-1.5 text-mist'
-                : 'flex items-center justify-center border border-ochre bg-ochre p-1.5 text-bone hover:bg-ochre-deep focus-visible:outline-ochre'
+                ? 'flex items-center justify-center rounded-lg border border-hairline bg-drafting p-1.5 text-mist'
+                : 'flex items-center justify-center rounded-lg border border-ochre bg-ochre p-1.5 text-white shadow-btn hover:bg-ochre-deep focus-visible:outline-ochre'
             }
             title={added ? 'Already in presentation' : 'Add to presentation'}
             aria-label={added ? 'Already in presentation' : `Add ${image.label} to presentation`}
@@ -109,7 +109,7 @@ export function OutputCard({
                     onDelete(image.id);
                     setConfirmDelete(false);
                   }}
-                  className="border border-ochre bg-paper px-2 py-1 font-mono text-[0.6rem] uppercase tracking-[0.12em] text-ochre hover:bg-drafting focus-visible:outline-ochre"
+                  className="rounded-lg border border-ochre/40 bg-paper px-2.5 py-1 text-[0.75rem] font-medium text-ochre transition-colors hover:bg-ochre/8 focus-visible:outline-ochre"
                 >
                   Delete
                 </button>

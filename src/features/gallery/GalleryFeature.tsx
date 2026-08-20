@@ -53,7 +53,7 @@ function GalleryCard({ item, onView }: { item: GalleryItem; onView: () => void }
             <button
               type="button"
               onClick={() => sendToFeature(item.feature as FeatureKind, item.image.url)}
-              className={`${ICON_BTN} gap-1 px-2 font-mono text-[0.6rem] uppercase tracking-[0.12em]`}
+              className={`${ICON_BTN} gap-1 px-2 text-[0.75rem] font-medium`}
               title={`Reuse as the ${FEATURE_LABEL[item.feature]} input`}
             >
               <ArrowUpRight size={13} strokeWidth={1.75} /> Reuse
@@ -73,7 +73,7 @@ function GalleryCard({ item, onView }: { item: GalleryItem; onView: () => void }
               <button
                 type="button"
                 onClick={() => removeImage(item.image.id)}
-                className="border border-ochre bg-paper px-2 py-1 font-mono text-[0.6rem] uppercase tracking-[0.12em] text-ochre hover:bg-drafting focus-visible:outline-ochre"
+                className="rounded-lg border border-ochre/40 bg-paper px-2.5 py-1 text-[0.75rem] font-medium text-ochre transition-colors hover:bg-ochre/8 focus-visible:outline-ochre"
               >
                 Delete
               </button>
@@ -176,7 +176,7 @@ export function GalleryFeature() {
       />
 
       {importError ? (
-        <p className="mb-6 border border-ochre bg-drafting px-3 py-2 text-xs leading-relaxed text-ochre">{importError}</p>
+        <p className="mb-6 rounded-xl border border-ochre/30 bg-ochre/8 px-3.5 py-2.5 text-xs leading-relaxed text-ochre">{importError}</p>
       ) : null}
       {imported ? (
         <p className="mb-6 rounded-xl border border-hairline bg-drafting px-3.5 py-2 text-xs leading-relaxed text-graphite">

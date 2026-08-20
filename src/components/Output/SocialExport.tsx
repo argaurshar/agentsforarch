@@ -41,7 +41,7 @@ export function SocialExport({ image, onClose }: SocialExportProps) {
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-ink/70 p-4">
-      <div ref={ref} role="dialog" aria-modal="true" aria-label="Export for social" tabIndex={-1} className="flex max-h-[90vh] w-full max-w-lg flex-col border border-hairline bg-bone">
+      <div ref={ref} role="dialog" aria-modal="true" aria-label="Export for social" tabIndex={-1} className="flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-hairline bg-bone shadow-card-lg">
         <div className="flex items-center justify-between border-b border-hairline px-5 py-3">
           <p className="mono-meta text-ochre">Export for social</p>
           <button type="button" onClick={onClose} className="text-mist hover:text-graphite focus-visible:outline-ochre" aria-label="Close">
@@ -66,7 +66,7 @@ export function SocialExport({ image, onClose }: SocialExportProps) {
             ))}
           </div>
 
-          <div className="flex items-center justify-center border border-hairline bg-drafting p-3" style={{ minHeight: 220 }}>
+          <div className="flex items-center justify-center rounded-xl border border-hairline bg-drafting p-3" style={{ minHeight: 220 }}>
             {preview ? (
               <img src={preview} alt="Social export preview" className="max-h-[52vh] w-auto object-contain" />
             ) : (
@@ -79,7 +79,7 @@ export function SocialExport({ image, onClose }: SocialExportProps) {
               type="button"
               disabled={!preview}
               onClick={() => preview && downloadDataURL(preview, `${slugify(image.label)}-${format.key}.jpg`)}
-              className="flex items-center gap-1.5 border border-ochre bg-ochre px-4 py-2 text-sm text-bone hover:bg-ochre-deep focus-visible:outline-ochre disabled:opacity-45"
+              className="flex items-center gap-1.5 rounded-full border border-ochre bg-ochre px-4 py-2 text-sm font-medium text-white shadow-btn transition-colors hover:bg-ochre-deep focus-visible:outline-ochre disabled:opacity-40"
             >
               <Download size={15} strokeWidth={1.75} /> Download {format.w}×{format.h}
             </button>
