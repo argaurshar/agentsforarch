@@ -167,19 +167,26 @@ export function buildElevationPrompt(
   // The face is a noun phrase; the viewing direction is its own sentence so the
   // opening line stays grammatical for every face (and for the all-faces base).
   const faceNoun = a.face === null ? 'elevation' : `${a.face.toLowerCase()} elevation`;
-  const faceView =
-    a.face === 'Rear'
-      ? 'Viewed perfectly straight-on from behind the building.'
-      : a.face === 'Side'
-        ? "Viewed perfectly straight-on at the building's flank — a true side view."
-        : 'Viewed perfectly straight-on.';
   const styleClause = ELEVATION_STYLE_CLAUSE[a.style] ?? ELEVATION_STYLE_CLAUSE.rendered;
 
-  const parts: string[] = [
-    `Produce a clean orthographic ${faceNoun} of the building shown in the input image, as a flat architectural drawing.`,
-    faceView,
-    'Maintain accurate proportions and align every element to a true vertical and horizontal grid with no perspective. Neutral white background.',
-  ];
+  // Side and rear must be RECONSTRUCTED, so their openings demand a 3D read of
+  // the building first and forbid redrawing the input face — with a front-on
+  // input the model otherwise just returns the front again (verified live).
+  const parts: string[] =
+    a.face === 'Side' || a.face === 'Rear'
+      ? [
+          'The input image shows one face of a building. Your task is NOT to draw that face.',
+          'First understand the building as a three-dimensional volume: infer its depth (front-to-back), its roof form and its materials from the face shown.',
+          a.face === 'Side'
+            ? "Then draw ONLY the building's RIGHT SIDE face — the flank you would see standing to the right of the building, looking at it at 90 degrees to the input face — as a clean, flat orthographic architectural elevation. This side face is a DIFFERENT drawing from the input: its width is the building's front-to-back depth, it has no entry door and no garage door, and it shows fewer, smaller windows appropriate to a private flank, with the same material palette and roof lines carried around the corner."
+            : "Then draw ONLY the building's REAR face — the back of the building, directly opposite the input face, viewed straight-on from behind — as a clean, flat orthographic architectural elevation. This rear face is a DIFFERENT drawing from the input: no entry door and no garage door, typically larger glazing opening to the garden, with the same material palette and roof lines carried around the building.",
+          'Perfectly flat and straight-on, aligned to a true vertical and horizontal grid with no perspective. Neutral white background.',
+        ]
+      : [
+          `Produce a clean orthographic ${faceNoun} of the building shown in the input image, as a flat architectural drawing.`,
+          'Viewed perfectly straight-on.',
+          'Maintain accurate proportions and align every element to a true vertical and horizontal grid with no perspective. Neutral white background.',
+        ];
   if (a.style === 'rendered') {
     // Lighting is applied as façade illumination only — the drawing itself must
     // stay flat, so the scene clause must not pull the model into a 3D view.
