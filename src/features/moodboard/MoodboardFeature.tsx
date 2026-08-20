@@ -1,10 +1,12 @@
-import { Download, LayoutGrid, LayoutTemplate, Palette, RotateCcw, Sparkles, Wand2, X } from 'lucide-react';
+import { ArrowRight, Download, LayoutGrid, LayoutTemplate, Palette, RotateCcw, Sparkles, Wand2, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { OutputGrid } from '../../components/Output/OutputGrid';
 import { ImageDropzone } from '../../components/Upload/ImageDropzone';
 import { Button } from '../../components/ui/Button';
+import { ChipGroup } from '../../components/ui/ChipGroup';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { ErrorBanner } from '../../components/ui/ErrorBanner';
+import { Notice } from '../../components/ui/Notice';
 import { SectionHeader } from '../../components/ui/SectionHeader';
 import { Spinner } from '../../components/ui/Spinner';
 import { downloadDataURL, newId, slugify } from '../../lib/images';
@@ -29,6 +31,13 @@ import { useGenerate, usePresentationAdder } from '../hooks';
 export function MoodboardFeature() {
   const [mode, setMode] = useState<'ai' | 'collage'>('ai');
 
+  // A view switch is not a primary action: the active segment is a raised
+  // neutral thumb on a recessed track, not an accent flood.
+  const segment = (active: boolean) =>
+    `flex items-center gap-1.5 rounded-full px-4 py-1.5 text-label transition-all active:scale-[0.98] ${
+      active ? 'bg-paper text-ink shadow-card' : 'text-graphite hover:text-ink'
+    }`;
+
   return (
     <div>
       <SectionHeader
@@ -39,28 +48,24 @@ export function MoodboardFeature() {
       />
 
       {/* Mode toggle — AI-generated board vs. the canvas collage. */}
-      <div className="mb-8 flex w-fit gap-1 rounded-full border border-hairline bg-paper p-1 shadow-sm" role="tablist" aria-label="Board mode">
+      <div className="mb-8 flex w-fit gap-1 rounded-full border border-hairline bg-drafting p-1" role="tablist" aria-label="Board mode">
         <button
           type="button"
           role="tab"
           aria-selected={mode === 'ai'}
           onClick={() => setMode('ai')}
-          className={`flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-medium transition-all focus-visible:outline-ochre ${
-            mode === 'ai' ? 'bg-ochre text-white shadow-btn' : 'text-graphite hover:bg-drafting'
-          }`}
+          className={segment(mode === 'ai')}
         >
-          <Wand2 size={15} strokeWidth={1.75} /> AI board
+          <Wand2 size={14} strokeWidth={1.75} /> AI board
         </button>
         <button
           type="button"
           role="tab"
           aria-selected={mode === 'collage'}
           onClick={() => setMode('collage')}
-          className={`flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-medium transition-all focus-visible:outline-ochre ${
-            mode === 'collage' ? 'bg-ochre text-white shadow-btn' : 'text-graphite hover:bg-drafting'
-          }`}
+          className={segment(mode === 'collage')}
         >
-          <LayoutGrid size={15} strokeWidth={1.75} /> Collage
+          <LayoutGrid size={14} strokeWidth={1.75} /> Collage
         </button>
       </div>
 
@@ -74,6 +79,44 @@ const ASPECTS: { value: BoardAspectKey; label: string }[] = [
   { value: '1:1', label: 'Square' },
   { value: '16:9', label: 'Landscape' },
 ];
+
+interface ThumbProps {
+  src: string;
+  alt: string;
+  title: string;
+  selected: boolean;
+  disabled?: boolean;
+  onClick: () => void;
+  /** Pick-order marker for the ordered collage selection. */
+  badge?: number;
+}
+
+/**
+ * The one thumbnail picker geometry. Selection is a ring, never a swapped 1px
+ * border — a hairline colour change is invisible over a busy photo — and
+ * unselected tiles stay at full opacity so the grid does not read as broken.
+ */
+function Thumb({ src, alt, title, selected, disabled = false, onClick, badge }: ThumbProps) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-pressed={selected}
+      title={title}
+      className={`relative h-16 w-24 overflow-hidden rounded-control border border-hairline transition-all ${
+        selected ? 'ring-2 ring-ochre ring-offset-2 ring-offset-bone' : 'hover:border-mist/40'
+      } ${disabled ? 'cursor-not-allowed opacity-40' : ''}`}
+    >
+      <img src={src} alt={alt} className="h-full w-full object-cover" />
+      {badge !== undefined ? (
+        <span className="absolute right-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-ochre-deep text-caption font-semibold text-white shadow-card">
+          {badge}
+        </span>
+      ) : null}
+    </button>
+  );
+}
 
 /** AI board: any image → flat-lay material & mood board (via the image engine). */
 function BoardGenerator() {
@@ -127,18 +170,14 @@ function BoardGenerator() {
               {pool.slice(0, 18).map((ref) => {
                 const active = input === ref.image.url;
                 return (
-                  <button
+                  <Thumb
                     key={ref.image.id}
-                    type="button"
-                    aria-pressed={active}
+                    src={ref.image.url}
+                    alt={ref.image.label}
                     title={ref.image.label}
+                    selected={active}
                     onClick={() => setFeatureInput('moodboard', active ? null : ref.image.url)}
-                    className={`h-14 w-20 overflow-hidden rounded-lg border transition-all focus-visible:outline-ochre ${
-                      active ? 'border-ochre' : 'border-hairline opacity-60 hover:opacity-90'
-                    }`}
-                  >
-                    <img src={ref.image.url} alt={ref.image.label} className="h-full w-full object-cover" />
-                  </button>
+                  />
                 );
               })}
             </div>
@@ -146,27 +185,12 @@ function BoardGenerator() {
         ) : null}
 
         {/* Board shape */}
-        <div className="flex flex-col gap-2">
-          <span className="mono-meta">Board shape</span>
-          <div className="flex flex-wrap gap-1.5">
-            {ASPECTS.map((a) => {
-              const active = settings.aspect === a.value;
-              return (
-                <button
-                  key={a.value}
-                  type="button"
-                  aria-pressed={active}
-                  onClick={() => updateFeatureSettings('moodboard', { aspect: a.value })}
-                  className={`pill border px-3.5 py-1.5 text-[0.8125rem] font-medium transition-colors focus-visible:outline-ochre ${
-                    active ? 'border-ochre bg-ochre text-white shadow-btn' : 'border-hairline bg-paper text-graphite hover:bg-drafting'
-                  }`}
-                >
-                  {a.label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
+        <ChipGroup
+          label="Board shape"
+          value={settings.aspect}
+          options={ASPECTS}
+          onChange={(aspect) => updateFeatureSettings('moodboard', { aspect })}
+        />
 
         {/* Prompt — visible + editable, same as every other generation tab. */}
         <div className="flex flex-col gap-2">
@@ -178,9 +202,9 @@ function BoardGenerator() {
               <button
                 type="button"
                 onClick={() => setFeaturePrompt('moodboard', suggestedPrompt, false)}
-                className="flex items-center gap-1 text-[0.7rem] text-ochre hover:text-ochre-deep focus-visible:outline-ochre"
+                className="flex items-center gap-1 text-label text-mist transition-colors hover:text-ink"
               >
-                <RotateCcw size={12} strokeWidth={1.75} /> Reset
+                <RotateCcw size={14} strokeWidth={1.75} /> Reset
               </button>
             ) : null}
           </div>
@@ -189,7 +213,7 @@ function BoardGenerator() {
             value={prompt}
             onChange={(e) => setFeaturePrompt('moodboard', e.target.value, true)}
             rows={4}
-            className="resize-none rounded-xl border border-hairline bg-paper px-3.5 py-2.5 text-sm leading-relaxed text-graphite placeholder:text-mist focus-visible:outline-ochre"
+            className="resize-none rounded-field border border-hairline bg-paper px-3.5 py-2.5 text-body text-graphite transition-colors placeholder:text-mist hover:border-mist/40"
           />
         </div>
 
@@ -209,9 +233,10 @@ function BoardGenerator() {
             </Button>
           ) : null}
           {!input ? (
-            <span className="text-xs text-mist">Add an image to begin.</span>
+            <span className="text-body text-mist">Add an image to begin.</span>
           ) : !engineReady ? (
-            <span className="text-xs text-ochre">Add your image-engine key in Settings to generate.</span>
+            // A missing key is a blocked state, not brand messaging — warning tone.
+            <span className="text-body text-warning">Add your image-engine key in Settings to generate.</span>
           ) : null}
         </div>
       </div>
@@ -220,9 +245,7 @@ function BoardGenerator() {
       <div className="flex flex-col gap-4">
         <p className="mono-meta">Output · material &amp; mood board</p>
         {error ? <ErrorBanner message={error} onRetry={handleGenerate} /> : null}
-        {warning ? (
-          <p className="rounded-xl border border-hairline bg-drafting px-3.5 py-2 text-xs leading-relaxed text-graphite">{warning}</p>
-        ) : null}
+        {warning ? <Notice tone="warning" message={warning} /> : null}
         {loading || outputs.length > 0 ? (
           <OutputGrid
             outputs={outputs}
@@ -233,8 +256,9 @@ function BoardGenerator() {
             onDelete={removeImage}
           />
         ) : !error ? (
-          <div className="flex flex-1 items-center justify-center rounded-2xl border-2 border-dashed border-hairline bg-paper px-6 py-16 text-center">
-            <p className="max-w-xs text-sm leading-relaxed text-mist">
+          // Same "nothing here yet" surface as the collage preview placeholder.
+          <div className="flex min-h-[320px] flex-1 items-center justify-center rounded-card border border-hairline bg-drafting p-4 text-center shadow-card">
+            <p className="max-w-xs text-body text-mist">
               Your material &amp; mood board will appear here — labelled samples, colour palette, material strip and
               vibe, extracted from your image.
             </p>
@@ -296,6 +320,18 @@ function CollageComposer() {
     setAdded(false);
   }, [selectedIds, orientation, title, subtitle]);
 
+  // A full canvas repaint per keystroke made the preview strobe while typing a
+  // title. The text fields stay instant; only the redraw waits for a pause.
+  const [committedTitle, setCommittedTitle] = useState(title);
+  const [committedSubtitle, setCommittedSubtitle] = useState(subtitle);
+  useEffect(() => {
+    const id = window.setTimeout(() => {
+      setCommittedTitle(title);
+      setCommittedSubtitle(subtitle);
+    }, 250);
+    return () => window.clearTimeout(id);
+  }, [title, subtitle]);
+
   // Re-render the board whenever the inputs change. Cheap: images are cached.
   useEffect(() => {
     if (selectedUrls.length === 0) {
@@ -305,8 +341,8 @@ function CollageComposer() {
     let cancelled = false;
     setRendering(true);
     renderMoodboard(selectedUrls, orientation, {
-      title,
-      subtitle,
+      title: committedTitle,
+      subtitle: committedSubtitle,
       projectName: project.name,
       brand: project.brand,
     })
@@ -322,7 +358,7 @@ function CollageComposer() {
     return () => {
       cancelled = true;
     };
-  }, [selectedUrls, orientation, title, subtitle, project.name, project.brand]);
+  }, [selectedUrls, orientation, committedTitle, committedSubtitle, project.name, project.brand]);
 
   const boardName = title.trim() || 'mood-board';
 
@@ -338,6 +374,11 @@ function CollageComposer() {
     setAdded(true);
   };
 
+  const orientationOptions = useMemo(
+    () => MOODBOARD_ORIENTATIONS.map((o) => ({ value: o.key, label: o.label })),
+    [],
+  );
+
   if (pool.length === 0) {
     return (
       <EmptyState
@@ -345,7 +386,7 @@ function CollageComposer() {
         title="No images to compose yet"
         description="Generate renders, elevations, axonometrics or interiors on the earlier tabs (or upload images in the presentation) and they'll appear here to arrange into a collage board."
         action={
-          <Button icon={<Palette size={15} strokeWidth={1.75} />} onClick={() => setTab('render')}>
+          <Button variant="primary" icon={<ArrowRight size={15} strokeWidth={1.75} />} onClick={() => setTab('render')}>
             Start on the Isometric tab
           </Button>
         }
@@ -364,18 +405,14 @@ function CollageComposer() {
               Images · {selectedIds.length} of {MOODBOARD_MAX_IMAGES} chosen
             </span>
             {selectedIds.length > 0 ? (
-              <button
-                type="button"
-                onClick={() => setSelectedIds([])}
-                className="rounded-full border border-hairline bg-paper px-3 py-1 text-[0.75rem] font-medium text-graphite hover:bg-drafting focus-visible:outline-ochre"
-              >
+              <Button variant="secondary" size="sm" onClick={() => setSelectedIds([])}>
                 Clear
-              </button>
+              </Button>
             ) : null}
           </div>
           {groups.map((group) => (
             <div key={group} className="flex flex-col gap-2">
-              <p className="text-[0.75rem] font-medium text-graphite">{group}</p>
+              <p className="text-label text-graphite">{group}</p>
               <div className="flex flex-wrap gap-2">
                 {pool
                   .filter((p) => p.group === group)
@@ -384,28 +421,16 @@ function CollageComposer() {
                     const isSel = pos >= 0;
                     const disabled = !isSel && atMax;
                     return (
-                      <button
+                      <Thumb
                         key={ref.image.id}
-                        type="button"
-                        onClick={() => toggle(ref.image.id)}
-                        disabled={disabled}
-                        aria-pressed={isSel}
+                        src={ref.image.url}
+                        alt={ref.image.label}
                         title={disabled ? `Up to ${MOODBOARD_MAX_IMAGES} images` : ref.image.label}
-                        className={`relative h-16 w-24 overflow-hidden rounded-lg border transition-all focus-visible:outline-ochre ${
-                          isSel
-                            ? 'border-ochre'
-                            : disabled
-                              ? 'cursor-not-allowed border-hairline opacity-25'
-                              : 'border-hairline opacity-55 hover:opacity-90'
-                        }`}
-                      >
-                        <img src={ref.image.url} alt={ref.image.label} className="h-full w-full object-cover" />
-                        {isSel ? (
-                          <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-md border border-ochre bg-ochre text-[0.6875rem] font-semibold text-white">
-                            {pos + 1}
-                          </span>
-                        ) : null}
-                      </button>
+                        selected={isSel}
+                        disabled={disabled}
+                        onClick={() => toggle(ref.image.id)}
+                        badge={isSel ? pos + 1 : undefined}
+                      />
                     );
                   })}
               </div>
@@ -414,27 +439,15 @@ function CollageComposer() {
         </div>
 
         {/* Orientation */}
-        <div className="flex flex-col gap-2">
-          <span className="mono-meta">Board shape</span>
-          <div className="flex flex-wrap gap-1.5">
-            {MOODBOARD_ORIENTATIONS.map((o) => {
-              const active = o.key === orientation.key;
-              return (
-                <button
-                  key={o.key}
-                  type="button"
-                  aria-pressed={active}
-                  onClick={() => setOrientation(o)}
-                  className={`pill border px-3.5 py-1.5 text-[0.8125rem] font-medium transition-colors focus-visible:outline-ochre ${
-                    active ? 'border-ochre bg-ochre text-white shadow-btn' : 'border-hairline bg-paper text-graphite hover:bg-drafting'
-                  }`}
-                >
-                  {o.label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
+        <ChipGroup
+          label="Board shape"
+          value={orientation.key}
+          options={orientationOptions}
+          onChange={(key) => {
+            const next = MOODBOARD_ORIENTATIONS.find((o) => o.key === key);
+            if (next) setOrientation(next);
+          }}
+        />
 
         {/* Title / subtitle */}
         <div className="flex flex-col gap-3">
@@ -448,7 +461,7 @@ function CollageComposer() {
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Material & Mood Board"
-              className="rounded-xl border border-hairline bg-paper px-3.5 py-2 text-sm text-graphite placeholder:text-mist focus-visible:outline-ochre"
+              className="rounded-field border border-hairline bg-paper px-3.5 py-2.5 text-body text-graphite transition-colors placeholder:text-mist hover:border-mist/40"
             />
           </div>
           <div className="flex flex-col gap-2">
@@ -461,7 +474,7 @@ function CollageComposer() {
               value={subtitle}
               onChange={(e) => setSubtitle(e.target.value)}
               placeholder="Project name · phase · date"
-              className="rounded-xl border border-hairline bg-paper px-3.5 py-2 text-sm text-graphite placeholder:text-mist focus-visible:outline-ochre"
+              className="rounded-field border border-hairline bg-paper px-3.5 py-2.5 text-body text-graphite transition-colors placeholder:text-mist hover:border-mist/40"
             />
           </div>
         </div>
@@ -486,25 +499,49 @@ function CollageComposer() {
               Add to presentation
             </Button>
           </div>
-          {added ? (
-            <p className="text-[0.7rem] text-graphite">
-              Added to the presentation pool — it appears under <span className="text-ink">Uploaded</span> on the
-              Presentation and Gallery tabs.
-            </p>
-          ) : null}
+          {/* Height is reserved so the confirmation does not shove the column. */}
+          <div className="min-h-[2.25rem]">
+            {added ? (
+              <Notice
+                tone="success"
+                message="Added to the presentation pool — it appears under Uploaded on the Presentation and Gallery tabs."
+              />
+            ) : null}
+          </div>
         </div>
       </div>
 
       {/* Live preview */}
       <div className="lg:sticky lg:top-6 lg:self-start">
-        <span className="mono-meta">Preview</span>
-        <div className="mt-2 flex min-h-[320px] items-center justify-center rounded-xl border border-hairline bg-drafting p-4">
+        <p className="mono-meta mb-3">Preview</p>
+        <div className="flex min-h-[320px] items-center justify-center rounded-card border border-hairline bg-drafting p-4 shadow-card">
           {preview ? (
-            <img src={preview} alt="Mood board preview" className="max-h-[68vh] w-auto object-contain shadow-sm" />
+            // The previous board stays on screen while the next one renders —
+            // dimmed with a status pill instead of blinking out to a spinner.
+            <div className="relative">
+              <img
+                src={preview}
+                alt="Mood board preview"
+                className={`max-h-[68vh] w-auto rounded-control object-contain shadow-card transition-opacity ${
+                  rendering ? 'opacity-60' : 'opacity-100'
+                }`}
+              />
+              {rendering ? (
+                <span className="absolute bottom-3 right-3 flex items-center gap-2 rounded-full bg-paper/90 px-3 py-1.5 text-caption text-graphite shadow-card">
+                  <Spinner size={14} className="text-ochre" /> Updating…
+                </span>
+              ) : null}
+            </div>
           ) : rendering ? (
-            <Spinner size={20} className="text-ochre" />
+            // True first render only: an aspect-correct skeleton, so the panel
+            // does not resize when the board lands.
+            <div
+              className="w-full max-w-sm animate-pulse rounded-card bg-hairline"
+              style={{ aspectRatio: `${orientation.w} / ${orientation.h}` }}
+              aria-hidden
+            />
           ) : (
-            <p className="max-w-xs text-center text-sm text-mist">
+            <p className="max-w-xs text-center text-body text-mist">
               Pick one or more images on the left to compose your mood board.
             </p>
           )}

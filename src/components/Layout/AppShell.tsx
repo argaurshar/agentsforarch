@@ -42,6 +42,9 @@ export function AppShell({ children }: AppShellProps) {
   const [confirmNew, setConfirmNew] = useState(false);
 
   const drawerRef = useDialog<HTMLDivElement>({ open: drawerOpen, onClose: () => setDrawerOpen(false) });
+  // "New project" discards every in-memory asset, so it gets a real dismissible
+  // dialog (Escape / scrim / focus trap), not a bare toggled popover.
+  const confirmRef = useDialog<HTMLDivElement>({ open: confirmNew, onClose: () => setConfirmNew(false) });
 
   // First-run onboarding: if no keys are configured yet, open Settings once so
   // a first-time visitor (e.g. a client following the link) is guided to connect
@@ -85,32 +88,36 @@ export function AppShell({ children }: AppShellProps) {
             aria-modal="true"
             aria-label="Navigation"
             tabIndex={-1}
-            className="relative h-full w-64 max-w-[80%] focus:outline-none"
+            // Width matches the desktop rail; max-w keeps it off the screen edge
+            // on narrow phones. Entrance uses the shared house reveal — keyframes
+            // live in index.css, which this pass does not own.
+            className="view-enter relative h-full w-64 max-w-[85vw] overflow-hidden"
           >
             <Sidebar onNavigate={() => setDrawerOpen(false)} />
             <button
               type="button"
               onClick={() => setDrawerOpen(false)}
-              className="absolute right-2 top-4 p-1 text-bone/70 hover:text-bone focus-visible:outline-ochre"
+              className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-control text-bone/70 transition-colors hover:bg-white/10 hover:text-bone"
               aria-label="Close menu"
             >
-              <X size={18} strokeWidth={1.75} />
+              <X size={16} strokeWidth={1.75} />
             </button>
           </div>
         </div>
       ) : null}
 
       <div className="flex min-w-0 flex-1 flex-col">
-        {/* Top bar */}
-        <div className="flex items-center justify-between gap-3 border-b border-hairline bg-paper/80 px-4 py-3 backdrop-blur-sm sm:px-6 lg:px-10">
+        {/* Top bar — h-16 to share a baseline with the sidebar brand lockup.
+            Opaque: <main> is the scroll container, so nothing passes under it. */}
+        <div className="flex h-16 shrink-0 items-center justify-between gap-3 border-b border-hairline bg-paper px-4 sm:px-6 lg:px-10">
           <div className="flex min-w-0 items-center gap-2 sm:gap-3">
             <button
               type="button"
               onClick={() => setDrawerOpen(true)}
-              className="-ml-1 p-1 text-graphite hover:text-ochre focus-visible:outline-ochre md:hidden"
+              className="-ml-1 flex h-8 w-8 items-center justify-center rounded-control text-graphite transition-colors hover:bg-drafting md:hidden"
               aria-label="Open menu"
             >
-              <Menu size={20} strokeWidth={1.75} />
+              <Menu size={18} strokeWidth={1.75} />
             </button>
             <span className="mono-meta hidden text-mist sm:inline">Project</span>
             {editing ? (
@@ -126,7 +133,9 @@ export function AppShell({ children }: AppShellProps) {
                     setEditing(false);
                   }
                 }}
-                className="min-w-0 rounded-lg border border-ochre bg-paper px-2 py-1 font-display text-base font-semibold text-ink focus:outline-none sm:text-lg"
+                // Resting border is the neutral hairline so the global ochre
+                // focus ring is what signals focus.
+                className="min-w-0 rounded-field border border-hairline bg-paper px-2 py-1 font-display text-title text-ink"
               />
             ) : (
               <button
@@ -135,7 +144,9 @@ export function AppShell({ children }: AppShellProps) {
                   setDraft(projectName);
                   setEditing(true);
                 }}
-                className="max-w-[45vw] truncate rounded-lg px-2 py-1 font-display text-base font-semibold text-ink transition-colors hover:bg-drafting hover:text-ochre sm:max-w-none sm:text-lg"
+                // Transparent border matches the input's 1px so toggling edit
+                // mode does not shift the row.
+                className="max-w-[45vw] truncate rounded-field border border-transparent px-2 py-1 font-display text-title text-ink transition-colors hover:bg-drafting sm:max-w-none"
                 title="Rename project"
               >
                 {projectName}
@@ -145,51 +156,38 @@ export function AppShell({ children }: AppShellProps) {
 
           <div className="flex shrink-0 items-center gap-2">
             {/* New project — clears in-memory work (nothing is saved). */}
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => setConfirmNew((v) => !v)}
-                className="flex items-center gap-2 rounded-full border border-hairline bg-paper px-3.5 py-1.5 text-graphite shadow-sm transition-colors hover:bg-drafting focus-visible:outline-ochre"
-                title="Start a new project"
-              >
-                <FilePlus size={15} strokeWidth={1.75} className="text-graphite" />
-                <span className="mono-meta hidden text-graphite sm:inline">New</span>
-              </button>
-              {confirmNew ? (
-                <div className="card absolute right-0 top-full z-50 mt-2 w-64 p-3.5 text-xs leading-relaxed text-graphite shadow-card-lg">
-                  <p>Start a new project? This clears all generated work — nothing is saved.</p>
-                  <div className="mt-2 flex gap-2">
-                    <Button
-                      size="sm"
-                      variant="primary"
-                      onClick={() => {
-                        resetProject();
-                        setConfirmNew(false);
-                      }}
-                    >
-                      New project
-                    </Button>
-                    <Button size="sm" variant="secondary" onClick={() => setConfirmNew(false)}>
-                      Cancel
-                    </Button>
-                  </div>
-                </div>
-              ) : null}
-            </div>
+            <Button
+              size="sm"
+              variant="secondary"
+              icon={<FilePlus size={14} strokeWidth={1.75} />}
+              onClick={() => setConfirmNew((v) => !v)}
+              title="Start a new project"
+              aria-haspopup="dialog"
+              aria-expanded={confirmNew}
+            >
+              <span className="hidden sm:inline">New</span>
+            </Button>
 
-            <button
-              type="button"
+            {/* Key status. Colour is driven by state: quiet when a key is live,
+                warning tone when generation is blocked — the accent is reserved
+                for primary actions, not for a healthy status read-out. */}
+            <Button
+              size="sm"
+              variant="secondary"
+              icon={<KeyRound size={14} strokeWidth={1.75} className={engineReady ? 'text-mist' : 'text-warning'} />}
               onClick={() => setSettingsOpen(true)}
-              className={`flex items-center gap-2 rounded-full border bg-paper px-3.5 py-1.5 shadow-sm transition-colors hover:bg-drafting focus-visible:outline-ochre ${
-                engineReady ? 'border-hairline text-graphite' : 'border-ochre/60 text-ochre'
-              }`}
+              className={engineReady ? '' : 'border-warning/50'}
               title={engineReady ? 'API keys' : 'Connect your API key to generate'}
             >
-              <KeyRound size={15} strokeWidth={1.75} className="text-ochre" />
-              <span className={`text-[0.8125rem] font-medium text-ochre ${engineReady ? 'hidden sm:inline' : 'inline'}`}>
-                {engineReady ? providerName : 'Connect key'}
-              </span>
-            </button>
+              {engineReady ? (
+                <span className="hidden items-center gap-2 text-graphite sm:inline-flex">
+                  <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-success" aria-hidden="true" />
+                  {providerName}
+                </span>
+              ) : (
+                <span className="text-warning">Connect key</span>
+              )}
+            </Button>
           </div>
         </div>
 
@@ -197,15 +195,41 @@ export function AppShell({ children }: AppShellProps) {
         <main className="min-h-0 flex-1 overflow-y-auto px-4 py-6 sm:px-6 lg:px-10 lg:py-10">
           <div className="mx-auto w-full max-w-6xl">{children}</div>
         </main>
-
-        {/* Footer — active engine (spec §5). */}
-        <footer className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-t border-hairline bg-bone px-4 py-3 sm:px-6 lg:px-10">
-          <span className="hidden text-[0.8125rem] text-mist sm:inline">AND · Architecture &amp; Design Studio</span>
-          <span className="text-[0.8125rem] text-mist">
-            Engine&nbsp;·&nbsp;<span className="font-medium text-ochre">{providerName}</span>
-          </span>
-        </footer>
       </div>
+
+      {confirmNew ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-ink/40" onClick={() => setConfirmNew(false)} aria-hidden="true" />
+          <div
+            ref={confirmRef}
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="confirm-new-title"
+            tabIndex={-1}
+            className="card relative w-80 max-w-full p-5 shadow-card-lg"
+          >
+            <h3 id="confirm-new-title" className="font-display text-title text-ink">
+              Start a new project?
+            </h3>
+            <p className="mt-2 text-body text-graphite">This clears all generated work — nothing is saved.</p>
+            <div className="mt-4 flex justify-end gap-3">
+              <Button size="sm" variant="ghost" onClick={() => setConfirmNew(false)}>
+                Cancel
+              </Button>
+              <Button
+                size="sm"
+                variant="danger"
+                onClick={() => {
+                  resetProject();
+                  setConfirmNew(false);
+                }}
+              >
+                New project
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       <SettingsPanel open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </div>

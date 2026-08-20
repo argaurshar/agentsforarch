@@ -9,16 +9,45 @@
   /* Modernized palette (2026 pass): clean near-white surfaces with a barely-warm
      cast, cool near-black ink, and a vivid terracotta accent that keeps the
      studio's warmth. App chrome only — the per-deck presentation Brand default
-     is kept separate (see the store's makeDefaultBrand). */
-  --ink: #17181c; /* near-black — sidebar, headings, dark surfaces */
-  --ochre: #e0561f; /* THE single accent — vivid terracotta */
-  --ochre-deep: #bc4315; /* accent hover / pressed */
-  --bone: #f6f6f3; /* app background (light neutral, barely warm) */
-  --drafting: #eeeee9; /* sub-surface / hover tint */
-  --paper: #ffffff; /* clean card surface */
-  --graphite: #3e4249; /* body text (neutral slate) */
-  --mist: #969ba4; /* captions, metadata */
-  --hairline: #e6e5df; /* ALL borders and dividers */
+     is kept separate (see the store's makeDefaultBrand).
+
+     Every colour is declared as SPACE-SEPARATED RGB CHANNELS so Tailwind can
+     compose alpha modifiers against it (`bg-ink/70`, `bg-ochre/10`). Mapping the
+     palette to plain `var(--x)` hex silently breaks every `/opacity` utility —
+     scrims and tinted panels then render with no background at all. The `-hex`
+     aliases below are for hand-written CSS that wants a ready colour. */
+  --ink-rgb: 23 24 28; /* near-black — sidebar, headings, dark surfaces */
+  --ink-raised-rgb: 29 31 36; /* raised surface on ink (sidebar top) */
+  --ochre-rgb: 224 86 31; /* THE single accent — vivid terracotta (FILLS only) */
+  --ochre-deep-rgb: 188 67 21; /* accent hover/pressed, and accent TEXT on light (5.3:1) */
+  --bone-rgb: 246 246 243; /* app background (light neutral, barely warm) */
+  --drafting-rgb: 238 238 233; /* sub-surface / hover tint */
+  --paper-rgb: 255 255 255; /* clean card surface */
+  --graphite-rgb: 62 66 73; /* body text (neutral slate) */
+  --mist-rgb: 107 114 128; /* captions, metadata — AA on both surfaces (4.8:1) */
+  --mist-faint-rgb: 154 160 168; /* decorative strokes/icons ONLY — never text */
+  --hairline-rgb: 230 229 223; /* ALL borders and dividers */
+
+  /* Semantic state ramp — so "destructive" and "on brand" never share a hue.
+     The accent means: primary action, active selection, focus. Nothing else. */
+  --danger-rgb: 180 35 24;
+  --danger-soft-rgb: 254 243 242;
+  --warning-rgb: 181 71 8;
+  --warning-soft-rgb: 255 250 235;
+  --success-rgb: 6 118 71;
+  --success-soft-rgb: 236 253 243;
+
+  --ink: rgb(var(--ink-rgb));
+  --ink-raised: rgb(var(--ink-raised-rgb));
+  --ochre: rgb(var(--ochre-rgb));
+  --ochre-deep: rgb(var(--ochre-deep-rgb));
+  --bone: rgb(var(--bone-rgb));
+  --drafting: rgb(var(--drafting-rgb));
+  --paper: rgb(var(--paper-rgb));
+  --graphite: rgb(var(--graphite-rgb));
+  --mist: rgb(var(--mist-rgb));
+  --mist-faint: rgb(var(--mist-faint-rgb));
+  --hairline: rgb(var(--hairline-rgb));
 
   /* Motion — one refined easing curve for the whole app (premium, unhurried). */
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
@@ -73,7 +102,7 @@
   .eyebrow {
     font-family: 'Inter', system-ui, sans-serif;
     letter-spacing: 0.02em;
-    color: var(--ochre);
+    color: var(--ochre-deep);
     font-size: 0.8125rem;
     font-weight: 600;
   }
@@ -92,10 +121,19 @@
   .card {
     background: var(--paper);
     border: 1px solid var(--hairline);
-    border-radius: 0.875rem;
+    border-radius: 1rem;
     box-shadow:
       0 1px 2px rgb(23 20 14 / 0.04),
       0 6px 20px -6px rgb(23 20 14 / 0.08);
+  }
+
+  /* Panel/section heading inside a card — neutral, never the accent. */
+  .section-heading {
+    font-family: 'Sora', 'Inter', system-ui, sans-serif;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--ink);
   }
 
   /* Pill control (chips, segmented options). */
@@ -105,11 +143,9 @@
   }
 }
 
-/* Interactive transitions — smooth and refined (hover/focus/press). */
-* {
-  transition-duration: 200ms;
-  transition-timing-function: var(--ease);
-}
+/* Motion defaults live in tailwind.config.js (transitionDuration/TimingFunction
+   DEFAULT), so any `transition-*` utility carries the house curve. A universal
+   `*` transition used to live here — it animated layout properties too. */
 
 /* ------------------------------------------------------------------ */
 /* Motion layer — tasteful, unhurried reveals + micro-interactions.    */

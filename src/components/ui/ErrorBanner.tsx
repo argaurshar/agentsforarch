@@ -1,24 +1,25 @@
-import { AlertTriangle, RotateCcw } from 'lucide-react';
+import { RotateCcw } from 'lucide-react';
 import { Button } from './Button';
+import { Notice } from './Notice';
 
 interface ErrorBannerProps {
   message: string;
   onRetry?: () => void;
 }
 
-/** Inline, human error message with a retry — never a raw stack trace (spec §8). */
+/** Error surface for a failed generation — a semantic Notice with a retry. */
 export function ErrorBanner({ message, onRetry }: ErrorBannerProps) {
   return (
-    <div className="flex items-center justify-between gap-4 rounded-xl border border-ochre/30 bg-ochre/8 px-4 py-3">
-      <div className="flex items-center gap-3">
-        <AlertTriangle size={18} strokeWidth={1.75} className="shrink-0 text-ochre" />
-        <p className="text-sm text-graphite">{message}</p>
-      </div>
-      {onRetry ? (
-        <Button variant="secondary" size="sm" icon={<RotateCcw size={14} strokeWidth={1.75} />} onClick={onRetry}>
-          Retry
-        </Button>
-      ) : null}
-    </div>
+    <Notice
+      tone="error"
+      message={message}
+      action={
+        onRetry ? (
+          <Button variant="secondary" size="sm" icon={<RotateCcw size={14} strokeWidth={1.75} />} onClick={onRetry}>
+            Retry
+          </Button>
+        ) : undefined
+      }
+    />
   );
 }

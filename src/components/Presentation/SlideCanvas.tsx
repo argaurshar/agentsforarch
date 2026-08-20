@@ -1,5 +1,7 @@
+import { LayoutGrid } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { renderSlidePage } from '../../lib/deckRender';
+import { EmptyState } from '../ui/EmptyState';
 import { Spinner } from '../ui/Spinner';
 import type { Brand, GeneratedImage, Slide } from '../../types';
 
@@ -54,20 +56,24 @@ export function SlideCanvas({ slide, imageMap, brand, projectName, slideNumber, 
   }, [slide, imageMap, brand, projectName, slideNumber, slideCount]);
 
   if (!slide) {
+    // A single grid child stretches to both axes, so the shared EmptyState keeps
+    // the canvas footprint (and the layout stable) while it has no page to show.
     return (
-      <div
-        className="flex items-center justify-center rounded-xl border border-hairline bg-paper"
-        style={{ aspectRatio: '297 / 210' }}
-      >
-        <p className="max-w-xs text-center text-sm text-mist">
-          No slide selected. Add a slide from the images on the left, or pick one from the list.
-        </p>
+      <div className="grid" style={{ aspectRatio: '297 / 210' }}>
+        <EmptyState
+          icon={LayoutGrid}
+          title="No slide selected"
+          description="Add a slide from the images on the left, or pick one from the list."
+        />
       </div>
     );
   }
 
   return (
-    <div className="relative overflow-hidden rounded-xl border border-hairline bg-drafting shadow-card" style={{ aspectRatio: '297 / 210' }}>
+    <div
+      className="relative overflow-hidden rounded-card border border-hairline bg-drafting shadow-card"
+      style={{ aspectRatio: '297 / 210' }}
+    >
       {page ? (
         <img src={page} alt={slide.title || `Slide ${slideNumber}`} className="h-full w-full object-contain" />
       ) : null}

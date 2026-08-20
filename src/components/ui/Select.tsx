@@ -15,7 +15,7 @@ interface SelectProps {
   id?: string;
 }
 
-/** A styled native <select> — accessible, square-cornered, hairline border. */
+/** A styled native <select> — accessible, rounded, flat hairline field. */
 export function Select({ label, value, options, onChange, disabled, id }: SelectProps) {
   const generatedId = useId();
   const selectId = id ?? generatedId;
@@ -30,7 +30,7 @@ export function Select({ label, value, options, onChange, disabled, id }: Select
           value={value}
           disabled={disabled}
           onChange={(e) => onChange(e.target.value)}
-          className="w-full appearance-none rounded-xl border border-hairline bg-paper px-3.5 py-2.5 pr-9 text-sm text-graphite shadow-sm transition-colors hover:border-mist/50 focus-visible:outline-ochre disabled:opacity-45"
+          className="w-full appearance-none rounded-field border border-hairline bg-paper px-3.5 py-2.5 pr-9 text-body text-graphite transition-colors hover:border-mist/40 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {options.map((opt) => (
             <option key={opt.value} value={opt.value}>

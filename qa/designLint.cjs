@@ -80,6 +80,43 @@ check('shadow scale not zeroed out', !/boxShadow:\s*{[^}]*DEFAULT:\s*'none'/s.te
 // 5. Display font wired up for headings.
 check('display font configured', /Sora/.test(tw) && /Sora/.test(fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8')));
 
+// 6. Colour tokens must be RGB channels mapped with <alpha-value>. Mapping them
+//    to bare `var(--x)` hex makes Tailwind's colour parser bail and silently
+//    drops EVERY alpha modifier (`bg-ink/70`, `bg-ochre/10`) from the build —
+//    scrims stop dimming and tinted panels render with no background at all.
+check(
+  'colour tokens support alpha modifiers',
+  /<alpha-value>/.test(tw) && /--ink-rgb:/.test(css),
+  'map colours as rgb(var(--x-rgb) / <alpha-value>) and publish channel tokens',
+);
+
+// 7. A semantic ramp must exist — the brand accent means "primary action",
+//    never "error"/"warning"/"success".
+check('semantic state tokens present', /--danger-rgb:/.test(css) && /--warning-rgb:/.test(css) && /--success-rgb:/.test(css));
+
+// 8. The accent glow is reserved for the primary Button. Everywhere else it is
+//    noise that flattens the visual hierarchy.
+const glow = findAll(/shadow-btn/).filter((h) => !/components\/ui\/(Button|IconButton)\.tsx/.test(h));
+check('accent glow reserved for the primary button', glow.length === 0, glow.slice(0, 6).join('\n      '));
+
+// 9. The editorial serif belongs to client deliverables (deck, board), not chrome.
+const serif = findAll(/font-serif/);
+check('no editorial serif in app chrome', serif.length === 0, serif.slice(0, 6).join('\n      '));
+
+// 10. Focus is handled globally by :focus-visible in index.css. `focus:outline-none`
+//     removes it, and a bare `focus-visible:outline-ochre` only sets a colour.
+const focusKilled = findAll(/focus:outline-none/);
+check('global focus ring never suppressed', focusKilled.length === 0, focusKilled.slice(0, 6).join('\n      '));
+
+// 11. Type comes from the registered scale, not arbitrary rem values.
+const arbitraryType = findAll(/text-\[[0-9.]+rem\]/);
+check(
+  'type uses the registered scale',
+  arbitraryType.length === 0,
+  `${arbitraryType.length} arbitrary sizes; use text-body / text-label / text-caption / text-title\n      ` +
+    arbitraryType.slice(0, 5).join('\n      '),
+);
+
 const failed = results.filter((r) => !r.ok).length;
 console.log(`\n${results.length - failed}/${results.length} design checks passed`);
 process.exit(failed === 0 ? 0 : 1);

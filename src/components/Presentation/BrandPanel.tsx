@@ -1,8 +1,10 @@
-import { ChevronDown, ChevronRight, Palette, RotateCcw, Upload, X } from 'lucide-react';
+import { ChevronDown, Palette, RotateCcw, Upload, X } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { fileToDataURL, resizeDataURL, validateImageFile } from '../../lib/images';
 import { useProjectStore } from '../../store/useProjectStore';
 import type { Brand } from '../../types';
+import { Button } from '../ui/Button';
+import { IconButton } from '../ui/IconButton';
 import { Select } from '../ui/Select';
 
 const FONT_OPTIONS = [
@@ -13,6 +15,10 @@ const FONT_OPTIONS = [
   { value: '"JetBrains Mono", ui-monospace, monospace', label: 'JetBrains Mono (mono)' },
 ];
 
+// Must stay identical to `makeDefaultBrand()` in store/useProjectStore.ts (it is
+// module-private there): "Reset to studio default" has to write back exactly the
+// brand a fresh project starts with, not a drifted copy. These are the deck's
+// OWN brand values — deliberately independent of the app chrome's tokens.
 const DEFAULT_BRAND: Brand = {
   name: '',
   primary: '#0f1729',
@@ -34,21 +40,22 @@ interface ColorRowProps {
 function ColorRow({ label, value, onChange }: ColorRowProps) {
   return (
     <label className="flex items-center justify-between gap-3">
-      <span className="text-xs text-graphite">{label}</span>
+      <span className="text-label text-graphite">{label}</span>
       <span className="flex items-center gap-2">
         <input
           type="color"
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="h-8 w-10 cursor-pointer rounded-lg border border-hairline bg-paper p-0.5"
+          className="h-8 w-10 cursor-pointer rounded-control border border-hairline bg-paper p-0.5"
           aria-label={label}
         />
+        {/* font-mono is legitimate here — a hex field is a code value. */}
         <input
           value={value}
           onChange={(e) => onChange(e.target.value)}
           spellCheck={false}
           aria-label={`${label} hex`}
-          className="w-24 rounded-lg border border-hairline bg-paper px-2.5 py-1.5 font-mono text-xs text-graphite focus-visible:outline-ochre"
+          className="w-24 rounded-field border border-hairline bg-paper px-2.5 py-1.5 font-mono text-label text-graphite"
         />
       </span>
     </label>
@@ -80,30 +87,31 @@ export function BrandPanel() {
   };
 
   return (
-    <div className="mb-8 overflow-hidden rounded-2xl border border-hairline bg-paper shadow-card">
+    <div className="mb-8 overflow-hidden rounded-card border border-hairline bg-paper shadow-card">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="flex w-full items-center justify-between px-4 py-3 text-left focus-visible:outline-ochre"
+        className="flex w-full items-center justify-between px-4 py-3 text-left transition-colors hover:bg-drafting"
         aria-expanded={open}
       >
         <span className="flex items-center gap-2">
-          <Palette size={15} strokeWidth={1.75} className="text-ochre" />
-          <span className="mono-meta">Brand Identity</span>
-          {brand.name ? <span className="text-sm text-graphite">· {brand.name}</span> : null}
+          <Palette size={16} strokeWidth={1.75} className="text-mist" />
+          <span className="section-heading">Brand identity</span>
+          {brand.name ? <span className="text-body text-graphite">· {brand.name}</span> : null}
         </span>
-        {open ? (
-          <ChevronDown size={16} strokeWidth={1.75} className="text-mist" />
-        ) : (
-          <ChevronRight size={16} strokeWidth={1.75} className="text-mist" />
-        )}
+        {/* One chevron that rotates — swapping two glyphs read as a different control. */}
+        <ChevronDown
+          size={16}
+          strokeWidth={1.75}
+          className={`text-mist transition-transform ${open ? 'rotate-180' : ''}`}
+        />
       </button>
 
       {open ? (
         <div className="grid gap-6 border-t border-hairline px-4 py-5 sm:grid-cols-2 lg:grid-cols-3">
           {/* Name + voice */}
-          <div className="flex flex-col gap-3">
-            <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-2">
               <label htmlFor="brand-name" className="mono-meta">
                 Studio / client name
               </label>
@@ -112,10 +120,10 @@ export function BrandPanel() {
                 value={brand.name}
                 onChange={(e) => setBrand({ name: e.target.value })}
                 placeholder="e.g. AND Studio"
-                className="rounded-xl border border-hairline bg-paper px-3.5 py-2 text-sm text-graphite placeholder:text-mist focus-visible:outline-ochre"
+                className="rounded-field border border-hairline bg-paper px-3.5 py-2 text-body text-graphite placeholder:text-mist"
               />
             </div>
-            <div className="flex flex-col gap-1.5">
+            <div className="flex flex-col gap-2">
               <label htmlFor="brand-voice" className="mono-meta">
                 Voice / tone
               </label>
@@ -125,13 +133,13 @@ export function BrandPanel() {
                 onChange={(e) => setBrand({ voice: e.target.value })}
                 rows={3}
                 placeholder="e.g. warm, material-led, quietly confident"
-                className="resize-none rounded-xl border border-hairline bg-paper px-3.5 py-2 text-sm text-graphite placeholder:text-mist focus-visible:outline-ochre"
+                className="resize-none rounded-field border border-hairline bg-paper px-3.5 py-2 text-body text-graphite placeholder:text-mist"
               />
             </div>
           </div>
 
           {/* Palette */}
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-3">
             <span className="mono-meta">Palette</span>
             <ColorRow label="Primary" value={brand.primary} onChange={(v) => setBrand({ primary: v })} />
             <ColorRow label="Accent" value={brand.accent} onChange={(v) => setBrand({ accent: v })} />
@@ -140,7 +148,7 @@ export function BrandPanel() {
           </div>
 
           {/* Type + logo */}
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-4">
             <Select
               label="Heading font"
               value={brand.headingFont}
@@ -153,11 +161,11 @@ export function BrandPanel() {
               options={FONT_OPTIONS}
               onChange={(v) => setBrand({ bodyFont: v })}
             />
-            <div className="flex flex-col gap-1.5">
+            <div className="flex flex-col gap-2">
               <span className="mono-meta">Logo</span>
               <div className="flex items-center gap-3">
                 {brand.logo ? (
-                  <span className="flex h-10 w-16 items-center justify-center rounded-lg border border-hairline bg-drafting">
+                  <span className="flex h-10 w-16 items-center justify-center rounded-control border border-hairline bg-drafting">
                     <img src={brand.logo} alt="Brand logo" className="max-h-8 max-w-full object-contain" />
                   </span>
                 ) : null}
@@ -168,34 +176,35 @@ export function BrandPanel() {
                   className="hidden"
                   onChange={(e) => void onLogoFile(e.target.files?.[0])}
                 />
-                <button
-                  type="button"
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  icon={<Upload size={14} strokeWidth={1.75} />}
                   onClick={() => fileRef.current?.click()}
-                  className="flex items-center gap-1.5 rounded-full border border-hairline bg-paper px-3.5 py-1.5 text-xs text-graphite hover:bg-drafting focus-visible:outline-ochre"
                 >
-                  <Upload size={13} strokeWidth={1.75} /> {brand.logo ? 'Replace' : 'Upload'}
-                </button>
+                  {brand.logo ? 'Replace' : 'Upload'}
+                </Button>
                 {brand.logo ? (
-                  <button
-                    type="button"
+                  <IconButton
+                    icon={<X size={16} strokeWidth={1.75} />}
+                    label="Remove logo"
+                    tone="danger"
                     onClick={() => setBrand({ logo: undefined })}
-                    className="p-1 text-graphite hover:text-ochre focus-visible:outline-ochre"
-                    aria-label="Remove logo"
-                  >
-                    <X size={15} strokeWidth={1.75} />
-                  </button>
+                  />
                 ) : null}
               </div>
-              {logoError ? <p className="text-xs text-ochre">{logoError}</p> : null}
+              {logoError ? <p className="text-caption text-danger">{logoError}</p> : null}
             </div>
 
-            <button
-              type="button"
+            <Button
+              variant="ghost"
+              size="sm"
+              icon={<RotateCcw size={14} strokeWidth={1.75} />}
               onClick={() => setBrand(DEFAULT_BRAND)}
-              className="flex w-fit items-center gap-1.5 text-xs text-mist hover:text-ochre focus-visible:outline-ochre"
+              className="w-fit"
             >
-              <RotateCcw size={12} strokeWidth={1.75} /> Reset to studio default
-            </button>
+              Reset to studio default
+            </Button>
           </div>
         </div>
       ) : null}

@@ -632,3 +632,42 @@ deliverables: the deck renderer and mood boards).
   accent-on-white contrast.
 
 Verified: screenshots of every tab, qa/verifyEngines.cjs 17/17, tsc + build.
+
+## Addendum · Clean-modern-SaaS design system (audit-driven)
+
+A five-surface parallel audit (128 findings, 42 high) drove a second, deeper
+modernization pass. The headline finding was a **functional bug, not a taste
+issue**: the palette was mapped into Tailwind as bare `var(--x)` hex strings, so
+Tailwind's colour parser bailed and **every alpha modifier was silently dropped
+from the build** — 54 call sites emitted no CSS at all. The Lightbox and
+SocialExport scrims never dimmed, ErrorBanner's whole surface was invisible, the
+dropzone's processing overlay was transparent, and the sidebar's `text-bone/35`
+sub-labels rendered at full opacity, erasing the nav hierarchy.
+
+**Foundation**
+- Colours are published as space-separated RGB channels and mapped as
+  `rgb(var(--x-rgb) / <alpha-value>)`. Verified against the build: `bg-ink/95`,
+  `bg-ochre/10`, `border-ochre/30`, `text-bone/35` now emit real rules.
+- **Accessibility**: `--mist` darkened #969ba4 → #6b7280 (2.79:1 → 4.8:1); accent
+  *text* under 18px uses `--ochre-deep` (5.3:1) while `--ochre` stays a fill;
+  `--mist-faint` exists for decorative strokes only.
+- **Semantic ramp** added (danger / warning / success + soft variants). The
+  accent now means exactly one thing: primary action, active selection, focus.
+- **Scales registered**: type (display-xl…caption, nothing under 0.75rem),
+  radius (control .5 / field .75 / card 1rem / pill), elevation (flat /
+  shadow-card / shadow-card-lg, with the accent glow reserved for the primary
+  button). Motion defaults moved into Tailwind, replacing a universal `*`
+  transition that also animated layout properties.
+
+**Primitives** — `Switch` (replacing five hand-rolled square toggles, the
+loudest "old app" signal), `IconButton`, `Notice`, plus rewritten `Card`,
+`EmptyState` (solid hairline; dashed is reserved for drop targets) and
+`ErrorBanner`. `FeatureErrorBoundary` + `FeatureSkeleton` replace a bare
+route-level spinner and stop a feature throw from blanking the app.
+
+**Guardrail** — `qa/designLint.cjs` (11 checks) encodes the system: no shouty
+all-caps mono labels, radius on every bordered surface, accent-on-white
+contrast, alpha-capable tokens, semantic tokens present, glow discipline, no
+editorial serif in chrome, focus ring never suppressed, type from the scale.
+It exempts the client-facing print artefacts (`deckRender.ts`, `moodboard.ts`),
+which stay editorial by design.

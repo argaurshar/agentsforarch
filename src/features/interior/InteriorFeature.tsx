@@ -1,4 +1,4 @@
-import { RotateCcw, Sparkles, X } from 'lucide-react';
+import { RotateCcw, Sofa, Sparkles, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { ImageDropzone } from '../../components/Upload/ImageDropzone';
 import { CompareSection } from '../../components/Output/CompareSection';
@@ -8,9 +8,12 @@ import { SceneControls } from '../../components/Scene/SceneControls';
 import { StyleRefPicker } from '../../components/Scene/StyleRefPicker';
 import { Button } from '../../components/ui/Button';
 import { ChipGroup } from '../../components/ui/ChipGroup';
+import { EmptyState } from '../../components/ui/EmptyState';
 import { ErrorBanner } from '../../components/ui/ErrorBanner';
+import { Notice } from '../../components/ui/Notice';
 import { SectionHeader } from '../../components/ui/SectionHeader';
 import { Select } from '../../components/ui/Select';
+import { Switch } from '../../components/ui/Switch';
 import { INTERIOR_REFINE_CHIPS } from '../../lib/refine';
 import { INTERIOR_THEMES } from '../../lib/scene';
 import { buildInteriorPrompt, buildRefinePrompt } from '../../lib/prompts';
@@ -145,7 +148,8 @@ export function InteriorFeature() {
               options={MODE_OPTIONS}
               onChange={(v) => updateFeatureSettings('interior', { mode: v })}
             />
-            <p className="text-xs text-mist">{MODE_HINT[mode]}</p>
+            {/* The only explanation of what each mode does — never muted. */}
+            <p className="text-label text-graphite">{MODE_HINT[mode]}</p>
           </div>
 
           <Select
@@ -156,16 +160,14 @@ export function InteriorFeature() {
           />
 
           {runMode === 'refine' ? (
-            <div className="flex flex-col gap-3 rounded-xl border border-ochre/40 bg-ochre/5 p-4">
-              <div className="flex items-center justify-between">
-                <span className="mono-meta text-ochre">Refining · {refine.sourceLabel}</span>
-                <button
-                  type="button"
-                  onClick={() => exitRefine('interior')}
-                  className="text-xs text-ochre hover:text-ochre-deep focus-visible:outline-ochre"
-                >
+            /* Neutral drafting sub-panel: the accent budget here is spent on the
+               "Refining" label alone. */
+            <div className="flex flex-col gap-3 rounded-field border border-hairline bg-drafting p-4">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-label text-ochre-deep">Refining · {refine.sourceLabel}</span>
+                <Button variant="ghost" size="sm" onClick={() => exitRefine('interior')}>
                   Exit refine
-                </button>
+                </Button>
               </div>
               <RefineChips
                 value={refine}
@@ -175,8 +177,8 @@ export function InteriorFeature() {
             </div>
           ) : (
             <>
-              <div className="flex flex-col gap-4 rounded-xl border border-hairline bg-paper p-4 shadow-sm">
-                <p className="mono-meta text-ochre">Interior design · theme or mood board</p>
+              <div className="flex flex-col gap-4 rounded-field border border-hairline bg-paper p-4 shadow-card">
+                <p className="section-heading">Interior design · theme or mood board</p>
                 <ChipGroup
                   label="Style source"
                   value={styleSource}
@@ -185,28 +187,14 @@ export function InteriorFeature() {
                 />
                 {styleSource === 'theme' ? (
                   <>
-                    <div className="flex items-center justify-between">
-                      <span className="mono-meta">Compare styles · one image per theme</span>
-                      <button
-                        type="button"
-                        role="switch"
-                        aria-checked={compare}
-                        aria-label="Compare styles"
-                        onClick={() => setCompare((v) => !v)}
-                        className={`relative h-6 w-11 border transition-colors focus-visible:outline-ochre ${
-                          compare ? 'border-ochre bg-ochre' : 'border-hairline bg-drafting'
-                        }`}
-                      >
-                        <span
-                          className={`absolute top-1/2 h-4 w-4 -translate-y-1/2 bg-bone transition-all ${
-                            compare ? 'left-6' : 'left-1'
-                          }`}
-                        />
-                      </button>
-                    </div>
+                    <Switch checked={compare} onChange={setCompare} label="Compare styles">
+                      <span className="text-label text-graphite">Compare styles · one image per theme</span>
+                    </Switch>
                     {compare ? (
                       <>
-                        <div className="flex flex-wrap gap-1.5">
+                        {/* Multi-select siblings of <ChipGroup>. White-on-accent at this
+                            size needs the deeper ochre to clear AA. */}
+                        <div className="flex flex-wrap gap-2">
                           {COMPARE_KEYS.map((key) => {
                             const active = compareSel.includes(key);
                             return (
@@ -215,10 +203,10 @@ export function InteriorFeature() {
                                 type="button"
                                 aria-pressed={active}
                                 onClick={() => toggleCompareKey(key)}
-                                className={`pill border px-3.5 py-1.5 text-[0.8125rem] font-medium transition-colors focus-visible:outline-ochre ${
+                                className={`pill border px-3.5 py-1.5 text-label transition-colors active:scale-[0.98] ${
                                   active
-                                    ? 'border-ochre bg-ochre text-white shadow-btn'
-                                    : 'border-hairline bg-paper text-graphite hover:bg-drafting'
+                                    ? 'border-ochre-deep bg-ochre-deep text-white'
+                                    : 'border-hairline bg-paper text-graphite hover:border-mist/50 hover:bg-drafting'
                                 }`}
                               >
                                 {INTERIOR_THEMES[key].label}
@@ -226,7 +214,7 @@ export function InteriorFeature() {
                             );
                           })}
                         </div>
-                        <p className="text-xs text-mist">
+                        <p className="text-label text-graphite">
                           {compareSel.length < 2
                             ? 'Pick at least 2 themes.'
                             : `${compareSel.length} themes → ${compareSel.length} images in one run (max ${MAX_COMPARE}).`}
@@ -254,7 +242,7 @@ export function InteriorFeature() {
                       hint="Upload a reference mood board — the room will follow its style, furniture character, colours and mood."
                     />
                     {!moodboard ? (
-                      <p className="text-xs text-mist">Upload a mood board, or switch to “Design theme”.</p>
+                      <p className="text-label text-graphite">Upload a mood board, or switch to “Design theme”.</p>
                     ) : null}
                   </div>
                 )}
@@ -273,13 +261,14 @@ export function InteriorFeature() {
                 Prompt · auto-generated
               </label>
               {promptEdited ? (
-                <button
-                  type="button"
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  icon={<RotateCcw size={14} strokeWidth={1.75} />}
                   onClick={() => setFeaturePrompt('interior', suggestedPrompt, false)}
-                  className="flex items-center gap-1 text-[0.7rem] text-ochre hover:text-ochre-deep focus-visible:outline-ochre"
                 >
-                  <RotateCcw size={12} strokeWidth={1.75} /> Reset
-                </button>
+                  Reset
+                </Button>
               ) : null}
             </div>
             <textarea
@@ -287,29 +276,33 @@ export function InteriorFeature() {
               value={prompt}
               onChange={(e) => setFeaturePrompt('interior', e.target.value, true)}
               rows={4}
-              className="resize-none rounded-xl border border-hairline bg-paper px-3.5 py-2.5 text-sm leading-relaxed text-graphite placeholder:text-mist focus-visible:outline-ochre"
+              className="resize-none rounded-field border border-hairline bg-paper px-3.5 py-2.5 text-body text-graphite transition-colors placeholder:text-mist hover:border-mist/40"
             />
           </div>
 
-          <div className="flex items-center gap-3">
-            <Button
-              variant="primary"
-              icon={<Sparkles size={16} strokeWidth={1.75} />}
-              onClick={handleGenerate}
-              loading={loading}
-              disabled={!input || loading}
-            >
-              {loading ? 'Generating…' : 'Generate'}
-            </Button>
-            {loading ? (
-              <Button variant="secondary" size="sm" icon={<X size={14} strokeWidth={1.75} />} onClick={cancel}>
-                Cancel
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+              <Button
+                variant="primary"
+                icon={<Sparkles size={16} strokeWidth={1.75} />}
+                onClick={handleGenerate}
+                loading={loading}
+                disabled={!input || loading}
+              >
+                {loading ? 'Generating…' : 'Generate'}
               </Button>
-            ) : null}
-            {!input ? (
-              <span className="text-xs text-mist">Upload a room photo to begin.</span>
-            ) : !engineReady ? (
-              <span className="text-xs text-ochre">Add your Gemini key in Settings to generate.</span>
+              {loading ? (
+                <Button variant="secondary" size="sm" icon={<X size={14} strokeWidth={1.75} />} onClick={cancel}>
+                  Cancel
+                </Button>
+              ) : null}
+              {!input ? (
+                /* Wraps to its own line on narrow viewports rather than squeezing the buttons. */
+                <span className="basis-full text-label text-graphite sm:basis-auto">Upload a room photo to begin.</span>
+              ) : null}
+            </div>
+            {input && !engineReady ? (
+              <Notice tone="warning" message="Add your image-engine key in Settings to generate." />
             ) : null}
           </div>
         </div>
@@ -317,9 +310,7 @@ export function InteriorFeature() {
         <div className="flex flex-col gap-4">
           <p className="mono-meta">Output · redesigned room</p>
           {error ? <ErrorBanner message={error} onRetry={handleGenerate} /> : null}
-          {warning ? (
-            <p className="rounded-xl border border-hairline bg-drafting px-3.5 py-2 text-xs leading-relaxed text-graphite">{warning}</p>
-          ) : null}
+          {warning ? <Notice tone="warning" message={warning} /> : null}
           {loading || outputs.length > 0 ? (
             <OutputGrid
               outputs={outputs}
@@ -331,11 +322,11 @@ export function InteriorFeature() {
               onRefine={(image) => beginRefine('interior', image)}
             />
           ) : !error ? (
-            <div className="flex flex-1 items-center justify-center rounded-2xl border-2 border-dashed border-hairline bg-paper px-6 py-16 text-center">
-              <p className="max-w-xs text-sm leading-relaxed text-mist">
-                Your redesigned room will appear here. Upload a photo, pick a style, and Generate.
-              </p>
-            </div>
+            <EmptyState
+              icon={Sofa}
+              title="No redesign yet"
+              description="Your redesigned room will appear here. Upload a photo, pick a style, and Generate."
+            />
           ) : null}
         </div>
       </div>
