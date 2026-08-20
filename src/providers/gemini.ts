@@ -1,19 +1,12 @@
 import { newId } from '../lib/images';
-import { outputLabels } from './labels';
-import { getGeminiApiKey, getGeminiModel } from './runtimeConfig';
+import { getEngine, getGeminiApiKey, getGeminiModel } from './runtimeConfig';
+import { abortableDelay, FALLBACK_PROMPT, inlineFromDataUrl, jobsFor } from './shared';
 import type { GenerateFailure, GeneratedImage, GenerateRequest, GenerateResult, ImageProvider } from './types';
 
 // Nano Banana Pro (Google Gemini 3 Pro Image) provider. The user's browser
 // calls the Generative Language API directly with their own key (this is a
 // static, backend-less app), so the key stays on the user's device. All
 // generation still flows through the ImageProvider adapter.
-
-const VIEWPOINT_FULL: Record<string, string> = {
-  NE: 'north-east',
-  NW: 'north-west',
-  SE: 'south-east',
-  SW: 'south-west',
-};
 
 interface InlineData {
   mimeType?: string;
@@ -32,54 +25,6 @@ interface GenerateContentResponse {
   promptFeedback?: { blockReason?: string };
 }
 
-function inlineFromDataUrl(dataUrl: string): { mimeType: string; data: string } {
-  const match = /^data:([^;]+);base64,(.+)$/s.exec(dataUrl);
-  if (!match) throw new Error('The input image could not be read (expected a base64 data URL).');
-  return { mimeType: match[1], data: match[2] };
-}
-
-/** Expand a request into one prompt+label per output image. */
-function jobsFor(req: GenerateRequest, base: string): { label: string; prompt: string }[] {
-  const labels = outputLabels(req);
-  // A refine is always a single edit of one existing output.
-  if (req.options.refine) {
-    return [{ label: labels[0] ?? 'Refined', prompt: base }];
-  }
-  // Compare-styles batch: one job per design language, same base prompt.
-  const variants = req.options.styleVariants;
-  if (variants?.length) {
-    const kind = req.feature === 'interior' ? 'Design style' : 'Architectural style';
-    return variants.map((v, i) => ({
-      label: labels[i],
-      prompt: `${base}\n\n${kind}: ${v.clause}.`,
-    }));
-  }
-  if (req.feature === 'axonometric') {
-    const viewpoints = req.options.viewpoints?.length ? req.options.viewpoints : ['NE'];
-    return viewpoints.map((vp, i) => ({
-      label: labels[i],
-      prompt: `${base}\n\nViewpoint: ${VIEWPOINT_FULL[vp] ?? vp} axonometric.`,
-    }));
-  }
-  if (req.feature === 'elevation') {
-    // The "all faces" batch expands to one job per requested face.
-    const faces = req.options.viewpoints?.length ? req.options.viewpoints : null;
-    if (faces && faces.length > 1) {
-      return faces.map((face, i) => ({
-        label: labels[i],
-        prompt: `${base}\n\nFace: the ${face.toLowerCase()} elevation, viewed straight-on with no perspective.`,
-      }));
-    }
-    return [{ label: labels[0], prompt: base }];
-  }
-  // render
-  const variations = Math.max(1, req.options.variations ?? 1);
-  return Array.from({ length: variations }, (_, i) => ({
-    label: labels[i],
-    prompt: variations > 1 ? `${base}\n\nAlternative composition ${i + 1}.` : base,
-  }));
-}
-
 function friendlyError(status: number, body: string, key: string): string {
   // Never echo the API key back into the UI, even if the upstream error did.
   const safe = key ? body.split(key).join('***') : body;
@@ -88,20 +33,6 @@ function friendlyError(status: number, body: string, key: string): string {
   if (status === 404) return 'The configured Gemini model was not found — check the model name in Settings.';
   if (status === 429) return 'Gemini rate limit reached. Wait a moment and try again.';
   return `Gemini request failed (HTTP ${status}). ${safe.slice(0, 160)}`.trim();
-}
-
-/** Sleep that resolves early (does not reject) when the signal aborts. */
-function abortableDelay(ms: number, signal?: AbortSignal): Promise<void> {
-  if (!ms || signal?.aborted) return Promise.resolve();
-  return new Promise((resolve) => {
-    const done = () => {
-      clearTimeout(timer);
-      signal?.removeEventListener('abort', done);
-      resolve();
-    };
-    const timer = setTimeout(done, ms);
-    signal?.addEventListener('abort', done);
-  });
 }
 
 async function generateOne(
@@ -178,7 +109,9 @@ export class GeminiProvider implements ImageProvider {
   name = 'Nano Banana Pro';
 
   isConfigured(): boolean {
-    return Boolean(getGeminiApiKey());
+    // Active only when the user's chosen engine is Gemini (and a key is set) —
+    // the engine picker in Settings decides which provider serves generations.
+    return getEngine() === 'gemini' && Boolean(getGeminiApiKey());
   }
 
   async generate(req: GenerateRequest, signal?: AbortSignal): Promise<GenerateResult> {
@@ -190,9 +123,7 @@ export class GeminiProvider implements ImageProvider {
     const start = performance.now();
     const inline = inlineFromDataUrl(req.inputImage);
     const reference = req.options.referenceImage ? inlineFromDataUrl(req.options.referenceImage) : null;
-    const base = req.prompt?.trim()
-      ? req.prompt.trim()
-      : 'Reimagine this architectural input as a polished presentation image while preserving its geometry and proportions.';
+    const base = req.prompt?.trim() ? req.prompt.trim() : FALLBACK_PROMPT;
 
     const jobs = jobsFor(req, base);
     const images: GeneratedImage[] = [];

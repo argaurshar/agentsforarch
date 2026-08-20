@@ -21,12 +21,18 @@ import type { ElevationThemeKey, InteriorMode, InteriorThemeKey, RoomTypeKey, Sc
 
 // --- Render -----------------------------------------------------------------
 
+// Shared exclusion clause (skill: state what to leave out as plainly as what to
+// include). Nano Banana happily copies a plan's text labels or invents captions
+// unless told not to — the most common "prompt not working" complaint.
+const NO_TEXT = 'Do not add any watermark, signature, caption or stray text to the image.';
+
 const CLAY_PROMPT =
   'Turn this architectural sketch into a clean clay / white-model massing render. ' +
   'Preserve the exact geometry and proportions of the original. ' +
   'Uniform matte off-white clay material with no textures, soft neutral studio lighting, ' +
   'gentle ambient occlusion in the recesses, subtle contact shadows on a plain light-grey ground, ' +
-  'monochrome architectural massing study aesthetic.';
+  'monochrome architectural massing study aesthetic. ' +
+  NO_TEXT;
 
 const LINE_PROMPT =
   'Convert this sketch into a precise black-and-white architectural line drawing. ' +
@@ -38,7 +44,8 @@ const WATERCOLOUR_PROMPT =
   'Render this architectural sketch as an elegant architectural watercolour illustration. ' +
   'Preserve the geometry and composition. ' +
   'Soft translucent washes, loose confident edges, warm muted palette, subtle paper texture, ' +
-  'gently graded skies, hand-painted presentation illustration, light and airy.';
+  'gently graded skies, hand-painted presentation illustration, light and airy. ' +
+  NO_TEXT;
 
 export type RenderStyleKey = 'photoreal' | 'isometric' | 'clay' | 'line' | 'watercolour';
 
@@ -61,13 +68,15 @@ function buildIsometricPrompt(a: SceneOptions): string {
     'Use a strict 45-degree isometric camera angle looking down into the plan, with parallel projection and no perspective distortion.',
     'Maintain the exact room layout, wall positions, door and window openings and overall proportions of the original plan — do not move, add or remove rooms.',
     'Do not add a ceiling or roof: leave the rooms open from above so the whole interior is visible from the top.',
+    'Replace the plan’s text labels, dimension strings and annotation symbols with the real rendered rooms they describe — a room marked as a kitchen becomes a furnished kitchen, a bedroom a furnished bedroom. The output must contain no text at all.',
   ];
   const arch = archStyleClause(a);
   if (arch) parts.push(`Architectural style: ${arch}.`);
   if (MOODS[a.mood].clause) parts.push(`Mood: ${MOODS[a.mood].clause}.`);
   parts.push(
     'Clean neutral studio background, soft even ambient lighting, a subtle contact shadow beneath the model, ' +
-      'professional architectural presentation render, ultra-detailed.',
+      'the whole model centred and fully inside the frame, professional architectural presentation render, ultra-detailed.',
+    NO_TEXT,
   );
   return parts.join(' ');
 }
@@ -83,11 +92,12 @@ function buildFurnishedPlanPrompt(a: SceneOptions): string {
     'Keep the view strictly top-down orthographic — flat, with no perspective and no 3D extrusion of the walls.',
     'Maintain the exact room layout, wall positions, door and window openings and overall proportions of the original plan — do not move, add or remove rooms.',
     'Render realistic flooring materials per room, furniture and fixtures drawn in clean top view, soft subtle drop shadows for depth, and a crisp white background around the plan.',
+    'Re-set the room names as small, clean, minimal sans-serif labels; drop the dimension strings and annotation marks.',
   ];
   const arch = archStyleClause(a);
   if (arch) parts.push(`Architectural style: ${arch}.`);
   if (MOODS[a.mood].clause) parts.push(`Mood: ${MOODS[a.mood].clause}.`);
-  parts.push('Professional architectural presentation graphics, ultra-detailed, print quality.');
+  parts.push('Professional architectural presentation graphics, ultra-detailed, print quality. No watermark or signature.');
   return parts.join(' ');
 }
 
@@ -123,8 +133,11 @@ function renderBase(a: { style: string } & SceneOptions): string {
   if (MOODS[a.mood].clause) parts.push(`Mood: ${MOODS[a.mood].clause}.`);
   parts.push(a.entourage ? 'Include a few softly rendered people for scale.' : 'No people.');
   parts.push(
-    'Physically based rendering, high dynamic range, crisp material detail, professional architectural ' +
-      'visualization, 24mm architectural lens, eye-level view, ultra-detailed.',
+    'As if shot on a 24mm tilt-shift architectural lens at eye level, verticals kept true. ' +
+      'Physically based rendering, high dynamic range, crisp material detail, natural colour grade, ' +
+      'professional architectural visualization that reads as a photograph, ultra-detailed. ' +
+      'No warped or bowed glazing, no lens flare, no oversaturation.',
+    NO_TEXT,
   );
   return parts.join(' ');
 }
@@ -151,22 +164,28 @@ interface ElevationStyleArgs {
 export function buildElevationPrompt(
   a: { face: 'Front' | 'Side' | 'Rear' | null; style: string } & ElevationSceneArgs & ElevationStyleArgs,
 ): string {
-  const faceClause =
-    a.face === null
-      ? 'elevation'
-      : a.face === 'Front'
-        ? 'front elevation, viewed straight-on'
-        : a.face === 'Rear'
-          ? 'rear elevation, viewed straight-on from behind'
-          : "side elevation, a true orthographic view of the building's flank";
+  // The face is a noun phrase; the viewing direction is its own sentence so the
+  // opening line stays grammatical for every face (and for the all-faces base).
+  const faceNoun = a.face === null ? 'elevation' : `${a.face.toLowerCase()} elevation`;
+  const faceView =
+    a.face === 'Rear'
+      ? 'Viewed perfectly straight-on from behind the building.'
+      : a.face === 'Side'
+        ? "Viewed perfectly straight-on at the building's flank — a true side view."
+        : 'Viewed perfectly straight-on.';
   const styleClause = ELEVATION_STYLE_CLAUSE[a.style] ?? ELEVATION_STYLE_CLAUSE.rendered;
 
   const parts: string[] = [
-    `Produce a clean, orthographic ${faceClause} of the building shown, as a flat architectural drawing.`,
+    `Produce a clean orthographic ${faceNoun} of the building shown in the input image, as a flat architectural drawing.`,
+    faceView,
     'Maintain accurate proportions and align every element to a true vertical and horizontal grid with no perspective. Neutral white background.',
   ];
   if (a.style === 'rendered') {
-    parts.push(`Lighting: ${LIGHTING[a.lighting].clause}.`);
+    // Lighting is applied as façade illumination only — the drawing itself must
+    // stay flat, so the scene clause must not pull the model into a 3D view.
+    parts.push(
+      `Light the façade with ${LIGHTING[a.lighting].clause} — applied purely as illumination and shadow across the flat elevation, never tilting it into perspective.`,
+    );
   }
   parts.push(styleClause);
   // A rendered elevation can be driven by a design theme OR a reference mood board
@@ -187,6 +206,7 @@ export function buildElevationPrompt(
     }
   }
   if (MOODS[a.mood].clause) parts.push(`${MOODS[a.mood].clause}.`);
+  parts.push(NO_TEXT);
   return parts.join(' ');
 }
 
@@ -247,7 +267,9 @@ export function buildInteriorPrompt(a: InteriorPromptArgs): string {
   }
   if (MOODS[a.mood].clause) parts.push(`Mood: ${MOODS[a.mood].clause}.`);
   parts.push(
-    'Photorealistic interior render, physically based lighting, soft natural light from the existing windows, crisp material detail, ultra-detailed.',
+    'Photorealistic interior render, physically based lighting, soft natural light from the existing windows, ' +
+      'crisp material detail, natural colour grade, reads as a photograph, ultra-detailed.',
+    NO_TEXT,
   );
   return parts.join(' ');
 }
@@ -292,6 +314,7 @@ export function buildAxonometricPrompt(a: { section: boolean; style: string }): 
         'and rooms, with solid poché-filled cut surfaces.',
     );
   }
+  parts.push('Keep the whole model centred and fully inside the frame.', NO_TEXT);
   return parts.join(' ');
 }
 
@@ -307,7 +330,8 @@ export function buildRefinePrompt(a: { chips: string[]; freeText: string }): str
   const list = changes.length ? changes.join('; ') : 'subtly improve the image';
   return (
     'Edit this image. Keep the composition, geometry, camera angle and proportions exactly as shown. ' +
-    `Apply only these changes: ${list}.`
+    `Apply only these changes: ${list}. ` +
+    NO_TEXT
   );
 }
 

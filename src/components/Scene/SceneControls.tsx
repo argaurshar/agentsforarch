@@ -33,7 +33,7 @@ function toOptions<T extends string>(map: Record<T, SceneOpt>): { value: T; labe
 export function SceneControls({ value, onChange, show }: SceneControlsProps) {
   return (
     <div className="flex flex-col gap-4 border border-hairline bg-paper p-4">
-      <p className="mono-meta text-ochre">Scene · no prompt needed</p>
+      <p className="mono-meta text-ochre">Scene · one-click controls</p>
 
       {show.archStyle ? (
         <div className="flex flex-col gap-2">

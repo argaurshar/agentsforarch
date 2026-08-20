@@ -4,11 +4,14 @@ import { newId } from '../lib/images';
 import { activeProviderName, isImageEngineReady } from '../providers';
 import {
   getClaudeApiKey,
+  getEngine,
   getGeminiApiKey,
   getGeminiModel,
+  getKieApiKey,
   initRuntimeConfig,
   setGeminiConfig,
 } from '../providers/runtimeConfig';
+import type { EngineKey } from '../providers/runtimeConfig';
 import { storage } from '../storage';
 import type {
   Asset,
@@ -84,8 +87,10 @@ interface AddAssetInput {
 }
 
 interface ApiConfigInput {
+  engine?: EngineKey;
   key: string | undefined;
   model?: string;
+  kieKey?: string | undefined;
   remember: boolean;
   claudeKey?: string | undefined;
 }
@@ -95,11 +100,15 @@ interface ProjectState {
   tab: TabKey;
   providerName: string;
 
-  // Image-generation credentials (Nano Banana Pro), supplied from the frontend.
-  apiKey: string | undefined;
-  model: string;
+  // Image-generation credentials, supplied from the frontend. `engine` picks
+  // which service serves generations: Gemini (Nano Banana Pro) or kie.ai
+  // (Nano Banana 2) — each with its own key.
+  engine: EngineKey;
+  apiKey: string | undefined; // Gemini key
+  model: string; // Gemini model
+  kieApiKey: string | undefined; // kie.ai key
   rememberKey: boolean;
-  engineReady: boolean; // true once a real image key is configured
+  engineReady: boolean; // true once the chosen engine has its key configured
   claudeApiKey: string | undefined; // Claude key for the presentation composer
   setApiConfig: (cfg: ApiConfigInput) => void;
 
@@ -175,16 +184,20 @@ export const useProjectStore = create<ProjectState>((set, get) => {
     tab: 'home',
     providerName: activeProviderName(),
 
+    engine: rc.engine,
     apiKey: rc.apiKey,
     model: rc.model,
+    kieApiKey: rc.kieApiKey,
     rememberKey: rc.remembered,
     engineReady: isImageEngineReady(),
     claudeApiKey: rc.claudeApiKey,
     setApiConfig: (cfg) => {
       setGeminiConfig(cfg);
       set({
+        engine: getEngine(),
         apiKey: getGeminiApiKey(),
         model: getGeminiModel(),
+        kieApiKey: getKieApiKey(),
         rememberKey: cfg.remember,
         engineReady: isImageEngineReady(),
         claudeApiKey: getClaudeApiKey(),
