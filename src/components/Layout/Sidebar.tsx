@@ -37,26 +37,24 @@ export function Sidebar({ onNavigate }: SidebarProps = {}) {
     <nav
       aria-label="Features"
       className="flex w-64 shrink-0 flex-col bg-ink text-bone"
+      style={{ backgroundImage: 'linear-gradient(180deg, #1d1f24 0%, #17181c 60%)' }}
     >
       {/* Brand lockup — echoes andstudio.in. To use the exact logo, replace the
           "AND" wordmark block below with:  <img src="/logo.svg" alt="AND Studio"
           className="h-9 w-auto" />  (drop the SVG/PNG into /public). */}
-      <div className="border-b border-white/10 px-6 py-7">
-        <div className="flex items-baseline gap-1">
-          <span className="font-serif text-[2rem] font-medium leading-none tracking-[0.03em] text-bone">
-            AND
+      <div className="px-5 pb-5 pt-6">
+        <div className="flex items-center gap-3">
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-ochre font-display text-sm font-bold text-white">
+            A
           </span>
-          <span className="font-serif text-xs text-bone/50">®</span>
+          <span className="flex flex-col leading-tight">
+            <span className="font-display text-[1.0625rem] font-semibold tracking-tight text-bone">AND Studio</span>
+            <span className="text-[0.75rem] text-bone/45">Visualization Platform</span>
+          </span>
         </div>
-        <p className="mt-2 font-mono text-[0.5rem] uppercase tracking-[0.28em] text-bone/45">
-          Architecture &amp; Design Studio
-        </p>
-        <p className="mt-4 font-serif text-base font-light leading-tight text-bone/75">
-          Visualization Platform
-        </p>
       </div>
 
-      <ul className="flex flex-col gap-px p-3">
+      <ul className="flex flex-col gap-1 px-3 pb-3">
         {NAV_ITEMS.map((item) => {
           const active = tab === item.key;
           const Icon = item.icon;
@@ -69,29 +67,20 @@ export function Sidebar({ onNavigate }: SidebarProps = {}) {
                   setTab(item.key);
                   onNavigate?.();
                 }}
-                className={`group flex w-full items-center gap-3 border-l-2 px-4 py-3 text-left transition-colors ${
-                  active
-                    ? 'border-ochre bg-white/[0.06]'
-                    : 'border-transparent hover:bg-white/[0.04]'
+                className={`group flex w-full items-center gap-3 rounded-xl px-3.5 py-2.5 text-left transition-all duration-200 ${
+                  active ? 'bg-ochre text-white shadow-btn' : 'text-bone/70 hover:bg-white/[0.07] hover:text-bone'
                 }`}
               >
                 <Icon
                   size={18}
-                  strokeWidth={1.5}
-                  className={`transition-transform group-hover:translate-x-0.5 ${
-                    active ? 'text-ochre' : 'text-bone/60 group-hover:text-bone'
-                  }`}
+                  strokeWidth={1.75}
+                  className={active ? 'text-white' : 'text-bone/50 transition-colors group-hover:text-bone'}
                 />
-                <span className="flex flex-col">
-                  <span className="flex items-baseline gap-2">
-                    <span className={`font-mono text-[0.65rem] ${active ? 'text-ochre' : 'text-bone/40'}`}>
-                      {item.index}
-                    </span>
-                    <span className={`text-sm font-medium ${active ? 'text-bone' : 'text-bone/80'}`}>
-                      {item.name}
-                    </span>
+                <span className="flex min-w-0 flex-col leading-tight">
+                  <span className={`text-[0.875rem] font-medium ${active ? 'text-white' : ''}`}>{item.name}</span>
+                  <span className={`truncate text-[0.75rem] ${active ? 'text-white/70' : 'text-bone/35'}`}>
+                    {item.sub}
                   </span>
-                  <span className="text-[0.7rem] text-bone/40">{item.sub}</span>
                 </span>
               </button>
             </li>
@@ -99,10 +88,8 @@ export function Sidebar({ onNavigate }: SidebarProps = {}) {
         })}
       </ul>
 
-      <div className="mt-auto border-t border-white/10 px-6 py-5">
-        <p className="font-mono text-[0.6rem] uppercase tracking-[0.14em] text-bone/40">
-          Internal Tool · Single Studio
-        </p>
+      <div className="mt-auto px-5 pb-5 pt-4">
+        <p className="text-[0.75rem] text-bone/35">Internal tool · single studio</p>
       </div>
     </nav>
   );

@@ -114,7 +114,7 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
           <p className="eyebrow -mb-2">Image Generation</p>
 
           {/* Current status */}
-          <div className="flex items-center justify-between border border-hairline bg-paper px-4 py-3">
+          <div className="flex items-center justify-between rounded-xl border border-hairline bg-paper px-4 py-3 shadow-sm">
             <span className="text-sm text-graphite">Active engine</span>
             <span className={`mono-meta ${active ? 'text-ochre' : 'text-mist'}`}>{providerName}</span>
           </div>
@@ -135,12 +135,12 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
                       setEngineDraft(opt.value);
                       setSaved(false);
                     }}
-                    className={`flex flex-col items-start gap-0.5 border px-3 py-2.5 text-left transition-colors focus-visible:outline-ochre ${
-                      selected ? 'border-ochre bg-ochre text-bone' : 'border-hairline bg-paper text-graphite hover:bg-drafting'
+                    className={`flex flex-col items-start gap-0.5 rounded-xl border px-3.5 py-3 text-left transition-all focus-visible:outline-ochre ${
+                      selected ? 'border-ochre bg-ochre text-white shadow-btn' : 'border-hairline bg-paper text-graphite hover:bg-drafting'
                     }`}
                   >
                     <span className="text-sm font-medium">{opt.label}</span>
-                    <span className={`text-xs ${selected ? 'text-bone/80' : 'text-mist'}`}>{opt.sub}</span>
+                    <span className={`text-xs ${selected ? 'text-white/75' : 'text-mist'}`}>{opt.sub}</span>
                   </button>
                 );
               })}
@@ -159,7 +159,7 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
                 <label htmlFor="api-key" className="mono-meta">
                   Gemini API key
                 </label>
-                <div className="flex items-stretch border border-hairline bg-paper focus-within:outline focus-within:outline-2 focus-within:outline-ochre">
+                <div className="flex items-stretch overflow-hidden rounded-xl border border-hairline bg-paper focus-within:outline focus-within:outline-2 focus-within:outline-ochre">
                   <input
                     id="api-key"
                     type={reveal ? 'text' : 'password'}
@@ -205,7 +205,7 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
                     setSaved(false);
                   }}
                   spellCheck={false}
-                  className="border border-hairline bg-paper px-3 py-2.5 font-mono text-sm text-graphite focus-visible:outline-ochre"
+                  className="rounded-xl border border-hairline bg-paper px-3.5 py-2.5 font-mono text-sm text-graphite focus-visible:outline-ochre"
                 />
                 <p className="text-xs text-mist">
                   Defaults to Nano Banana Pro ({DEFAULT_MODEL}). Change only if Google renames it.
@@ -225,7 +225,7 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
                 <label htmlFor="kie-key" className="mono-meta">
                   kie.ai API key
                 </label>
-                <div className="flex items-stretch border border-hairline bg-paper focus-within:outline focus-within:outline-2 focus-within:outline-ochre">
+                <div className="flex items-stretch overflow-hidden rounded-xl border border-hairline bg-paper focus-within:outline focus-within:outline-2 focus-within:outline-ochre">
                   <input
                     id="kie-key"
                     type={kieReveal ? 'text' : 'password'}
@@ -270,7 +270,7 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
             <label htmlFor="claude-key" className="mono-meta mt-1">
               Claude API key
             </label>
-            <div className="flex items-stretch border border-hairline bg-paper focus-within:outline focus-within:outline-2 focus-within:outline-ochre">
+            <div className="flex items-stretch overflow-hidden rounded-xl border border-hairline bg-paper focus-within:outline focus-within:outline-2 focus-within:outline-ochre">
               <input
                 id="claude-key"
                 type={claudeReveal ? 'text' : 'password'}

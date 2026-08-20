@@ -112,7 +112,7 @@ export function AxonometricFeature() {
                     onClick={() => toggleViewpoint(vp)}
                     className={`border py-2.5 text-sm font-medium transition-colors focus-visible:outline-ochre ${
                       active
-                        ? 'border-ochre bg-ochre text-bone'
+                        ? 'border-ochre bg-ochre text-white shadow-btn'
                         : 'border-hairline bg-paper text-graphite hover:bg-drafting'
                     }`}
                   >
@@ -127,7 +127,7 @@ export function AxonometricFeature() {
           </div>
 
           {/* Section axonometric toggle. */}
-          <div className="flex items-center justify-between border border-hairline bg-paper px-4 py-3">
+          <div className="flex items-center justify-between rounded-xl border border-hairline bg-paper px-4 py-3 shadow-sm">
             <div>
               <p className="text-sm font-medium text-ink">Section axonometric</p>
               <p className="text-xs text-mist">Adds a cut plane and labels views “— section”.</p>
@@ -150,7 +150,7 @@ export function AxonometricFeature() {
           </div>
 
           {mode === 'refine' ? (
-            <div className="flex flex-col gap-3 border border-ochre bg-drafting p-4">
+            <div className="flex flex-col gap-3 rounded-xl border border-ochre/40 bg-ochre/5 p-4">
               <div className="flex items-center justify-between">
                 <span className="mono-meta text-ochre">Refining · {refine.sourceLabel}</span>
                 <button
@@ -185,7 +185,7 @@ export function AxonometricFeature() {
               value={prompt}
               onChange={(e) => setFeaturePrompt('axonometric', e.target.value, true)}
               rows={4}
-              className="resize-none border border-hairline bg-paper px-3 py-2.5 text-sm leading-relaxed text-graphite placeholder:text-mist focus-visible:outline-ochre"
+              className="resize-none rounded-xl border border-hairline bg-paper px-3.5 py-2.5 text-sm leading-relaxed text-graphite placeholder:text-mist focus-visible:outline-ochre"
             />
           </div>
 
@@ -218,7 +218,7 @@ export function AxonometricFeature() {
           <p className="mono-meta">Output</p>
           {error ? <ErrorBanner message={error} onRetry={handleGenerate} /> : null}
           {warning ? (
-            <p className="border border-hairline bg-drafting px-3 py-2 text-xs leading-relaxed text-graphite">{warning}</p>
+            <p className="rounded-xl border border-hairline bg-drafting px-3.5 py-2 text-xs leading-relaxed text-graphite">{warning}</p>
           ) : null}
           {loading || outputs.length > 0 ? (
             <OutputGrid
@@ -231,7 +231,7 @@ export function AxonometricFeature() {
               onRefine={(image) => beginRefine('axonometric', image)}
             />
           ) : !error ? (
-            <div className="flex flex-1 items-center justify-center border border-dashed border-hairline bg-paper px-6 py-16 text-center">
+            <div className="flex flex-1 items-center justify-center rounded-2xl border-2 border-dashed border-hairline bg-paper px-6 py-16 text-center">
               <p className="max-w-xs text-sm leading-relaxed text-mist">
                 Axonometric views will appear here, one per viewpoint.
               </p>

@@ -19,7 +19,7 @@ interface OutputCardProps {
 }
 
 const ICON_BTN =
-  'flex items-center justify-center border border-hairline bg-paper p-1.5 text-graphite hover:bg-drafting focus-visible:outline-ochre';
+  'flex items-center justify-center rounded-lg border border-hairline bg-paper p-1.5 text-graphite hover:bg-drafting focus-visible:outline-ochre';
 
 const SHORT_TARGET: Record<string, string> = { elevation: 'Elevation', axonometric: 'Axon.', render: 'Render' };
 
@@ -37,7 +37,7 @@ export function OutputCard({
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   return (
-    <figure className="group flex flex-col border border-hairline bg-paper transition-colors hover:border-ochre/50">
+    <figure className="group flex flex-col overflow-hidden rounded-xl border border-hairline bg-paper shadow-card transition-colors hover:border-ochre/50">
       <button
         type="button"
         onClick={onView}
@@ -92,7 +92,7 @@ export function OutputCard({
             disabled={added}
             className={
               added
-                ? 'flex items-center justify-center border border-hairline bg-drafting p-1.5 text-mist'
+                ? 'flex items-center justify-center rounded-xl border border-hairline bg-drafting p-1.5 text-mist'
                 : 'flex items-center justify-center border border-ochre bg-ochre p-1.5 text-bone hover:bg-ochre-deep focus-visible:outline-ochre'
             }
             title={added ? 'Already in presentation' : 'Add to presentation'}

@@ -77,7 +77,7 @@ export function DashboardFeature() {
 
       {/* Getting started — shown until the key is set and something exists. */}
       {showTips ? (
-        <div className="mb-8 border border-ochre bg-paper p-5">
+        <div className="mb-8 rounded-2xl border border-ochre/30 bg-gradient-to-br from-ochre/8 to-paper p-6 shadow-card">
           <div className="mb-4 flex items-start justify-between gap-3">
             <p className="mono-meta text-ochre">Getting started · three steps</p>
             <button
@@ -93,7 +93,7 @@ export function DashboardFeature() {
             <li className="flex items-start gap-3">
               <span
                 className={`flex h-7 w-7 shrink-0 items-center justify-center border ${
-                  engineReady ? 'border-ochre bg-ochre text-bone' : 'border-hairline text-graphite'
+                  engineReady ? 'border-ochre bg-ochre text-white shadow-btn' : 'border-hairline bg-paper text-graphite'
                 }`}
               >
                 {engineReady ? <Check size={14} strokeWidth={2.5} /> : <KeyRound size={13} strokeWidth={1.75} />}
@@ -106,7 +106,7 @@ export function DashboardFeature() {
               </div>
             </li>
             <li className="flex items-start gap-3">
-              <span className="flex h-7 w-7 shrink-0 items-center justify-center border border-hairline text-graphite">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-hairline bg-paper text-graphite">
                 <FileImage size={13} strokeWidth={1.75} />
               </span>
               <div>
@@ -118,7 +118,7 @@ export function DashboardFeature() {
               </div>
             </li>
             <li className="flex items-start gap-3">
-              <span className="flex h-7 w-7 shrink-0 items-center justify-center border border-hairline text-graphite">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-hairline bg-paper text-graphite">
                 <Sparkles size={13} strokeWidth={1.75} />
               </span>
               <div>
@@ -143,7 +143,7 @@ export function DashboardFeature() {
               key={stage.key}
               type="button"
               onClick={() => setTab(stage.key)}
-              className="group flex flex-col border border-hairline bg-paper text-left transition-colors hover:border-ochre/60 focus-visible:outline-ochre"
+              className="group flex flex-col overflow-hidden rounded-2xl border border-hairline bg-paper text-left shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:border-ochre/50 hover:shadow-card-lg focus-visible:outline-ochre"
             >
               <div className="flex h-36 items-center justify-center overflow-hidden border-b border-hairline bg-drafting">
                 {info?.thumb ? (
@@ -178,7 +178,7 @@ export function DashboardFeature() {
                 type="button"
                 onClick={() => setTab(feature)}
                 title={image.label}
-                className="group aspect-square overflow-hidden border border-hairline bg-drafting transition-colors hover:border-ochre/60 focus-visible:outline-ochre"
+                className="group aspect-square overflow-hidden rounded-xl border border-hairline bg-drafting transition-all hover:border-ochre/60 hover:shadow-card focus-visible:outline-ochre"
               >
                 <img src={image.url} alt={image.label} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]" />
               </button>
@@ -192,7 +192,7 @@ export function DashboardFeature() {
         <button
           type="button"
           onClick={() => setTab('moodboard')}
-          className="group flex items-center gap-4 border border-hairline bg-paper px-5 py-4 text-left transition-colors hover:border-ochre/60 focus-visible:outline-ochre"
+          className="group flex items-center gap-4 rounded-2xl border border-hairline bg-paper px-5 py-4 text-left shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:border-ochre/50 hover:shadow-card-lg focus-visible:outline-ochre"
         >
           <Palette size={22} strokeWidth={1.25} className="text-ochre" />
           <span className="flex-1">
@@ -204,7 +204,7 @@ export function DashboardFeature() {
         <button
           type="button"
           onClick={() => setTab('presentation')}
-          className="group flex items-center gap-4 border border-hairline bg-paper px-5 py-4 text-left transition-colors hover:border-ochre/60 focus-visible:outline-ochre"
+          className="group flex items-center gap-4 rounded-2xl border border-hairline bg-paper px-5 py-4 text-left shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:border-ochre/50 hover:shadow-card-lg focus-visible:outline-ochre"
         >
           <LayoutTemplate size={22} strokeWidth={1.25} className="text-ochre" />
           <span className="flex-1">
@@ -216,7 +216,7 @@ export function DashboardFeature() {
         <button
           type="button"
           onClick={() => setTab('gallery')}
-          className="group flex items-center gap-4 border border-hairline bg-paper px-5 py-4 text-left transition-colors hover:border-ochre/60 focus-visible:outline-ochre"
+          className="group flex items-center gap-4 rounded-2xl border border-hairline bg-paper px-5 py-4 text-left shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:border-ochre/50 hover:shadow-card-lg focus-visible:outline-ochre"
         >
           <Images size={22} strokeWidth={1.25} className="text-ochre" />
           <span className="flex-1">

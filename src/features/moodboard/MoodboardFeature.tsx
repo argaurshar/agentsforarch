@@ -46,7 +46,7 @@ export function MoodboardFeature() {
           aria-selected={mode === 'ai'}
           onClick={() => setMode('ai')}
           className={`flex items-center gap-1.5 px-4 py-2 text-sm transition-colors focus-visible:outline-ochre ${
-            mode === 'ai' ? 'bg-ochre text-bone' : 'text-graphite hover:bg-drafting'
+            mode === 'ai' ? 'bg-ochre text-white' : 'text-graphite hover:bg-drafting'
           }`}
         >
           <Wand2 size={15} strokeWidth={1.75} /> AI board
@@ -57,7 +57,7 @@ export function MoodboardFeature() {
           aria-selected={mode === 'collage'}
           onClick={() => setMode('collage')}
           className={`flex items-center gap-1.5 px-4 py-2 text-sm transition-colors focus-visible:outline-ochre ${
-            mode === 'collage' ? 'bg-ochre text-bone' : 'text-graphite hover:bg-drafting'
+            mode === 'collage' ? 'bg-ochre text-white' : 'text-graphite hover:bg-drafting'
           }`}
         >
           <LayoutGrid size={15} strokeWidth={1.75} /> Collage
@@ -133,7 +133,7 @@ function BoardGenerator() {
                     aria-pressed={active}
                     title={ref.image.label}
                     onClick={() => setFeatureInput('moodboard', active ? null : ref.image.url)}
-                    className={`h-14 w-20 overflow-hidden border transition-all focus-visible:outline-ochre ${
+                    className={`h-14 w-20 overflow-hidden rounded-lg border transition-all focus-visible:outline-ochre ${
                       active ? 'border-ochre' : 'border-hairline opacity-60 hover:opacity-90'
                     }`}
                   >
@@ -157,8 +157,8 @@ function BoardGenerator() {
                   type="button"
                   aria-pressed={active}
                   onClick={() => updateFeatureSettings('moodboard', { aspect: a.value })}
-                  className={`border px-3 py-1.5 text-xs transition-colors focus-visible:outline-ochre ${
-                    active ? 'border-ochre bg-ochre text-bone' : 'border-hairline bg-paper text-graphite hover:bg-drafting'
+                  className={`pill border px-3.5 py-1.5 text-[0.8125rem] font-medium transition-colors focus-visible:outline-ochre ${
+                    active ? 'border-ochre bg-ochre text-white shadow-btn' : 'border-hairline bg-paper text-graphite hover:bg-drafting'
                   }`}
                 >
                   {a.label}
@@ -189,7 +189,7 @@ function BoardGenerator() {
             value={prompt}
             onChange={(e) => setFeaturePrompt('moodboard', e.target.value, true)}
             rows={4}
-            className="resize-none border border-hairline bg-paper px-3 py-2.5 text-sm leading-relaxed text-graphite placeholder:text-mist focus-visible:outline-ochre"
+            className="resize-none rounded-xl border border-hairline bg-paper px-3.5 py-2.5 text-sm leading-relaxed text-graphite placeholder:text-mist focus-visible:outline-ochre"
           />
         </div>
 
@@ -221,7 +221,7 @@ function BoardGenerator() {
         <p className="mono-meta">Output · material &amp; mood board</p>
         {error ? <ErrorBanner message={error} onRetry={handleGenerate} /> : null}
         {warning ? (
-          <p className="border border-hairline bg-drafting px-3 py-2 text-xs leading-relaxed text-graphite">{warning}</p>
+          <p className="rounded-xl border border-hairline bg-drafting px-3.5 py-2 text-xs leading-relaxed text-graphite">{warning}</p>
         ) : null}
         {loading || outputs.length > 0 ? (
           <OutputGrid
@@ -233,7 +233,7 @@ function BoardGenerator() {
             onDelete={removeImage}
           />
         ) : !error ? (
-          <div className="flex flex-1 items-center justify-center border border-dashed border-hairline bg-paper px-6 py-16 text-center">
+          <div className="flex flex-1 items-center justify-center rounded-2xl border-2 border-dashed border-hairline bg-paper px-6 py-16 text-center">
             <p className="max-w-xs text-sm leading-relaxed text-mist">
               Your material &amp; mood board will appear here — labelled samples, colour palette, material strip and
               vibe, extracted from your image.
@@ -391,7 +391,7 @@ function CollageComposer() {
                         disabled={disabled}
                         aria-pressed={isSel}
                         title={disabled ? `Up to ${MOODBOARD_MAX_IMAGES} images` : ref.image.label}
-                        className={`relative h-16 w-24 overflow-hidden border transition-all focus-visible:outline-ochre ${
+                        className={`relative h-16 w-24 overflow-hidden rounded-lg border transition-all focus-visible:outline-ochre ${
                           isSel
                             ? 'border-ochre'
                             : disabled
@@ -425,8 +425,8 @@ function CollageComposer() {
                   type="button"
                   aria-pressed={active}
                   onClick={() => setOrientation(o)}
-                  className={`border px-3 py-1.5 text-xs transition-colors focus-visible:outline-ochre ${
-                    active ? 'border-ochre bg-ochre text-bone' : 'border-hairline bg-paper text-graphite hover:bg-drafting'
+                  className={`pill border px-3.5 py-1.5 text-[0.8125rem] font-medium transition-colors focus-visible:outline-ochre ${
+                    active ? 'border-ochre bg-ochre text-white shadow-btn' : 'border-hairline bg-paper text-graphite hover:bg-drafting'
                   }`}
                 >
                   {o.label}
@@ -448,7 +448,7 @@ function CollageComposer() {
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Material & Mood Board"
-              className="border border-hairline bg-paper px-3 py-2 text-sm text-graphite placeholder:text-mist focus-visible:outline-ochre"
+              className="rounded-xl border border-hairline bg-paper px-3.5 py-2 text-sm text-graphite placeholder:text-mist focus-visible:outline-ochre"
             />
           </div>
           <div className="flex flex-col gap-2">
@@ -461,7 +461,7 @@ function CollageComposer() {
               value={subtitle}
               onChange={(e) => setSubtitle(e.target.value)}
               placeholder="Project name · phase · date"
-              className="border border-hairline bg-paper px-3 py-2 text-sm text-graphite placeholder:text-mist focus-visible:outline-ochre"
+              className="rounded-xl border border-hairline bg-paper px-3.5 py-2 text-sm text-graphite placeholder:text-mist focus-visible:outline-ochre"
             />
           </div>
         </div>
@@ -498,7 +498,7 @@ function CollageComposer() {
       {/* Live preview */}
       <div className="lg:sticky lg:top-6 lg:self-start">
         <span className="mono-meta">Preview</span>
-        <div className="mt-2 flex min-h-[320px] items-center justify-center border border-hairline bg-drafting p-4">
+        <div className="mt-2 flex min-h-[320px] items-center justify-center rounded-xl border border-hairline bg-drafting p-4">
           {preview ? (
             <img src={preview} alt="Mood board preview" className="max-h-[68vh] w-auto object-contain shadow-sm" />
           ) : rendering ? (

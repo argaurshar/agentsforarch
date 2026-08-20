@@ -6,18 +6,19 @@
 /* Design tokens — the single source of truth for the palette (spec §4) */
 /* ------------------------------------------------------------------ */
 :root {
-  /* AND Studio brand palette (from andstudio.in): warm ivory, charcoal-black,
-     antique brass. App chrome only — the per-deck presentation Brand default is
-     kept separate (see the store's makeDefaultBrand). */
-  --ink: #1c1815; /* warm charcoal-black — sidebar, headings, dark surfaces */
-  --ochre: #86662e; /* THE single accent — antique brass/bronze */
-  --ochre-deep: #6d5325; /* accent hover / pressed */
-  --bone: #f3ede1; /* app background (warm ivory, NOT white) */
-  --drafting: #e7ddca; /* card / sub-surface */
-  --paper: #faf6ed; /* clean surface for cards on bone */
-  --graphite: #3b342b; /* body text (warm dark grey) */
-  --mist: #98907f; /* captions, metadata (warm grey) */
-  --hairline: #d9cfb9; /* ALL borders and dividers (warm) */
+  /* Modernized palette (2026 pass): clean near-white surfaces with a barely-warm
+     cast, cool near-black ink, and a vivid terracotta accent that keeps the
+     studio's warmth. App chrome only — the per-deck presentation Brand default
+     is kept separate (see the store's makeDefaultBrand). */
+  --ink: #17181c; /* near-black — sidebar, headings, dark surfaces */
+  --ochre: #e0561f; /* THE single accent — vivid terracotta */
+  --ochre-deep: #bc4315; /* accent hover / pressed */
+  --bone: #f6f6f3; /* app background (light neutral, barely warm) */
+  --drafting: #eeeee9; /* sub-surface / hover tint */
+  --paper: #ffffff; /* clean card surface */
+  --graphite: #3e4249; /* body text (neutral slate) */
+  --mist: #969ba4; /* captions, metadata */
+  --hairline: #e6e5df; /* ALL borders and dividers */
 
   /* Motion — one refined easing curve for the whole app (premium, unhurried). */
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
@@ -39,17 +40,18 @@
     text-rendering: optimizeLegibility;
   }
 
-  /* Ink is for headings only. Body text is Graphite. Cormorant — an elegant,
-     high-contrast editorial serif that reads bespoke and high-end. */
+  /* Ink is for headings only. Body text is Graphite. Sora — a contemporary
+     geometric display face; the app reads like a 2026 product, while the
+     editorial serif is reserved for client-facing artefacts (decks, boards). */
   h1,
   h2,
   h3,
   h4 {
-    font-family: 'Cormorant', 'Cormorant Garamond', Georgia, Cambria, serif;
+    font-family: 'Sora', 'Inter', system-ui, sans-serif;
     color: var(--ink);
-    font-weight: 500;
-    line-height: 1.06;
-    letter-spacing: -0.008em;
+    font-weight: 600;
+    line-height: 1.12;
+    letter-spacing: -0.022em;
   }
 
   /* Keyboard focus rings in Ochre (spec §10 — polish). */
@@ -66,23 +68,40 @@
 }
 
 @layer components {
-  /* Signature detail (spec §4): mono eyebrow label, e.g. "01  /  SKETCH TO RENDER". */
+  /* Section eyebrow — sentence-case sans with a touch of tracking (the old
+     all-caps mono everywhere is what made the app read as a 1970s terminal). */
   .eyebrow {
-    font-family: 'JetBrains Mono', ui-monospace, monospace;
-    text-transform: uppercase;
-    letter-spacing: 0.14em;
+    font-family: 'Inter', system-ui, sans-serif;
+    letter-spacing: 0.02em;
     color: var(--ochre);
-    font-size: 0.75rem;
-    font-weight: 500;
+    font-size: 0.8125rem;
+    font-weight: 600;
   }
 
-  /* Mono metadata / filenames / timestamps. */
+  /* Field / metadata label — small, readable, quiet. */
   .mono-meta {
-    font-family: 'JetBrains Mono', ui-monospace, monospace;
-    text-transform: uppercase;
-    letter-spacing: 0.14em;
-    color: var(--ochre);
-    font-size: 0.6875rem;
+    font-family: 'Inter', system-ui, sans-serif;
+    letter-spacing: 0.01em;
+    color: var(--graphite);
+    font-size: 0.78125rem;
+    font-weight: 500;
+    text-transform: none;
+  }
+
+  /* Card surface: white, soft rounded, hairline + gentle elevation. */
+  .card {
+    background: var(--paper);
+    border: 1px solid var(--hairline);
+    border-radius: 0.875rem;
+    box-shadow:
+      0 1px 2px rgb(23 20 14 / 0.04),
+      0 6px 20px -6px rgb(23 20 14 / 0.08);
+  }
+
+  /* Pill control (chips, segmented options). */
+  .pill {
+    border-radius: 9999px;
+    transition: all 200ms var(--ease);
   }
 }
 

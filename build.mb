@@ -608,3 +608,27 @@ canvas pages full-bleed, so preview and PDF are pixel-identical:
 Verified: 5-page export (cover + 3 layouts + closing) driven through the real
 UI, pages extracted from the PDF and visually checked; fonts awaited via
 document.fonts.ready so canvas text uses the brand faces.
+
+## Addendum · UI modernization (2026 pass)
+
+The original spec §4 rules — zero border-radius, no shadows, all-caps mono
+labels everywhere, warm-ivory drafting palette — read as dated ("a 70s
+website") to the studio. Those rules are deliberately superseded for the app
+chrome; the editorial/serif language is retained where it belongs (client
+deliverables: the deck renderer and mood boards).
+
+- **Palette**: neutral near-white surfaces (#f6f6f3 bg, #ffffff cards) with a
+  vivid terracotta accent (#e0561f) and near-black ink (#17181c).
+- **Type**: Sora (geometric display) for headings; Inter for body; mono is now
+  reserved for genuine metadata rather than every label. `.eyebrow` and
+  `.mono-meta` became readable sentence-case sans.
+- **Shape & depth**: Tailwind radius/shadow scales restored; `shadow-card`,
+  `shadow-card-lg`, `shadow-btn` tokens added; cards are rounded-2xl white
+  surfaces with soft warm-tinted elevation, buttons and chips are pills, and
+  cards lift on hover.
+- **Sidebar**: rounded active pills in the accent colour with a subtle vertical
+  gradient ground and a compact logo lockup, replacing the bordered-rail list.
+- Global sweep across 23 component/feature files for radius, elevation and
+  accent-on-white contrast.
+
+Verified: screenshots of every tab, qa/verifyEngines.cjs 17/17, tsc + build.

@@ -10,12 +10,12 @@ interface ChipGroupProps<T extends string> {
   onChange: (v: T) => void;
 }
 
-/** A labelled row of single-select chips (the studio's square, single-accent style). */
+/** A labelled row of single-select pill chips. */
 export function ChipGroup<T extends string>({ label, value, options, onChange }: ChipGroupProps<T>) {
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-2.5">
       <span className="mono-meta">{label}</span>
-      <div className="flex flex-wrap gap-1.5">
+      <div className="flex flex-wrap gap-2">
         {options.map((opt) => {
           const active = opt.value === value;
           return (
@@ -24,8 +24,10 @@ export function ChipGroup<T extends string>({ label, value, options, onChange }:
               type="button"
               aria-pressed={active}
               onClick={() => onChange(opt.value)}
-              className={`border px-3 py-1.5 text-xs transition-colors focus-visible:outline-ochre ${
-                active ? 'border-ochre bg-ochre text-bone' : 'border-hairline bg-paper text-graphite hover:bg-drafting'
+              className={`pill border px-3.5 py-1.5 text-[0.8125rem] font-medium focus-visible:outline-ochre ${
+                active
+                  ? 'border-ochre bg-ochre text-white shadow-btn'
+                  : 'border-hairline bg-paper text-graphite hover:border-mist/50 hover:bg-drafting'
               }`}
             >
               {opt.label}

@@ -33,8 +33,8 @@ function ChipGroup<T extends string>({ label, value, options, onChange }: ChipGr
               type="button"
               aria-pressed={active}
               onClick={() => onChange(opt)}
-              className={`border px-3 py-1.5 text-xs transition-colors focus-visible:outline-ochre ${
-                active ? 'border-ochre bg-ochre text-bone' : 'border-hairline bg-paper text-graphite hover:bg-drafting'
+              className={`pill border px-3.5 py-1.5 text-[0.8125rem] font-medium transition-colors focus-visible:outline-ochre ${
+                active ? 'border-ochre bg-ochre text-white shadow-btn' : 'border-hairline bg-paper text-graphite hover:bg-drafting'
               }`}
             >
               {opt}
@@ -49,7 +49,7 @@ function ChipGroup<T extends string>({ label, value, options, onChange }: ChipGr
 function Warnings({ items }: { items: string[] }) {
   if (items.length === 0) return null;
   return (
-    <div className="border border-hairline bg-drafting px-3 py-2 text-xs leading-relaxed text-graphite">
+    <div className="rounded-xl border border-hairline bg-drafting px-3.5 py-2 text-xs leading-relaxed text-graphite">
       {items.map((w, i) => (
         <p key={i}>{w}</p>
       ))}
@@ -182,14 +182,14 @@ export function DeckGenerator() {
                           onClick={() => toggleImage(ref.image.id)}
                           aria-pressed={isSel}
                           title={ref.image.label}
-                          className={`relative h-16 w-24 overflow-hidden border transition-all focus-visible:outline-ochre ${
+                          className={`relative h-16 w-24 overflow-hidden rounded-lg border transition-all focus-visible:outline-ochre ${
                             isSel ? 'border-ochre' : 'border-hairline opacity-45 hover:opacity-75'
                           }`}
                         >
                           <img src={ref.image.url} alt={ref.image.label} className="h-full w-full object-cover" />
                           <span
                             className={`absolute right-1 top-1 flex h-4 w-4 items-center justify-center border ${
-                              isSel ? 'border-ochre bg-ochre text-bone' : 'border-mist bg-bone/80 text-transparent'
+                              isSel ? 'border-ochre bg-ochre text-white shadow-btn' : 'border-mist bg-bone/80 text-transparent'
                             }`}
                           >
                             <Check size={11} strokeWidth={2.5} />
@@ -231,7 +231,7 @@ export function DeckGenerator() {
             onChange={(e) => setNotes(e.target.value)}
             rows={3}
             placeholder="Anything specific to include — project story, site context, key moves. Leave blank to let Claude narrate from your images."
-            className="resize-none border border-hairline bg-paper px-3 py-2 text-sm text-graphite placeholder:text-mist focus-visible:outline-ochre"
+            className="resize-none rounded-xl border border-hairline bg-paper px-3.5 py-2 text-sm text-graphite placeholder:text-mist focus-visible:outline-ochre"
           />
         </div>
 

@@ -186,7 +186,7 @@ export function PresentationFeature() {
           aria-selected={mode === 'ai'}
           onClick={() => setMode('ai')}
           className={`flex items-center gap-2 px-4 py-2 text-sm transition-colors focus-visible:outline-ochre ${
-            mode === 'ai' ? 'bg-ochre text-bone' : 'text-graphite hover:bg-drafting'
+            mode === 'ai' ? 'bg-ochre text-white' : 'text-graphite hover:bg-drafting'
           }`}
         >
           <Wand2 size={15} strokeWidth={1.75} /> AI deck
@@ -197,7 +197,7 @@ export function PresentationFeature() {
           aria-selected={mode === 'manual'}
           onClick={() => setMode('manual')}
           className={`flex items-center gap-2 border-l border-hairline px-4 py-2 text-sm transition-colors focus-visible:outline-ochre ${
-            mode === 'manual' ? 'bg-ochre text-bone' : 'text-graphite hover:bg-drafting'
+            mode === 'manual' ? 'bg-ochre text-white' : 'text-graphite hover:bg-drafting'
           }`}
         >
           <LayoutGrid size={15} strokeWidth={1.75} /> Manual storyboard
@@ -251,7 +251,7 @@ export function PresentationFeature() {
                 <p className="text-[0.7rem] text-mist">Add a Claude key in Settings to enable.</p>
               ) : null}
               {confirmCompose ? (
-                <div className="border border-hairline bg-drafting px-3 py-2.5 text-xs text-graphite">
+                <div className="rounded-xl border border-hairline bg-drafting px-3.5 py-2.5 text-xs text-graphite">
                   Replace your {orderedSlides.length} slide{orderedSlides.length === 1 ? '' : 's'} with a
                   Claude-composed deck?
                   <div className="mt-2 flex gap-2">
@@ -367,7 +367,7 @@ export function PresentationFeature() {
             <div>
               <p className="mono-meta mb-3">Slides ({orderedSlides.length})</p>
               {orderedSlides.length === 0 ? (
-                <p className="border border-dashed border-hairline bg-paper px-4 py-6 text-center text-xs text-mist">
+                <p className="rounded-2xl border-2 border-dashed border-hairline bg-paper px-4 py-6 text-center text-xs text-mist">
                   Select images and press “Add slide”, or “Compose with Claude” to build the deck for you.
                 </p>
               ) : (
@@ -400,7 +400,7 @@ export function PresentationFeature() {
                           aria-pressed={active}
                           onClick={() => updateSlide(selectedSlide.id, { layout: opt.value })}
                           className={`border px-1 py-2 text-xs font-medium transition-colors focus-visible:outline-ochre ${
-                            active ? 'border-ochre bg-ochre text-bone' : 'border-hairline bg-paper text-graphite hover:bg-drafting'
+                            active ? 'border-ochre bg-ochre text-white shadow-btn' : 'border-hairline bg-paper text-graphite hover:bg-drafting'
                           }`}
                         >
                           {opt.label}
@@ -419,7 +419,7 @@ export function PresentationFeature() {
                     value={selectedSlide.title ?? ''}
                     onChange={(e) => updateSlide(selectedSlide.id, { title: e.target.value })}
                     placeholder="e.g. Street approach"
-                    className="border border-hairline bg-paper px-3 py-2 text-sm text-graphite placeholder:text-mist focus-visible:outline-ochre"
+                    className="rounded-xl border border-hairline bg-paper px-3.5 py-2 text-sm text-graphite placeholder:text-mist focus-visible:outline-ochre"
                   />
                 </div>
 
@@ -433,7 +433,7 @@ export function PresentationFeature() {
                     onChange={(e) => updateSlide(selectedSlide.id, { caption: e.target.value })}
                     rows={2}
                     placeholder="e.g. Warm evening light, brick and glass"
-                    className="resize-none border border-hairline bg-paper px-3 py-2 text-sm text-graphite placeholder:text-mist focus-visible:outline-ochre"
+                    className="resize-none rounded-xl border border-hairline bg-paper px-3.5 py-2 text-sm text-graphite placeholder:text-mist focus-visible:outline-ochre"
                   />
                 </div>
               </div>

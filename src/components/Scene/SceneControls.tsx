@@ -32,7 +32,7 @@ function toOptions<T extends string>(map: Record<T, SceneOpt>): { value: T; labe
  */
 export function SceneControls({ value, onChange, show }: SceneControlsProps) {
   return (
-    <div className="flex flex-col gap-4 border border-hairline bg-paper p-4">
+    <div className="flex flex-col gap-4 rounded-xl border border-hairline bg-paper p-4 shadow-sm">
       <p className="mono-meta text-ochre">Scene · one-click controls</p>
 
       {show.archStyle ? (
@@ -48,7 +48,7 @@ export function SceneControls({ value, onChange, show }: SceneControlsProps) {
               value={value.customArchStyle}
               onChange={(e) => onChange({ customArchStyle: e.target.value })}
               placeholder="Describe the style, e.g. Kerala vernacular, Gothic revival, mid-century modern…"
-              className="border border-hairline bg-paper px-3 py-2 text-sm text-graphite placeholder:text-mist focus-visible:outline-ochre"
+              className="rounded-xl border border-hairline bg-paper px-3.5 py-2 text-sm text-graphite placeholder:text-mist focus-visible:outline-ochre"
             />
           ) : null}
         </div>
@@ -67,7 +67,7 @@ export function SceneControls({ value, onChange, show }: SceneControlsProps) {
               value={value.customMaterials}
               onChange={(e) => onChange({ customMaterials: e.target.value })}
               placeholder="Describe the materials, e.g. corten steel, travertine, ash timber…"
-              className="border border-hairline bg-paper px-3 py-2 text-sm text-graphite placeholder:text-mist focus-visible:outline-ochre"
+              className="rounded-xl border border-hairline bg-paper px-3.5 py-2 text-sm text-graphite placeholder:text-mist focus-visible:outline-ochre"
             />
           ) : null}
         </div>

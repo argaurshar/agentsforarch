@@ -112,7 +112,7 @@ export function BrandPanel() {
                 value={brand.name}
                 onChange={(e) => setBrand({ name: e.target.value })}
                 placeholder="e.g. AND Studio"
-                className="border border-hairline bg-paper px-3 py-2 text-sm text-graphite placeholder:text-mist focus-visible:outline-ochre"
+                className="rounded-xl border border-hairline bg-paper px-3.5 py-2 text-sm text-graphite placeholder:text-mist focus-visible:outline-ochre"
               />
             </div>
             <div className="flex flex-col gap-1.5">
@@ -125,7 +125,7 @@ export function BrandPanel() {
                 onChange={(e) => setBrand({ voice: e.target.value })}
                 rows={3}
                 placeholder="e.g. warm, material-led, quietly confident"
-                className="resize-none border border-hairline bg-paper px-3 py-2 text-sm text-graphite placeholder:text-mist focus-visible:outline-ochre"
+                className="resize-none rounded-xl border border-hairline bg-paper px-3.5 py-2 text-sm text-graphite placeholder:text-mist focus-visible:outline-ochre"
               />
             </div>
           </div>

@@ -131,7 +131,7 @@ export function ElevationFeature() {
           </div>
 
           {mode === 'refine' ? (
-            <div className="flex flex-col gap-3 border border-ochre bg-drafting p-4">
+            <div className="flex flex-col gap-3 rounded-xl border border-ochre/40 bg-ochre/5 p-4">
               <div className="flex items-center justify-between">
                 <span className="mono-meta text-ochre">Refining · {refine.sourceLabel}</span>
                 <button
@@ -148,7 +148,7 @@ export function ElevationFeature() {
             <>
               {/* Rendered elevations can be driven by a design theme OR a mood board (only one at a time). */}
               {style === 'rendered' ? (
-                <div className="flex flex-col gap-4 border border-hairline bg-paper p-4">
+                <div className="flex flex-col gap-4 rounded-xl border border-hairline bg-paper p-4 shadow-sm">
                   <p className="mono-meta text-ochre">Elevation design · theme or mood board</p>
                   <ChipGroup
                     label="Style source"
@@ -210,7 +210,7 @@ export function ElevationFeature() {
               value={prompt}
               onChange={(e) => setFeaturePrompt('elevation', e.target.value, true)}
               rows={4}
-              className="resize-none border border-hairline bg-paper px-3 py-2.5 text-sm leading-relaxed text-graphite placeholder:text-mist focus-visible:outline-ochre"
+              className="resize-none rounded-xl border border-hairline bg-paper px-3.5 py-2.5 text-sm leading-relaxed text-graphite placeholder:text-mist focus-visible:outline-ochre"
             />
           </div>
 
@@ -241,7 +241,7 @@ export function ElevationFeature() {
           <p className="mono-meta">Output</p>
           {error ? <ErrorBanner message={error} onRetry={handleGenerate} /> : null}
           {warning ? (
-            <p className="border border-hairline bg-drafting px-3 py-2 text-xs leading-relaxed text-graphite">{warning}</p>
+            <p className="rounded-xl border border-hairline bg-drafting px-3.5 py-2 text-xs leading-relaxed text-graphite">{warning}</p>
           ) : null}
           {loading || outputs.length > 0 ? (
             <OutputGrid
@@ -256,7 +256,7 @@ export function ElevationFeature() {
               onSend={(target, image) => sendToFeature(target, image.url)}
             />
           ) : !error ? (
-            <div className="flex flex-1 items-center justify-center border border-dashed border-hairline bg-paper px-6 py-16 text-center">
+            <div className="flex flex-1 items-center justify-center rounded-2xl border-2 border-dashed border-hairline bg-paper px-6 py-16 text-center">
               <p className="max-w-xs text-sm leading-relaxed text-mist">
                 Your elevation will appear here. Choose a face and style, then Generate.
               </p>

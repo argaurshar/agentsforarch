@@ -156,7 +156,7 @@ export function InteriorFeature() {
           />
 
           {runMode === 'refine' ? (
-            <div className="flex flex-col gap-3 border border-ochre bg-drafting p-4">
+            <div className="flex flex-col gap-3 rounded-xl border border-ochre/40 bg-ochre/5 p-4">
               <div className="flex items-center justify-between">
                 <span className="mono-meta text-ochre">Refining · {refine.sourceLabel}</span>
                 <button
@@ -175,7 +175,7 @@ export function InteriorFeature() {
             </div>
           ) : (
             <>
-              <div className="flex flex-col gap-4 border border-hairline bg-paper p-4">
+              <div className="flex flex-col gap-4 rounded-xl border border-hairline bg-paper p-4 shadow-sm">
                 <p className="mono-meta text-ochre">Interior design · theme or mood board</p>
                 <ChipGroup
                   label="Style source"
@@ -215,9 +215,9 @@ export function InteriorFeature() {
                                 type="button"
                                 aria-pressed={active}
                                 onClick={() => toggleCompareKey(key)}
-                                className={`border px-3 py-1.5 text-xs transition-colors focus-visible:outline-ochre ${
+                                className={`pill border px-3.5 py-1.5 text-[0.8125rem] font-medium transition-colors focus-visible:outline-ochre ${
                                   active
-                                    ? 'border-ochre bg-ochre text-bone'
+                                    ? 'border-ochre bg-ochre text-white shadow-btn'
                                     : 'border-hairline bg-paper text-graphite hover:bg-drafting'
                                 }`}
                               >
@@ -287,7 +287,7 @@ export function InteriorFeature() {
               value={prompt}
               onChange={(e) => setFeaturePrompt('interior', e.target.value, true)}
               rows={4}
-              className="resize-none border border-hairline bg-paper px-3 py-2.5 text-sm leading-relaxed text-graphite placeholder:text-mist focus-visible:outline-ochre"
+              className="resize-none rounded-xl border border-hairline bg-paper px-3.5 py-2.5 text-sm leading-relaxed text-graphite placeholder:text-mist focus-visible:outline-ochre"
             />
           </div>
 
@@ -318,7 +318,7 @@ export function InteriorFeature() {
           <p className="mono-meta">Output · redesigned room</p>
           {error ? <ErrorBanner message={error} onRetry={handleGenerate} /> : null}
           {warning ? (
-            <p className="border border-hairline bg-drafting px-3 py-2 text-xs leading-relaxed text-graphite">{warning}</p>
+            <p className="rounded-xl border border-hairline bg-drafting px-3.5 py-2 text-xs leading-relaxed text-graphite">{warning}</p>
           ) : null}
           {loading || outputs.length > 0 ? (
             <OutputGrid
@@ -331,7 +331,7 @@ export function InteriorFeature() {
               onRefine={(image) => beginRefine('interior', image)}
             />
           ) : !error ? (
-            <div className="flex flex-1 items-center justify-center border border-dashed border-hairline bg-paper px-6 py-16 text-center">
+            <div className="flex flex-1 items-center justify-center rounded-2xl border-2 border-dashed border-hairline bg-paper px-6 py-16 text-center">
               <p className="max-w-xs text-sm leading-relaxed text-mist">
                 Your redesigned room will appear here. Upload a photo, pick a style, and Generate.
               </p>

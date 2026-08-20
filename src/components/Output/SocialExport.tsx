@@ -57,8 +57,8 @@ export function SocialExport({ image, onClose }: SocialExportProps) {
                 type="button"
                 aria-pressed={f.key === format.key}
                 onClick={() => setFormat(f)}
-                className={`border px-3 py-1.5 text-xs transition-colors focus-visible:outline-ochre ${
-                  f.key === format.key ? 'border-ochre bg-ochre text-bone' : 'border-hairline bg-paper text-graphite hover:bg-drafting'
+                className={`pill border px-3.5 py-1.5 text-[0.8125rem] font-medium transition-colors focus-visible:outline-ochre ${
+                  f.key === format.key ? 'border-ochre bg-ochre text-white shadow-btn' : 'border-hairline bg-paper text-graphite hover:bg-drafting'
                 }`}
               >
                 {f.label}

@@ -22,7 +22,7 @@ interface OutputGridProps {
 
 function SkeletonCard({ tall = false }: { tall?: boolean }) {
   return (
-    <div className="flex flex-col border border-hairline bg-paper">
+    <div className="flex flex-col overflow-hidden rounded-xl border border-hairline bg-paper shadow-card">
       <div className={`${tall ? 'h-72' : 'h-56'} animate-pulse bg-drafting`} />
       <div className="flex items-center justify-between px-3 py-3">
         <div className="h-3 w-24 animate-pulse bg-drafting" />

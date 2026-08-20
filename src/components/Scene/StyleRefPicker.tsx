@@ -33,7 +33,7 @@ export function StyleRefPicker({ feature, note }: StyleRefPickerProps) {
   };
 
   return (
-    <div className="flex flex-col gap-3 border border-hairline bg-paper p-4">
+    <div className="flex flex-col gap-3 rounded-xl border border-hairline bg-paper p-4 shadow-sm">
       <div className="flex items-center justify-between">
         <span className="mono-meta text-ochre">Match a reference style · optional</span>
         <button
@@ -68,13 +68,13 @@ export function StyleRefPicker({ feature, note }: StyleRefPickerProps) {
                     aria-pressed={active}
                     onClick={() => set(active ? null : ref.image.id)}
                     title={ref.image.label}
-                    className={`relative h-14 w-20 overflow-hidden border transition-all focus-visible:outline-ochre ${
+                    className={`relative h-14 w-20 overflow-hidden rounded-lg border transition-all focus-visible:outline-ochre ${
                       active ? 'border-ochre' : 'border-hairline opacity-60 hover:opacity-90'
                     }`}
                   >
                     <img src={ref.image.url} alt={ref.image.label} className="h-full w-full object-cover" />
                     {active ? (
-                      <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center border border-ochre bg-ochre text-bone">
+                      <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center border border-ochre bg-ochre text-white">
                         <Check size={11} strokeWidth={2.5} />
                       </span>
                     ) : null}

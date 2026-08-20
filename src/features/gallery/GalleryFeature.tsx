@@ -18,7 +18,7 @@ const FEATURE_LABEL: Record<FeatureKind, string> = {
 };
 
 const ICON_BTN =
-  'flex items-center justify-center border border-hairline bg-paper p-1.5 text-graphite hover:bg-drafting focus-visible:outline-ochre';
+  'flex items-center justify-center rounded-lg border border-hairline bg-paper p-1.5 text-graphite hover:bg-drafting focus-visible:outline-ochre';
 
 interface GalleryItem {
   image: GeneratedImage;
@@ -34,7 +34,7 @@ function GalleryCard({ item, onView }: { item: GalleryItem; onView: () => void }
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   return (
-    <figure className="group flex flex-col border border-hairline bg-paper transition-colors hover:border-ochre/50">
+    <figure className="group flex flex-col overflow-hidden rounded-xl border border-hairline bg-paper shadow-card transition-colors hover:border-ochre/50">
       <button
         type="button"
         onClick={onView}
@@ -179,7 +179,7 @@ export function GalleryFeature() {
         <p className="mb-6 border border-ochre bg-drafting px-3 py-2 text-xs leading-relaxed text-ochre">{importError}</p>
       ) : null}
       {imported ? (
-        <p className="mb-6 border border-hairline bg-drafting px-3 py-2 text-xs leading-relaxed text-graphite">
+        <p className="mb-6 rounded-xl border border-hairline bg-drafting px-3.5 py-2 text-xs leading-relaxed text-graphite">
           Project imported — all its images are below, and every tab has been reset to the imported project.
         </p>
       ) : null}

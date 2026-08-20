@@ -105,7 +105,7 @@ export function ImageDropzone({ value, onImage, onClear, hint }: ImageDropzonePr
     <div className="flex flex-col gap-3">
       <div
         {...getRootProps()}
-        className={`flex cursor-pointer flex-col items-center justify-center border border-dashed px-8 py-14 text-center transition-colors ${
+        className={`flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed px-8 py-14 text-center transition-colors ${
           isDragActive ? 'border-ochre bg-drafting' : 'border-hairline bg-paper hover:border-mist'
         }`}
       >

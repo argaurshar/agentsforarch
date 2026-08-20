@@ -102,7 +102,7 @@ export function AppShell({ children }: AppShellProps) {
 
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Top bar */}
-        <div className="flex items-center justify-between gap-3 border-b border-hairline bg-bone px-4 py-3 sm:px-6 lg:px-10">
+        <div className="flex items-center justify-between gap-3 border-b border-hairline bg-paper/80 px-4 py-3 backdrop-blur-sm sm:px-6 lg:px-10">
           <div className="flex min-w-0 items-center gap-2 sm:gap-3">
             <button
               type="button"
@@ -126,7 +126,7 @@ export function AppShell({ children }: AppShellProps) {
                     setEditing(false);
                   }
                 }}
-                className="min-w-0 border-b border-ochre bg-transparent font-serif text-base text-ink focus:outline-none sm:text-lg"
+                className="min-w-0 rounded-lg border border-ochre bg-paper px-2 py-1 font-display text-base font-semibold text-ink focus:outline-none sm:text-lg"
               />
             ) : (
               <button
@@ -135,7 +135,7 @@ export function AppShell({ children }: AppShellProps) {
                   setDraft(projectName);
                   setEditing(true);
                 }}
-                className="max-w-[45vw] truncate font-serif text-base text-ink hover:text-ochre sm:max-w-none sm:text-lg"
+                className="max-w-[45vw] truncate rounded-lg px-2 py-1 font-display text-base font-semibold text-ink transition-colors hover:bg-drafting hover:text-ochre sm:max-w-none sm:text-lg"
                 title="Rename project"
               >
                 {projectName}
@@ -149,14 +149,14 @@ export function AppShell({ children }: AppShellProps) {
               <button
                 type="button"
                 onClick={() => setConfirmNew((v) => !v)}
-                className="flex items-center gap-2 border border-hairline bg-paper px-3 py-1.5 text-graphite hover:bg-drafting focus-visible:outline-ochre"
+                className="flex items-center gap-2 rounded-full border border-hairline bg-paper px-3.5 py-1.5 text-graphite shadow-sm transition-colors hover:bg-drafting focus-visible:outline-ochre"
                 title="Start a new project"
               >
                 <FilePlus size={15} strokeWidth={1.75} className="text-graphite" />
                 <span className="mono-meta hidden text-graphite sm:inline">New</span>
               </button>
               {confirmNew ? (
-                <div className="absolute right-0 top-full z-50 mt-1 w-64 border border-hairline bg-paper p-3 text-xs leading-relaxed text-graphite">
+                <div className="card absolute right-0 top-full z-50 mt-2 w-64 p-3.5 text-xs leading-relaxed text-graphite shadow-card-lg">
                   <p>Start a new project? This clears all generated work — nothing is saved.</p>
                   <div className="mt-2 flex gap-2">
                     <Button
@@ -180,13 +180,13 @@ export function AppShell({ children }: AppShellProps) {
             <button
               type="button"
               onClick={() => setSettingsOpen(true)}
-              className={`flex items-center gap-2 border bg-paper px-3 py-1.5 hover:bg-drafting focus-visible:outline-ochre ${
-                engineReady ? 'border-hairline text-graphite' : 'border-ochre text-ochre'
+              className={`flex items-center gap-2 rounded-full border bg-paper px-3.5 py-1.5 shadow-sm transition-colors hover:bg-drafting focus-visible:outline-ochre ${
+                engineReady ? 'border-hairline text-graphite' : 'border-ochre/60 text-ochre'
               }`}
               title={engineReady ? 'API keys' : 'Connect your API key to generate'}
             >
               <KeyRound size={15} strokeWidth={1.75} className="text-ochre" />
-              <span className={`mono-meta text-ochre ${engineReady ? 'hidden sm:inline' : 'inline'}`}>
+              <span className={`text-[0.8125rem] font-medium text-ochre ${engineReady ? 'hidden sm:inline' : 'inline'}`}>
                 {engineReady ? providerName : 'Connect key'}
               </span>
             </button>
@@ -200,9 +200,9 @@ export function AppShell({ children }: AppShellProps) {
 
         {/* Footer — active engine (spec §5). */}
         <footer className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-t border-hairline bg-bone px-4 py-3 sm:px-6 lg:px-10">
-          <span className="mono-meta hidden text-mist sm:inline">AND · Architecture &amp; Design Studio</span>
-          <span className="mono-meta text-mist">
-            Engine&nbsp;·&nbsp;<span className="text-ochre">{providerName}</span>
+          <span className="hidden text-[0.8125rem] text-mist sm:inline">AND · Architecture &amp; Design Studio</span>
+          <span className="text-[0.8125rem] text-mist">
+            Engine&nbsp;·&nbsp;<span className="font-medium text-ochre">{providerName}</span>
           </span>
         </footer>
       </div>
