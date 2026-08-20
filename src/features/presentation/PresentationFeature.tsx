@@ -88,7 +88,7 @@ export function PresentationFeature() {
     setExporting(true);
     try {
       await new Promise((resolve) => setTimeout(resolve, 30));
-      exportPresentationPdf({ projectName, slides: orderedSlides, imageMap, brand });
+      await exportPresentationPdf({ projectName, slides: orderedSlides, imageMap, brand });
     } catch {
       setPdfError('Could not export the PDF. Please try again.');
     } finally {
@@ -352,7 +352,14 @@ export function PresentationFeature() {
           {/* Center — current slide. */}
           <div className="min-w-0">
             <p className="mono-meta mb-3">Slide {selectedSlide ? '' : '· none'}</p>
-            <SlideCanvas slide={selectedSlide} imageMap={imageMap} brand={brand} />
+            <SlideCanvas
+              slide={selectedSlide}
+              imageMap={imageMap}
+              brand={brand}
+              projectName={projectName}
+              slideNumber={Math.max(1, orderedSlides.findIndex((s) => s.id === effectiveSlideId) + 1)}
+              slideCount={orderedSlides.length}
+            />
           </div>
 
           {/* Right — slide list + per-slide editor. */}

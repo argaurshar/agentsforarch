@@ -581,3 +581,30 @@ framed-artwork suggestion, a plant sprig, a COLOR PALETTE dot row, a
 Live-verified through the real app UI with a real Gemini response: the board
 generated from the boho elevation extracted its terracotta stucco, aged teak,
 rattan, macramé, bougainvillea and bronze — matching the reference layout.
+
+## Addendum · Editorial presentation deck (manual storyboard v2)
+
+The manual storyboard's output was an image-grid-on-background PDF drawn with
+jsPDF's built-in fonts — visibly not a designer document. It is now an
+editorial deck rendered on canvas (`src/lib/deckRender.ts`) in the project's
+brand identity with the real webfonts, and the exported PDF places those
+canvas pages full-bleed, so preview and PDF are pixel-identical:
+
+- **Cover page** (auto): accent tick, mono eyebrow, large light-serif project
+  name, date, studio footer — with the deck's first image as a full-height
+  hero panel when one exists.
+- **Content pages**: a left rail (large accent serif slide number, serif
+  title, accent rule, body caption) + an editorial image zone — full-bleed
+  single, staggered two-up, or 2×2 gallery — every image cover-fit with
+  hairline frames and mono "FIG. nn — label" captions; a hairline footer with
+  "project · Concept Presentation" and "BRAND · page / total".
+- **Closing page** (auto): centred accent tick, serif brand name, tracked
+  mono subline.
+- `SlideCanvas` now renders the selected slide through the SAME renderer
+  (async canvas → img), so the on-screen preview IS the shipped page.
+  `exportPresentationPdf` is async (canvas + webfonts); `lib/pdf.ts` shrinks
+  to a thin jsPDF page-placer. AI-deck mode is untouched.
+
+Verified: 5-page export (cover + 3 layouts + closing) driven through the real
+UI, pages extracted from the PDF and visually checked; fonts awaited via
+document.fonts.ready so canvas text uses the brand faces.

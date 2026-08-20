@@ -46,7 +46,7 @@ disabled, or gated behind another.
 | 03 | Elevation → Axonometric | Elevation image | True 3D axonometric + section-axonometric views in **realistic / line-art / black-&-white**, one per viewpoint (with before/after compare) |
 | 04 | Room Photo → Interior Design | Photo of a room (furnished or empty) | **Restyled / staged / renovated interior** in a chosen design theme (Contemporary · Modern · Traditional · Boho · Minimalist · Japandi · Industrial · Luxury) or from an uploaded mood board, with interior-specific refine chips |
 | 05 | Mood Board | Any image (render, sketch or photo) — or up to 9 outputs in Collage mode | **AI board** (default): a flat-lay **material & mood board extracted from the image** — labelled samples, furniture suggestions, colour dots, a 5-swatch material palette strip and a vibe line, in Portrait / Square / Landscape. **Collage**: the branded canvas grid board, as before |
-| 06 | Concept Presentation | Selected outputs from 01–04 + brand identity | AI-generated self-contained HTML deck, or hand-arranged slides exportable to PDF |
+| 06 | Concept Presentation | Selected outputs from 01–05 + brand identity | AI-generated self-contained HTML deck, or an **editorial storyboard deck** (auto cover page, magazine-style slide layouts with serif numbering + figure labels, closing sign-off) exported to PDF exactly as previewed |
 | 07 | Gallery · Save / Load | — | Every generated/uploaded image with reuse/download/delete, plus **whole-project export/import as a single file** (the no-backend persistence answer) |
 
 Each feature accepts its input by direct upload, independent of anything else
