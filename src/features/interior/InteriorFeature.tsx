@@ -11,6 +11,7 @@ import { ChipGroup } from '../../components/ui/ChipGroup';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { ErrorBanner } from '../../components/ui/ErrorBanner';
 import { Notice } from '../../components/ui/Notice';
+import { ExampleShowcase } from '../../components/Examples/ExampleShowcase';
 import { SectionHeader } from '../../components/ui/SectionHeader';
 import { Select } from '../../components/ui/Select';
 import { Switch } from '../../components/ui/Switch';
@@ -128,6 +129,9 @@ export function InteriorFeature() {
         title="Room Photo → Interior Design"
         description="Restyle a client's room, stage an empty one, or renovate — from a photo, in a chosen design style or from an uploaded mood board."
       />
+
+      {/* Worked examples — open until this tab has produced something. */}
+      <ExampleShowcase feature="interior" defaultOpen={outputs.length === 0} />
 
       <div className="grid gap-8 lg:grid-cols-2">
         <div className="flex flex-col gap-6">

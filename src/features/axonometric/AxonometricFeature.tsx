@@ -8,6 +8,7 @@ import { Button } from '../../components/ui/Button';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { ErrorBanner } from '../../components/ui/ErrorBanner';
 import { Notice } from '../../components/ui/Notice';
+import { ExampleShowcase } from '../../components/Examples/ExampleShowcase';
 import { SectionHeader } from '../../components/ui/SectionHeader';
 import { Select } from '../../components/ui/Select';
 import { Switch } from '../../components/ui/Switch';
@@ -82,6 +83,9 @@ export function AxonometricFeature() {
         title="Elevation → Axonometric"
         description="Generate axonometric and section-axonometric views from an elevation. Upload an elevation directly — running feature 02 first is never required."
       />
+
+      {/* Worked examples — open until this tab has produced something. */}
+      <ExampleShowcase feature="axonometric" defaultOpen={outputs.length === 0} />
 
       <div className="grid gap-8 lg:grid-cols-2">
         {/* Input & controls — ONE card with hairline dividers, matching the

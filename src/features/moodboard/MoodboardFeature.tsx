@@ -7,6 +7,7 @@ import { ChipGroup } from '../../components/ui/ChipGroup';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { ErrorBanner } from '../../components/ui/ErrorBanner';
 import { Notice } from '../../components/ui/Notice';
+import { ExampleShowcase } from '../../components/Examples/ExampleShowcase';
 import { SectionHeader } from '../../components/ui/SectionHeader';
 import { Spinner } from '../../components/ui/Spinner';
 import { downloadDataURL, newId, slugify } from '../../lib/images';
@@ -30,6 +31,7 @@ import { useGenerate, usePresentationAdder } from '../hooks';
  */
 export function MoodboardFeature() {
   const [mode, setMode] = useState<'ai' | 'collage'>('ai');
+  const boardCount = useProjectStore((s) => s.generation.moodboard.outputs.length);
 
   // A view switch is not a primary action: the active segment is a raised
   // neutral thumb on a recessed track, not an accent flood.
@@ -68,6 +70,9 @@ export function MoodboardFeature() {
           <LayoutGrid size={14} strokeWidth={1.75} /> Collage
         </button>
       </div>
+
+      {/* Worked examples — open until this tab has produced something. */}
+      <ExampleShowcase feature="moodboard" defaultOpen={boardCount === 0} />
 
       {mode === 'ai' ? <BoardGenerator /> : <CollageComposer />}
     </div>

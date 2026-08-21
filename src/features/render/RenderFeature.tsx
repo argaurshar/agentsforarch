@@ -11,6 +11,7 @@ import { ChipGroup } from '../../components/ui/ChipGroup';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { ErrorBanner } from '../../components/ui/ErrorBanner';
 import { Notice } from '../../components/ui/Notice';
+import { ExampleShowcase } from '../../components/Examples/ExampleShowcase';
 import { SectionHeader } from '../../components/ui/SectionHeader';
 import { Switch } from '../../components/ui/Switch';
 import { loadDemoPlan } from '../../lib/demoPlan';
@@ -137,6 +138,9 @@ export function RenderFeature() {
         title="Floor Plan → 3D Isometric"
         description="Turn a 2D floor plan into a 3D isometric cutaway — or a fully furnished top-down 2D marketing plan. Upload directly — no prior step required."
       />
+
+      {/* Worked examples — open until this tab has produced something. */}
+      <ExampleShowcase feature="render" defaultOpen={outputs.length === 0} />
 
       <div className="grid gap-8 lg:grid-cols-2">
         {/* Input & controls — ONE card with hairline dividers. Six separately

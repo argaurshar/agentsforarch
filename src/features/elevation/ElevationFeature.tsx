@@ -11,6 +11,7 @@ import { ChipGroup } from '../../components/ui/ChipGroup';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { ErrorBanner } from '../../components/ui/ErrorBanner';
 import { Notice } from '../../components/ui/Notice';
+import { ExampleShowcase } from '../../components/Examples/ExampleShowcase';
 import { SectionHeader } from '../../components/ui/SectionHeader';
 import { Select } from '../../components/ui/Select';
 import { ELEVATION_THEMES } from '../../lib/scene';
@@ -106,6 +107,9 @@ export function ElevationFeature() {
         title="Sketch / Model → Elevation"
         description="Produce an elevation design render from a sketch or SketchUp model. Works standalone — upload whatever you have."
       />
+
+      {/* Worked examples — open until this tab has produced something. */}
+      <ExampleShowcase feature="elevation" defaultOpen={outputs.length === 0} />
 
       <div className="grid gap-8 lg:grid-cols-2">
         <div className="flex flex-col gap-6">

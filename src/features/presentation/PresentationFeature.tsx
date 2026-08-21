@@ -11,6 +11,7 @@ import { EmptyState } from '../../components/ui/EmptyState';
 import { ErrorBanner } from '../../components/ui/ErrorBanner';
 import { IconButton } from '../../components/ui/IconButton';
 import { Notice } from '../../components/ui/Notice';
+import { ExampleShowcase } from '../../components/Examples/ExampleShowcase';
 import { SectionHeader } from '../../components/ui/SectionHeader';
 import { composeDeck } from '../../lib/composer';
 import type { ComposerImage } from '../../lib/composer';
@@ -183,6 +184,9 @@ export function PresentationFeature() {
           ) : undefined
         }
       />
+
+      {/* Worked examples — open until this project has slides. */}
+      <ExampleShowcase feature="presentation" defaultOpen={orderedSlides.length === 0} />
 
       {/* Mode toggle — AI deck (frontend-slides skill) vs. manual storyboard.
           The active pill is ochre-deep: white on plain ochre fails AA below 18px. */}
