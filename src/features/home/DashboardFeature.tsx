@@ -6,6 +6,7 @@ import { EmptyState } from '../../components/ui/EmptyState';
 import { IconButton } from '../../components/ui/IconButton';
 import { SectionHeader } from '../../components/ui/SectionHeader';
 import { loadDemoPlan } from '../../lib/demoPlan';
+import { PIPELINE_PREVIEW } from '../../lib/examples';
 import { useProjectStore } from '../../store/useProjectStore';
 import type { FeatureKind, GeneratedImage, TabKey } from '../../types';
 
@@ -193,6 +194,7 @@ export function DashboardFeature() {
           const info = byFeature.get(stage.key);
           const Icon = stage.icon;
           const count = info?.count ?? 0;
+          const preview = PIPELINE_PREVIEW[stage.key];
           return (
             <button
               key={stage.key}
@@ -200,11 +202,41 @@ export function DashboardFeature() {
               onClick={() => setTab(stage.key)}
               className="group flex flex-col overflow-hidden rounded-card border border-hairline bg-paper text-left shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:border-mist/40 hover:shadow-card-lg"
             >
-              <div className="flex h-36 items-center justify-center overflow-hidden border-b border-hairline bg-drafting">
+              {/* Own work once there is some; until then a sample input | output
+                  split, so an empty stage still shows what it produces. */}
+              <div className="relative flex h-36 items-stretch overflow-hidden border-b border-hairline bg-drafting">
                 {info?.thumb ? (
                   <img src={info.thumb} alt="" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]" />
+                ) : preview ? (
+                  <>
+                    <img
+                      src={preview.input}
+                      alt=""
+                      loading="lazy"
+                      className="h-full w-1/2 object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+                    />
+                    <img
+                      src={preview.output}
+                      alt=""
+                      loading="lazy"
+                      className="h-full w-1/2 border-l border-white/70 object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+                    />
+                    {/* Which half is which, and the transform between them. */}
+                    <span className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center justify-between gap-2 bg-gradient-to-t from-ink/70 to-transparent px-2.5 pb-1.5 pt-6">
+                      <span className="text-caption font-medium text-white/90">Input</span>
+                      <span className="rounded-full bg-white/95 p-1 text-ink shadow-card">
+                        <ArrowRight size={11} strokeWidth={2.25} />
+                      </span>
+                      <span className="text-caption font-medium text-white/90">Output</span>
+                    </span>
+                    <span className="pointer-events-none absolute right-2 top-2 rounded-full bg-white/95 px-2 py-0.5 text-caption font-medium text-graphite shadow-card">
+                      Sample
+                    </span>
+                  </>
                 ) : (
-                  <Icon size={30} strokeWidth={1.75} className="text-mist-faint" />
+                  <span className="flex w-full items-center justify-center">
+                    <Icon size={30} strokeWidth={1.75} className="text-mist-faint" />
+                  </span>
                 )}
               </div>
               <div className="flex flex-1 flex-col gap-1 px-4 py-3">

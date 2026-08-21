@@ -226,6 +226,19 @@ export const EXAMPLES: Partial<Record<FeatureKind | 'presentation', ExampleSet>>
   },
 };
 
+/**
+ * The one representative pair per pipeline stage, for the dashboard's stage
+ * cards — a split preview (input | output) so a first-time visitor sees what
+ * each stage turns into before opening it.
+ */
+export const PIPELINE_PREVIEW: Partial<Record<FeatureKind, { input: string; output: string }>> = {
+  render: { input: asset('plan-input.jpg'), output: asset('iso-3d.jpg') },
+  elevation: { input: asset('sketch-input.jpg'), output: asset('elev-rendered.jpg') },
+  axonometric: { input: asset('elev-rendered.jpg'), output: asset('axon-realistic.jpg') },
+  interior: { input: asset('room-input.jpg'), output: asset('interior-restyle.jpg') },
+  moodboard: { input: asset('interior-restyle.jpg'), output: asset('board-interior.jpg') },
+};
+
 /** The demo input a tab can load with one click, so the first run needs no upload. */
 export const TRY_INPUT: Partial<Record<FeatureKind, { url: string; label: string }>> = {
   render: { url: `${import.meta.env.BASE_URL}examples/plan-input.jpg`, label: 'sample floor plan' },
