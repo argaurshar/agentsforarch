@@ -1,13 +1,17 @@
-import { RotateCcw, Sparkles, X } from 'lucide-react';
+import { Box, RotateCcw, Sparkles, X } from 'lucide-react';
 import { useEffect, useMemo } from 'react';
 import { ImageDropzone } from '../../components/Upload/ImageDropzone';
 import { CompareSection } from '../../components/Output/CompareSection';
 import { OutputGrid } from '../../components/Output/OutputGrid';
 import { RefineChips } from '../../components/Scene/RefineChips';
 import { Button } from '../../components/ui/Button';
+import { EmptyState } from '../../components/ui/EmptyState';
 import { ErrorBanner } from '../../components/ui/ErrorBanner';
+import { Notice } from '../../components/ui/Notice';
+import { ExampleShowcase } from '../../components/Examples/ExampleShowcase';
 import { SectionHeader } from '../../components/ui/SectionHeader';
 import { Select } from '../../components/ui/Select';
+import { Switch } from '../../components/ui/Switch';
 import { buildAxonometricPrompt, buildRefinePrompt } from '../../lib/prompts';
 import { useProjectStore } from '../../store/useProjectStore';
 import { useGenerate, usePresentationAdder } from '../hooks';
@@ -75,151 +79,184 @@ export function AxonometricFeature() {
     <div>
       <SectionHeader
         index="03"
-        eyebrow="Elevation to Axonometric"
+        eyebrow="Drawing conversion"
         title="Elevation → Axonometric"
         description="Generate axonometric and section-axonometric views from an elevation. Upload an elevation directly — running feature 02 first is never required."
       />
 
+      {/* Worked examples — open until this tab has produced something. */}
+      <ExampleShowcase feature="axonometric" defaultOpen={outputs.length === 0} />
+
       <div className="grid gap-8 lg:grid-cols-2">
-        <div className="flex flex-col gap-6">
-          <div>
-            <p className="mono-meta mb-3">Input</p>
-            <ImageDropzone
-              value={input}
-              onImage={(url) => setFeatureInput('axonometric', url)}
-              onClear={() => setFeatureInput('axonometric', null)}
-            />
-          </div>
-
-          <Select
-            label="Axonometric style"
-            value={style}
-            options={STYLE_OPTIONS}
-            onChange={(v) => updateFeatureSettings('axonometric', { style: v })}
-          />
-
-          {/* Viewpoints — multi-select (spec §8.03). */}
-          <div className="flex flex-col gap-2">
-            <span className="mono-meta">Viewpoints</span>
-            <div className="grid grid-cols-4 gap-2">
-              {VIEWPOINTS.map((vp) => {
-                const active = selected.includes(vp);
-                return (
-                  <button
-                    key={vp}
-                    type="button"
-                    aria-pressed={active}
-                    onClick={() => toggleViewpoint(vp)}
-                    className={`border py-2.5 text-sm font-medium transition-colors focus-visible:outline-ochre ${
-                      active
-                        ? 'border-ochre bg-ochre text-bone'
-                        : 'border-hairline bg-paper text-graphite hover:bg-drafting'
-                    }`}
-                  >
-                    {vp}
-                  </button>
-                );
-              })}
-            </div>
-            <p className="text-xs text-mist">
-              One view is generated per selected viewpoint ({orderedSelection.length || 'none'} selected).
-            </p>
-          </div>
-
-          {/* Section axonometric toggle. */}
-          <div className="flex items-center justify-between border border-hairline bg-paper px-4 py-3">
-            <div>
-              <p className="text-sm font-medium text-ink">Section axonometric</p>
-              <p className="text-xs text-mist">Adds a cut plane and labels views “— section”.</p>
-            </div>
-            <button
-              type="button"
-              role="switch"
-              aria-checked={section}
-              onClick={() => updateFeatureSettings('axonometric', { section: !section })}
-              className={`relative h-6 w-11 border transition-colors focus-visible:outline-ochre ${
-                section ? 'border-ochre bg-ochre' : 'border-hairline bg-drafting'
-              }`}
-            >
-              <span
-                className={`absolute top-1/2 h-4 w-4 -translate-y-1/2 bg-bone transition-all ${
-                  section ? 'left-6' : 'left-1'
-                }`}
-              />
-            </button>
-          </div>
-
-          {mode === 'refine' ? (
-            <div className="flex flex-col gap-3 border border-ochre bg-drafting p-4">
-              <div className="flex items-center justify-between">
-                <span className="mono-meta text-ochre">Refining · {refine.sourceLabel}</span>
-                <button
-                  type="button"
-                  onClick={() => exitRefine('axonometric')}
-                  className="text-xs text-ochre hover:text-ochre-deep focus-visible:outline-ochre"
-                >
-                  Exit refine
-                </button>
+        {/* Input & controls — ONE card with hairline dividers, matching the
+            Isometric tab. Separately elevated boxes gave each group equal
+            weight and read as a stack of unrelated widgets. */}
+        <div className="flex flex-col rounded-card border border-hairline bg-paper shadow-card">
+          {/* The options are already locked into an in-flight request, so the
+              whole control stack goes dead while one is running. */}
+          <fieldset
+            disabled={loading}
+            className={`flex min-w-0 flex-col divide-y divide-hairline transition-opacity ${loading ? 'opacity-60' : ''}`}
+          >
+            <div className="flex flex-col gap-3 p-5">
+              <div>
+                <p className="section-heading">Input</p>
+                <p className="mt-1 text-caption text-mist">Elevation drawing or render</p>
               </div>
-              <RefineChips value={refine} onChange={(patch) => patchFeatureRun('axonometric', { refine: { ...refine, ...patch } })} />
+              <ImageDropzone
+                value={input}
+                onImage={(url) => setFeatureInput('axonometric', url)}
+                onClear={() => setFeatureInput('axonometric', null)}
+              />
             </div>
-          ) : null}
 
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center justify-between gap-3">
-              <label htmlFor="axon-prompt" className="mono-meta">
-                Prompt · auto-generated
-              </label>
-              {promptEdited ? (
-                <button
-                  type="button"
-                  onClick={() => setFeaturePrompt('axonometric', suggestedPrompt, false)}
-                  className="flex items-center gap-1 text-[0.7rem] text-ochre hover:text-ochre-deep focus-visible:outline-ochre"
-                >
-                  <RotateCcw size={12} strokeWidth={1.75} /> Reset
-                </button>
+            {/* Refine replaces the controls rather than sitting under them —
+                the same shape as the Isometric and Elevation tabs, and the
+                controls below are ignored by handleGenerate in this mode. */}
+            {mode === 'refine' ? (
+              <div className="p-5">
+                <div className="flex flex-col gap-3 rounded-field border border-ochre/15 bg-ochre/[0.05] p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="section-heading">Refining</p>
+                      <p className="mt-1 truncate text-caption text-mist">{refine.sourceLabel}</p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      icon={<X size={14} strokeWidth={1.75} />}
+                      onClick={() => exitRefine('axonometric')}
+                    >
+                      Exit refine
+                    </Button>
+                  </div>
+                  <RefineChips
+                    value={refine}
+                    onChange={(patch) => patchFeatureRun('axonometric', { refine: { ...refine, ...patch } })}
+                  />
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="p-5">
+                  <Select
+                    label="Axonometric style"
+                    value={style}
+                    options={STYLE_OPTIONS}
+                    onChange={(v) => updateFeatureSettings('axonometric', { style: v })}
+                  />
+                </div>
+
+                {/* Viewpoints — multi-select (spec §8.03), rendered as a
+                    segmented control so the four options read as one field. */}
+                <div className="flex flex-col gap-2 p-5">
+                  <div>
+                    <p className="section-heading">Viewpoints</p>
+                    <p className="mt-1 text-caption text-mist">One view per selected corner</p>
+                  </div>
+                  <div className="grid grid-cols-4 gap-1.5 rounded-field border border-hairline bg-drafting/60 p-1">
+                    {VIEWPOINTS.map((vp) => {
+                      const active = selected.includes(vp);
+                      return (
+                        <button
+                          key={vp}
+                          type="button"
+                          aria-pressed={active}
+                          onClick={() => toggleViewpoint(vp)}
+                          className={`rounded-control py-2 text-label transition-colors active:scale-[0.98] ${
+                            active ? 'bg-ochre-deep text-white' : 'text-graphite hover:bg-paper'
+                          }`}
+                        >
+                          {vp}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <p className="text-body text-mist">
+                    {orderedSelection.length || 'No'} viewpoint{orderedSelection.length === 1 ? '' : 's'} selected.
+                  </p>
+                </div>
+
+                {/* Section axonometric toggle. */}
+                <div className="p-5">
+                  <Switch
+                    checked={section}
+                    onChange={(next) => updateFeatureSettings('axonometric', { section: next })}
+                    label="Section axonometric"
+                  >
+                    <span className="flex flex-col text-left">
+                      <span className="section-heading">Section axonometric</span>
+                      <span className="mt-1 text-caption text-mist">Adds a cut plane and labels views “— section”.</span>
+                    </span>
+                  </Switch>
+                </div>
+              </>
+            )}
+
+            <div className="flex flex-col gap-2 p-5">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <label htmlFor="axon-prompt" className="section-heading">
+                    Prompt
+                  </label>
+                  <p className="mt-1 text-caption text-mist">Auto-generated from the controls — edit freely</p>
+                </div>
+                {promptEdited ? (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    icon={<RotateCcw size={14} strokeWidth={1.75} />}
+                    onClick={() => setFeaturePrompt('axonometric', suggestedPrompt, false)}
+                  >
+                    Reset
+                  </Button>
+                ) : null}
+              </div>
+              {/* Assembled prompts run past four lines — let the box grow rather
+                  than hide the tail behind an internal scrollbar. */}
+              <textarea
+                id="axon-prompt"
+                value={prompt}
+                onChange={(e) => setFeaturePrompt('axonometric', e.target.value, true)}
+                className="min-h-[7rem] resize-y rounded-field border border-hairline bg-drafting/50 px-3.5 py-2.5 text-body text-graphite placeholder:text-mist"
+              />
+            </div>
+          </fieldset>
+
+          <div className="flex flex-col gap-3 border-t border-hairline p-5">
+            <div className="flex flex-wrap items-center gap-3">
+              <Button
+                variant="primary"
+                icon={<Sparkles size={16} strokeWidth={1.75} />}
+                onClick={handleGenerate}
+                loading={loading}
+                disabled={!canGenerate || loading}
+              >
+                {loading ? 'Generating…' : 'Generate'}
+              </Button>
+              {loading ? (
+                <Button variant="secondary" size="sm" icon={<X size={14} strokeWidth={1.75} />} onClick={cancel}>
+                  Cancel
+                </Button>
+              ) : null}
+              {!input ? (
+                <span className="text-body text-mist">Upload an elevation to begin.</span>
+              ) : mode !== 'refine' && orderedSelection.length === 0 ? (
+                <span className="text-body text-mist">Select at least one viewpoint.</span>
               ) : null}
             </div>
-            <textarea
-              id="axon-prompt"
-              value={prompt}
-              onChange={(e) => setFeaturePrompt('axonometric', e.target.value, true)}
-              rows={4}
-              className="resize-none border border-hairline bg-paper px-3 py-2.5 text-sm leading-relaxed text-graphite placeholder:text-mist focus-visible:outline-ochre"
-            />
-          </div>
-
-          <div className="flex items-center gap-3">
-            <Button
-              variant="primary"
-              icon={<Sparkles size={16} strokeWidth={1.75} />}
-              onClick={handleGenerate}
-              loading={loading}
-              disabled={!canGenerate || loading}
-            >
-              {loading ? 'Generating…' : 'Generate'}
-            </Button>
-            {loading ? (
-              <Button variant="secondary" size="sm" icon={<X size={14} strokeWidth={1.75} />} onClick={cancel}>
-                Cancel
-              </Button>
-            ) : null}
-            {!input ? (
-              <span className="text-xs text-mist">Upload an elevation to begin.</span>
-            ) : orderedSelection.length === 0 ? (
-              <span className="text-xs text-mist">Select at least one viewpoint.</span>
-            ) : !engineReady ? (
-              <span className="text-xs text-ochre">Add your Gemini key in Settings to generate.</span>
-            ) : null}
+            {/* Blocked, not wrong — a warning tone, and it names a destination. */}
+            {!engineReady ? <Notice tone="warning" message="Add your Gemini key in Settings to generate." /> : null}
           </div>
         </div>
 
         <div className="flex flex-col gap-4">
-          <p className="mono-meta">Output</p>
+          <div>
+            <p className="section-heading">Output</p>
+            <p className="mt-1 text-caption text-mist">One image per viewpoint</p>
+          </div>
           {error ? <ErrorBanner message={error} onRetry={handleGenerate} /> : null}
-          {warning ? (
-            <p className="border border-hairline bg-drafting px-3 py-2 text-xs leading-relaxed text-graphite">{warning}</p>
-          ) : null}
+          {warning ? <Notice tone="warning" message={warning} /> : null}
           {loading || outputs.length > 0 ? (
             <OutputGrid
               outputs={outputs}
@@ -231,11 +268,11 @@ export function AxonometricFeature() {
               onRefine={(image) => beginRefine('axonometric', image)}
             />
           ) : !error ? (
-            <div className="flex flex-1 items-center justify-center border border-dashed border-hairline bg-paper px-6 py-16 text-center">
-              <p className="max-w-xs text-sm leading-relaxed text-mist">
-                Axonometric views will appear here, one per viewpoint.
-              </p>
-            </div>
+            <EmptyState
+              icon={Box}
+              title="No axonometric views yet"
+              description="Upload an elevation, pick the corners you want and press Generate — one view appears here per viewpoint."
+            />
           ) : null}
         </div>
       </div>

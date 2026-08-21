@@ -47,6 +47,9 @@ export function outputLabels(req: GenerateRequest): string[] {
   if (req.feature === 'interior') {
     return [prettyStyle(req.options.style, 'Interior')];
   }
+  if (req.feature === 'moodboard') {
+    return ['Material board'];
+  }
   const variations = Math.max(1, req.options.variations ?? 1);
   const styleLabel = prettyStyle(req.options.style, 'Render');
   return Array.from({ length: variations }, (_, i) => `${styleLabel} — variation ${i + 1}`);

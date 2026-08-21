@@ -1,4 +1,5 @@
 import { ChevronDown, ChevronUp, Trash2 } from 'lucide-react';
+import { IconButton } from '../ui/IconButton';
 import type { GeneratedImage, Slide } from '../../types';
 
 interface SlideListProps {
@@ -25,25 +26,27 @@ export function SlideList({ slides, selectedId, imageMap, onSelect, onMove, onDe
         return (
           <li key={slide.id}>
             <div
-              className={`flex items-center gap-3 border p-2 transition-colors ${
-                active ? 'border-ochre bg-drafting' : 'border-hairline bg-paper hover:bg-drafting'
+              className={`flex items-center gap-2.5 rounded-field border p-2.5 transition-all ${
+                active
+                  ? 'border-ochre/60 bg-ochre/5 ring-1 ring-ochre/20'
+                  : 'border-hairline bg-paper hover:border-mist/40 hover:bg-drafting'
               }`}
             >
               <button
                 type="button"
                 onClick={() => onSelect(slide.id)}
-                className="flex min-w-0 flex-1 items-center gap-3 text-left focus-visible:outline-ochre"
+                className="flex min-w-0 flex-1 items-center gap-3 text-left"
               >
                 <span className="mono-meta w-6 shrink-0 text-center text-mist">
                   {String(index + 1).padStart(2, '0')}
                 </span>
-                <span className="h-10 w-14 shrink-0 overflow-hidden border border-hairline bg-drafting">
+                <span className="h-10 w-14 shrink-0 overflow-hidden rounded-control border border-hairline bg-drafting">
                   {firstImage ? (
                     <img src={firstImage.url} alt="" className="h-full w-full object-cover" />
                   ) : null}
                 </span>
-                <span className="flex min-w-0 flex-col">
-                  <span className="truncate text-sm text-ink">{slide.title || 'Untitled slide'}</span>
+                <span className="flex min-w-0 flex-col gap-0.5">
+                  <span className="truncate text-body text-ink">{slide.title || 'Untitled slide'}</span>
                   <span className="mono-meta text-mist">
                     {LAYOUT_LABEL[slide.layout]} · {slide.imageIds.length} img
                   </span>
@@ -51,34 +54,28 @@ export function SlideList({ slides, selectedId, imageMap, onSelect, onMove, onDe
               </button>
 
               <div className="flex shrink-0 flex-col">
-                <button
-                  type="button"
+                <IconButton
+                  icon={<ChevronUp size={14} strokeWidth={1.75} />}
+                  label="Move slide up"
                   onClick={() => onMove(slide.id, 'up')}
                   disabled={index === 0}
-                  className="p-1 text-graphite hover:text-ochre disabled:opacity-30 focus-visible:outline-ochre"
-                  aria-label="Move slide up"
-                >
-                  <ChevronUp size={15} strokeWidth={1.75} />
-                </button>
-                <button
-                  type="button"
+                  className="disabled:hover:bg-transparent"
+                />
+                <IconButton
+                  icon={<ChevronDown size={14} strokeWidth={1.75} />}
+                  label="Move slide down"
                   onClick={() => onMove(slide.id, 'down')}
                   disabled={index === slides.length - 1}
-                  className="p-1 text-graphite hover:text-ochre disabled:opacity-30 focus-visible:outline-ochre"
-                  aria-label="Move slide down"
-                >
-                  <ChevronDown size={15} strokeWidth={1.75} />
-                </button>
+                  className="disabled:hover:bg-transparent"
+                />
               </div>
 
-              <button
-                type="button"
+              <IconButton
+                icon={<Trash2 size={14} strokeWidth={1.75} />}
+                label="Delete slide"
+                tone="danger"
                 onClick={() => onDelete(slide.id)}
-                className="shrink-0 p-1.5 text-graphite hover:text-ochre focus-visible:outline-ochre"
-                aria-label="Delete slide"
-              >
-                <Trash2 size={15} strokeWidth={1.75} />
-              </button>
+              />
             </div>
           </li>
         );

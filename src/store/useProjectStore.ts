@@ -33,6 +33,7 @@ import type {
   GenerateStatus,
   GenerationState,
   InteriorSettings,
+  MoodboardSettings,
   RenderSettings,
   SceneOptions,
 } from './generation';
@@ -42,7 +43,7 @@ import type {
 // unions — the intersection would collapse it to their overlap, so it is widened
 // to either union here (each feature file still passes only its own keys).
 type FeatureSettingsPatch = Partial<
-  Omit<RenderSettings & ElevationSettings & AxonSettings & InteriorSettings, 'scene' | 'theme'>
+  Omit<RenderSettings & ElevationSettings & AxonSettings & InteriorSettings & MoodboardSettings, 'scene' | 'theme'>
 > & {
   scene?: Partial<SceneOptions>;
   theme?: ElevationSettings['theme'] | InteriorSettings['theme'];
@@ -227,8 +228,10 @@ export const useProjectStore = create<ProjectState>((set, get) => {
     updateFeatureSettings: (feature, patch) => {
       const gen = get().generation;
       const run = gen[feature];
-      const scene = patch.scene ? { ...run.settings.scene, ...patch.scene } : run.settings.scene;
-      const settings = { ...run.settings, ...patch, scene } as FeatureSettings;
+      // The moodboard has no scene; every other feature deep-merges a partial one.
+      const existingScene = 'scene' in run.settings ? run.settings.scene : undefined;
+      const scene = patch.scene && existingScene ? { ...existingScene, ...patch.scene } : existingScene;
+      const settings = { ...run.settings, ...patch, ...(scene ? { scene } : {}) } as FeatureSettings;
       set({ generation: { ...gen, [feature]: { ...run, settings } } });
     },
 
@@ -396,6 +399,7 @@ export const useProjectStore = create<ProjectState>((set, get) => {
           elevation: scrub(gen.elevation),
           axonometric: scrub(gen.axonometric),
           interior: scrub(gen.interior),
+          moodboard: scrub(gen.moodboard),
         },
       });
     },
@@ -525,6 +529,7 @@ const POOL_GROUPS: { key: FeatureKind; label: string }[] = [
   { key: 'elevation', label: 'Elevations' },
   { key: 'axonometric', label: 'Axonometrics' },
   { key: 'interior', label: 'Interiors' },
+  { key: 'moodboard', label: 'Material boards' },
 ];
 
 /** All images available to the presentation — generated outputs + uploads. */

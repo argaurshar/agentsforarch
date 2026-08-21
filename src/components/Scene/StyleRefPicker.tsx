@@ -2,6 +2,7 @@ import { Check } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { poolFromProject, useProjectStore } from '../../store/useProjectStore';
 import type { FeatureKind } from '../../types';
+import { Switch } from '../ui/Switch';
 
 interface StyleRefPickerProps {
   feature: FeatureKind;
@@ -33,26 +34,20 @@ export function StyleRefPicker({ feature, note }: StyleRefPickerProps) {
   };
 
   return (
-    <div className="flex flex-col gap-3 border border-hairline bg-paper p-4">
-      <div className="flex items-center justify-between">
-        <span className="mono-meta text-ochre">Match a reference style · optional</span>
-        <button
-          type="button"
-          role="switch"
-          aria-checked={open}
-          aria-label="Match a reference style"
-          onClick={toggleOpen}
-          className={`relative h-6 w-11 border transition-colors focus-visible:outline-ochre ${
-            open ? 'border-ochre bg-ochre' : 'border-hairline bg-drafting'
-          }`}
-        >
-          <span className={`absolute top-1/2 h-4 w-4 -translate-y-1/2 bg-bone transition-all ${open ? 'left-6' : 'left-1'}`} />
-        </button>
+    <div className="flex flex-col gap-3 rounded-field border border-hairline bg-paper p-4 shadow-card">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex flex-col gap-1">
+          <span className="section-heading">Match a reference style</span>
+          <span className="text-caption text-mist">Optional</span>
+        </div>
+        <Switch checked={open} onChange={toggleOpen} label="Match a reference style">
+          <span className="sr-only">Match a reference style</span>
+        </Switch>
       </div>
 
       {open ? (
         pool.length === 0 ? (
-          <p className="text-xs text-mist">
+          <p className="text-body text-graphite">
             Generate or upload some images first — then reuse one here to carry its palette, materials and mood into this
             output.
           </p>
@@ -68,21 +63,25 @@ export function StyleRefPicker({ feature, note }: StyleRefPickerProps) {
                     aria-pressed={active}
                     onClick={() => set(active ? null : ref.image.id)}
                     title={ref.image.label}
-                    className={`relative h-14 w-20 overflow-hidden border transition-all focus-visible:outline-ochre ${
-                      active ? 'border-ochre' : 'border-hairline opacity-60 hover:opacity-90'
+                    // Selection is a ring, not a 1px border swap — a hairline
+                    // colour change is invisible over a busy photo. Unselected
+                    // tiles stay at full opacity so the row does not read as
+                    // half-loaded.
+                    className={`relative h-14 w-20 overflow-hidden rounded-control border border-hairline transition-all ${
+                      active ? 'ring-2 ring-ochre ring-offset-2 ring-offset-paper' : 'hover:border-mist/40'
                     }`}
                   >
                     <img src={ref.image.url} alt={ref.image.label} className="h-full w-full object-cover" />
                     {active ? (
-                      <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center border border-ochre bg-ochre text-bone">
-                        <Check size={11} strokeWidth={2.5} />
+                      <span className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-ochre-deep text-white shadow-card">
+                        <Check size={12} strokeWidth={2} />
                       </span>
                     ) : null}
                   </button>
                 );
               })}
             </div>
-            <p className="text-xs text-mist">
+            <p className="text-body text-graphite">
               {styleRef
                 ? 'This output will follow the selected image’s palette, materials and mood.'
                 : 'Pick one image to match its style.'}

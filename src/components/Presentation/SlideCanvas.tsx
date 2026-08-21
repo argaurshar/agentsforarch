@@ -1,91 +1,87 @@
-import { ImageOff } from 'lucide-react';
-import type { Brand, GeneratedImage, Slide, SlideLayout } from '../../types';
+import { LayoutGrid } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { renderSlidePage } from '../../lib/deckRender';
+import { EmptyState } from '../ui/EmptyState';
+import { Spinner } from '../ui/Spinner';
+import type { Brand, GeneratedImage, Slide } from '../../types';
 
 interface SlideCanvasProps {
   slide: Slide | null;
   imageMap: Map<string, GeneratedImage>;
   brand: Brand;
+  projectName: string;
+  /** 1-based position of this slide among the content slides. */
+  slideNumber: number;
+  /** Total content slides (the deck adds a cover and a closing page around them). */
+  slideCount: number;
 }
 
-const CAPACITY: Record<SlideLayout, number> = {
-  full: 1,
-  'two-up': 2,
-  'four-grid': 4,
-};
+/**
+ * Renders the selected slide through the SAME canvas renderer the PDF export
+ * uses (src/lib/deckRender.ts), so what you see is exactly the page that ships —
+ * editorial rail, serif number/title, figure labels, brand footer and all.
+ */
+export function SlideCanvas({ slide, imageMap, brand, projectName, slideNumber, slideCount }: SlideCanvasProps) {
+  const [page, setPage] = useState<string | null>(null);
+  const [rendering, setRendering] = useState(false);
 
-const GRID_CLASS: Record<SlideLayout, string> = {
-  full: 'grid-cols-1 grid-rows-1',
-  'two-up': 'grid-cols-2 grid-rows-1',
-  'four-grid': 'grid-cols-2 grid-rows-2',
-};
+  useEffect(() => {
+    if (!slide) {
+      setPage(null);
+      return;
+    }
+    let cancelled = false;
+    setRendering(true);
+    renderSlidePage({
+      slide,
+      imageMap,
+      brand,
+      projectName,
+      page: slideNumber + 1, // after the cover
+      pageCount: slideCount + 2, // cover + slides + closing
+      slideNumber,
+    })
+      .then((url) => {
+        if (!cancelled) setPage(url);
+      })
+      .catch(() => {
+        if (!cancelled) setPage(null);
+      })
+      .finally(() => {
+        if (!cancelled) setRendering(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [slide, imageMap, brand, projectName, slideNumber, slideCount]);
 
-// Neutral tints that read on any brand background.
-const CELL_BG = 'rgba(15,23,41,0.04)';
-const CELL_BORDER = 'rgba(15,23,41,0.12)';
-
-/** Renders a slide at A4-landscape proportions in the project's brand identity. */
-export function SlideCanvas({ slide, imageMap, brand }: SlideCanvasProps) {
   if (!slide) {
+    // A single grid child stretches to both axes, so the shared EmptyState keeps
+    // the canvas footprint (and the layout stable) while it has no page to show.
     return (
-      <div
-        className="flex items-center justify-center border border-hairline bg-paper"
-        style={{ aspectRatio: '297 / 210' }}
-      >
-        <p className="max-w-xs text-center text-sm text-mist">
-          No slide selected. Add a slide from the images on the left, or pick one from the list.
-        </p>
+      <div className="grid" style={{ aspectRatio: '297 / 210' }}>
+        <EmptyState
+          icon={LayoutGrid}
+          title="No slide selected"
+          description="Add a slide from the images on the left, or pick one from the list."
+        />
       </div>
     );
   }
 
-  const capacity = CAPACITY[slide.layout];
-  const cells = Array.from({ length: capacity }, (_, i) => slide.imageIds[i] ?? null);
-  const footerName = (brand.name || 'AND Studio').toUpperCase();
-
   return (
     <div
-      className="flex flex-col gap-4 border border-hairline p-8"
-      style={{ aspectRatio: '297 / 210', backgroundColor: brand.background }}
+      className="relative overflow-hidden rounded-card border border-hairline bg-drafting shadow-card"
+      style={{ aspectRatio: '297 / 210' }}
     >
-      {slide.title ? (
-        <h2 className="text-2xl font-light leading-tight" style={{ fontFamily: brand.headingFont, color: brand.primary }}>
-          {slide.title}
-        </h2>
+      {page ? (
+        <img src={page} alt={slide.title || `Slide ${slideNumber}`} className="h-full w-full object-contain" />
       ) : null}
-
-      <div className={`grid min-h-0 flex-1 gap-4 ${GRID_CLASS[slide.layout]}`}>
-        {cells.map((imageId, i) => {
-          const image = imageId ? imageMap.get(imageId) : null;
-          return (
-            <div
-              key={i}
-              className="flex items-center justify-center overflow-hidden border"
-              style={{ backgroundColor: CELL_BG, borderColor: CELL_BORDER }}
-            >
-              {image ? (
-                <img src={image.url} alt={image.label} className="h-full w-full object-contain" />
-              ) : (
-                <div className="flex flex-col items-center gap-2 text-mist">
-                  <ImageOff size={20} strokeWidth={1} />
-                  <span className="mono-meta text-mist">Empty</span>
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-
-      <div className="flex items-end justify-between gap-4 border-t pt-3" style={{ borderColor: CELL_BORDER }}>
-        <p className="max-w-xl text-xs leading-snug" style={{ fontFamily: brand.bodyFont, color: brand.text }}>
-          {slide.caption ?? ''}
-        </p>
-        <div className="flex shrink-0 items-center gap-2">
-          {brand.logo ? <img src={brand.logo} alt="" className="h-5 w-auto max-w-[120px] object-contain" /> : null}
-          <p className="font-mono text-[0.6rem] uppercase tracking-[0.14em]" style={{ color: brand.accent }}>
-            {footerName} · Concept Presentation
-          </p>
+      {rendering && !page ? (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <Spinner size={20} className="text-ochre" />
         </div>
-      </div>
+      ) : null}
     </div>
   );
 }

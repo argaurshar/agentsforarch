@@ -167,19 +167,26 @@ export function buildElevationPrompt(
   // The face is a noun phrase; the viewing direction is its own sentence so the
   // opening line stays grammatical for every face (and for the all-faces base).
   const faceNoun = a.face === null ? 'elevation' : `${a.face.toLowerCase()} elevation`;
-  const faceView =
-    a.face === 'Rear'
-      ? 'Viewed perfectly straight-on from behind the building.'
-      : a.face === 'Side'
-        ? "Viewed perfectly straight-on at the building's flank — a true side view."
-        : 'Viewed perfectly straight-on.';
   const styleClause = ELEVATION_STYLE_CLAUSE[a.style] ?? ELEVATION_STYLE_CLAUSE.rendered;
 
-  const parts: string[] = [
-    `Produce a clean orthographic ${faceNoun} of the building shown in the input image, as a flat architectural drawing.`,
-    faceView,
-    'Maintain accurate proportions and align every element to a true vertical and horizontal grid with no perspective. Neutral white background.',
-  ];
+  // Side and rear must be RECONSTRUCTED, so their openings demand a 3D read of
+  // the building first and forbid redrawing the input face — with a front-on
+  // input the model otherwise just returns the front again (verified live).
+  const parts: string[] =
+    a.face === 'Side' || a.face === 'Rear'
+      ? [
+          'The input image shows one face of a building. Your task is NOT to draw that face.',
+          'First understand the building as a three-dimensional volume: infer its depth (front-to-back), its roof form and its materials from the face shown.',
+          a.face === 'Side'
+            ? "Then draw ONLY the building's RIGHT SIDE face — the flank you would see standing to the right of the building, looking at it at 90 degrees to the input face — as a clean, flat orthographic architectural elevation. This side face is a DIFFERENT drawing from the input: its width is the building's front-to-back depth, it has no entry door and no garage door, and it shows fewer, smaller windows appropriate to a private flank, with the same material palette and roof lines carried around the corner."
+            : "Then draw ONLY the building's REAR face — the back of the building, directly opposite the input face, viewed straight-on from behind — as a clean, flat orthographic architectural elevation. This rear face is a DIFFERENT drawing from the input: no entry door and no garage door, typically larger glazing opening to the garden, with the same material palette and roof lines carried around the building.",
+          'Perfectly flat and straight-on, aligned to a true vertical and horizontal grid with no perspective. Neutral white background.',
+        ]
+      : [
+          `Produce a clean orthographic ${faceNoun} of the building shown in the input image, as a flat architectural drawing.`,
+          'Viewed perfectly straight-on.',
+          'Maintain accurate proportions and align every element to a true vertical and horizontal grid with no perspective. Neutral white background.',
+        ];
   if (a.style === 'rendered') {
     // Lighting is applied as façade illumination only — the drawing itself must
     // stay flat, so the scene clause must not pull the model into a 3D view.
@@ -272,6 +279,29 @@ export function buildInteriorPrompt(a: InteriorPromptArgs): string {
     NO_TEXT,
   );
   return parts.join(' ');
+}
+
+// --- Material & mood board (Feature 05) --------------------------------------
+
+/**
+ * Any image → a professional flat-lay material & mood board extracting the
+ * input's design DNA. This board deliberately CONTAINS text (its labels), so it
+ * gets a spell-correctly instruction instead of the shared no-text guard.
+ * Live-validated on Nano Banana Pro against a studio reference board.
+ */
+export function buildMoodboardPrompt(): string {
+  return [
+    'You are an architecture and interior design stylist. Study the attached image — a render, sketch or photo of a designed space — and extract its design DNA: the exact materials, colour palette, fabrics, textures, furniture character and overall mood.',
+    "Then compose a single professional flat-lay MATERIAL & MOOD BOARD that presents that DNA, in the style of a high-end design studio's client presentation board:",
+    'A warm off-white studio background, viewed top-down as a styled flat-lay with soft realistic drop shadows.',
+    'Overlapping physical material samples in the centre — wood boards, stone or terrazzo tiles, fabric and linen swatches, a metal finish sample, woven textures — each drawn from the actual materials visible in the input image.',
+    "A few isolated 3D furniture suggestions matching the input's style (a sofa or an accent chair, a small console or side table), one framed artwork suggestion, and a plant sprig or leaf for life.",
+    'Elegant small serif labels with thin underline rules naming each element and its material (e.g. "SOFA SUGGESTION — Bouclé Fabric in Warm Beige", "FLOORING — Natural Oak"), placed beside the elements they describe.',
+    'A "COLOR PALETTE" row of five plain solid colour dots sampled from the input image, with any names set beside or below the dots — never inside them.',
+    'A "MATERIAL PALETTE" strip of five labelled rectangular swatches: wall colour, flooring, primary fabric, curtain, metal.',
+    'A closing "VIBE" line naming the mood of the input space in three to five words.',
+    'Typography: refined serif with letter-spaced small caps, generous whitespace — a page from a luxury design deck. Photorealistic samples, ultra-detailed. The only text on the board are these labels — spell every word correctly.',
+  ].join(' ');
 }
 
 // --- Axonometric ------------------------------------------------------------

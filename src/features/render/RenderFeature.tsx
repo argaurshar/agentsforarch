@@ -1,4 +1,4 @@
-import { FileImage, RotateCcw, Sparkles, X } from 'lucide-react';
+import { Boxes, FileImage, RotateCcw, Sparkles, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { ImageDropzone } from '../../components/Upload/ImageDropzone';
 import { CompareSection } from '../../components/Output/CompareSection';
@@ -8,8 +8,12 @@ import { SceneControls } from '../../components/Scene/SceneControls';
 import { StyleRefPicker } from '../../components/Scene/StyleRefPicker';
 import { Button } from '../../components/ui/Button';
 import { ChipGroup } from '../../components/ui/ChipGroup';
+import { EmptyState } from '../../components/ui/EmptyState';
 import { ErrorBanner } from '../../components/ui/ErrorBanner';
+import { Notice } from '../../components/ui/Notice';
+import { ExampleShowcase } from '../../components/Examples/ExampleShowcase';
 import { SectionHeader } from '../../components/ui/SectionHeader';
+import { Switch } from '../../components/ui/Switch';
 import { loadDemoPlan } from '../../lib/demoPlan';
 import { buildRefinePrompt, buildRenderPrompt } from '../../lib/prompts';
 import { ARCH_STYLES } from '../../lib/scene';
@@ -38,18 +42,23 @@ function SamplePlanButton() {
   const setFeatureInput = useProjectStore((s) => s.setFeatureInput);
   const [loading, setLoading] = useState(false);
   return (
-    <button
-      type="button"
+    <Button
+      variant="ghost"
+      size="sm"
+      className="self-start"
+      icon={<FileImage size={14} strokeWidth={1.75} />}
+      // `loading` also disables the button, so a slow fetch cannot fire
+      // loadDemoPlan() several times over on the first-run happy path.
+      loading={loading}
       onClick={() => {
         setLoading(true);
         void loadDemoPlan()
           .then((url) => setFeatureInput('render', url))
           .finally(() => setLoading(false));
       }}
-      className="mt-2 flex items-center gap-1.5 text-xs text-ochre hover:text-ochre-deep focus-visible:outline-ochre"
     >
-      <FileImage size={13} strokeWidth={1.75} /> {loading ? 'Loading sample…' : 'No plan handy? Try with a sample plan'}
-    </button>
+      {loading ? 'Loading sample…' : 'No plan handy? Try with a sample plan'}
+    </Button>
   );
 }
 
@@ -71,6 +80,7 @@ export function RenderFeature() {
   const [compare, setCompare] = useState(false);
   const [compareSel, setCompareSel] = useState<ArchStyleKey[]>(['contemporary', 'bauhaus', 'indian']);
   const compareActive = mode !== 'refine' && compare && compareSel.length >= 2;
+  const atCompareCap = compareSel.length >= MAX_COMPARE;
 
   const toggleCompareKey = (key: ArchStyleKey) =>
     setCompareSel((prev) =>
@@ -100,6 +110,7 @@ export function RenderFeature() {
   const { addToPresentation, addedIds } = usePresentationAdder();
 
   const loading = status === 'loading';
+  const needsMoreStyles = compare && mode !== 'refine' && compareSel.length < 2;
 
   const handleGenerate = () => {
     if (!input) return;
@@ -128,161 +139,193 @@ export function RenderFeature() {
         description="Turn a 2D floor plan into a 3D isometric cutaway — or a fully furnished top-down 2D marketing plan. Upload directly — no prior step required."
       />
 
+      {/* Worked examples — open until this tab has produced something. */}
+      <ExampleShowcase feature="render" defaultOpen={outputs.length === 0} />
+
       <div className="grid gap-8 lg:grid-cols-2">
-        {/* Input & controls */}
-        <div className="flex flex-col gap-6">
-          <div>
-            <p className="mono-meta mb-3">Input · 2D floor plan</p>
-            <ImageDropzone
-              value={input}
-              onImage={(url) => setFeatureInput('render', url)}
-              onClear={() => setFeatureInput('render', null)}
-              hint="Upload a top-down 2D floor plan."
-            />
-            {!input ? <SamplePlanButton /> : null}
-          </div>
-
-          {mode === 'refine' ? (
-            <div className="flex flex-col gap-3 border border-ochre bg-drafting p-4">
-              <div className="flex items-center justify-between">
-                <span className="mono-meta text-ochre">Refining · {refine.sourceLabel}</span>
-                <button
-                  type="button"
-                  onClick={() => exitRefine('render')}
-                  className="text-xs text-ochre hover:text-ochre-deep focus-visible:outline-ochre"
-                >
-                  Exit refine
-                </button>
+        {/* Input & controls — ONE card with hairline dividers. Six separately
+            elevated boxes down a column gave every group the same weight and
+            made the page read as a stack of unrelated widgets. */}
+        <div className="flex flex-col rounded-card border border-hairline bg-paper shadow-card">
+          {/* Everything upstream of the action row goes dead during a run: the
+              options are already locked into the in-flight request. */}
+          <fieldset
+            disabled={loading}
+            className={`flex min-w-0 flex-col divide-y divide-hairline transition-opacity ${loading ? 'opacity-60' : ''}`}
+          >
+            <div className="flex flex-col gap-3 p-5">
+              <div>
+                <p className="section-heading">Input</p>
+                <p className="mt-1 text-caption text-mist">2D floor plan</p>
               </div>
-              <RefineChips value={refine} onChange={(patch) => patchFeatureRun('render', { refine: { ...refine, ...patch } })} />
-            </div>
-          ) : (
-            <>
-              <ChipGroup
-                label="Output view"
-                value={style}
-                options={VIEW_OPTIONS}
-                onChange={(v) => updateFeatureSettings('render', { style: v })}
+              <ImageDropzone
+                value={input}
+                onImage={(url) => setFeatureInput('render', url)}
+                onClear={() => setFeatureInput('render', null)}
+                hint="Upload a top-down 2D floor plan."
               />
+              {!input ? <SamplePlanButton /> : null}
+            </div>
 
-              {/* Compare styles — one plan × several design languages in one batch. */}
-              <div className="flex flex-col gap-3 border border-hairline bg-paper p-4">
-                <div className="flex items-center justify-between">
-                  <span className="mono-meta text-ochre">Compare styles · one image per style</span>
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={compare}
-                    aria-label="Compare styles"
-                    onClick={() => setCompare((v) => !v)}
-                    className={`relative h-6 w-11 border transition-colors focus-visible:outline-ochre ${
-                      compare ? 'border-ochre bg-ochre' : 'border-hairline bg-drafting'
-                    }`}
-                  >
-                    <span
-                      className={`absolute top-1/2 h-4 w-4 -translate-y-1/2 bg-bone transition-all ${
-                        compare ? 'left-6' : 'left-1'
-                      }`}
-                    />
-                  </button>
-                </div>
-                {compare ? (
-                  <>
-                    <div className="flex flex-wrap gap-1.5">
-                      {COMPARE_KEYS.map((key) => {
-                        const active = compareSel.includes(key);
-                        return (
-                          <button
-                            key={key}
-                            type="button"
-                            aria-pressed={active}
-                            onClick={() => toggleCompareKey(key)}
-                            className={`border px-3 py-1.5 text-xs transition-colors focus-visible:outline-ochre ${
-                              active ? 'border-ochre bg-ochre text-bone' : 'border-hairline bg-paper text-graphite hover:bg-drafting'
-                            }`}
-                          >
-                            {ARCH_STYLES[key].label}
-                          </button>
-                        );
-                      })}
+            {mode === 'refine' ? (
+              <div className="p-5">
+                {/* Refine is a mode, not an alert — a soft accent wash, not a
+                    border heavier than every hairline around it. */}
+                <div className="flex flex-col gap-3 rounded-field border border-ochre/15 bg-ochre/[0.05] p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="section-heading">Refining</p>
+                      <p className="mt-1 truncate text-caption text-mist">{refine.sourceLabel}</p>
                     </div>
-                    <p className="text-xs text-mist">
-                      {compareSel.length < 2
-                        ? 'Pick at least 2 styles.'
-                        : `${compareSel.length} styles → ${compareSel.length} images in one run (max ${MAX_COMPARE}).`}
-                    </p>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      icon={<X size={14} strokeWidth={1.75} />}
+                      onClick={() => exitRefine('render')}
+                    >
+                      Exit refine
+                    </Button>
+                  </div>
+                  <RefineChips value={refine} onChange={(patch) => patchFeatureRun('render', { refine: { ...refine, ...patch } })} />
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="p-5">
+                  <ChipGroup
+                    label="Output view"
+                    value={style}
+                    options={VIEW_OPTIONS}
+                    onChange={(v) => updateFeatureSettings('render', { style: v })}
+                  />
+                </div>
+
+                {/* Compare styles — one plan × several design languages in one batch. */}
+                <div className="flex flex-col gap-4 p-5">
+                  <Switch checked={compare} onChange={setCompare} label="Compare styles">
+                    <span className="flex flex-col text-left">
+                      <span className="section-heading">Compare styles</span>
+                      <span className="mt-1 text-caption text-mist">One image per style</span>
+                    </span>
+                  </Switch>
+                  {compare ? (
+                    <>
+                      <div className="flex flex-wrap gap-2">
+                        {COMPARE_KEYS.map((key) => {
+                          const active = compareSel.includes(key);
+                          return (
+                            <button
+                              key={key}
+                              type="button"
+                              aria-pressed={active}
+                              // At the cap the toggle silently no-ops, so the
+                              // unselected chips have to stop looking live.
+                              disabled={atCompareCap && !active}
+                              onClick={() => toggleCompareKey(key)}
+                              className={`pill border px-3.5 py-1.5 text-label transition-colors active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 ${
+                                active
+                                  ? 'border-ochre-deep bg-ochre-deep text-white'
+                                  : 'border-hairline bg-paper text-graphite hover:border-mist/40 hover:bg-drafting'
+                              }`}
+                            >
+                              {ARCH_STYLES[key].label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <p className="text-body text-mist">
+                        {compareSel.length < 2
+                          ? 'Pick at least 2 styles.'
+                          : `${compareSel.length} styles → ${compareSel.length} images in one run (max ${MAX_COMPARE}).`}
+                      </p>
+                    </>
+                  ) : null}
+                </div>
+
+                {!compareActive ? (
+                  <>
+                    <div className="p-5">
+                      <StyleRefPicker feature="render" />
+                    </div>
+                    <div className="p-5">
+                      <SceneControls
+                        value={scene}
+                        onChange={(patch) => updateFeatureSettings('render', { scene: patch })}
+                        show={{ archStyle: true }}
+                      />
+                    </div>
                   </>
                 ) : null}
+              </>
+            )}
+
+            {/* Prompt — visible + editable, same as every other generation tab. */}
+            <div className="flex flex-col gap-2 p-5">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <label htmlFor="render-prompt" className="section-heading">
+                    Prompt
+                  </label>
+                  <p className="mt-1 text-caption text-mist">Auto-generated from the controls — edit freely</p>
+                </div>
+                {promptEdited ? (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    icon={<RotateCcw size={14} strokeWidth={1.75} />}
+                    onClick={() => setFeaturePrompt('render', suggestedPrompt, false)}
+                  >
+                    Reset
+                  </Button>
+                ) : null}
               </div>
+              {/* Assembled prompts run well past four lines — let the box grow
+                  rather than hiding the tail behind an internal scrollbar. */}
+              <textarea
+                id="render-prompt"
+                value={prompt}
+                onChange={(e) => setFeaturePrompt('render', e.target.value, true)}
+                className="min-h-[7rem] resize-y rounded-field border border-hairline bg-drafting/50 px-3.5 py-2.5 text-body text-graphite placeholder:text-mist"
+              />
+            </div>
+          </fieldset>
 
-              {!compareActive ? (
-                <>
-                  <StyleRefPicker feature="render" />
-                  <SceneControls
-                    value={scene}
-                    onChange={(patch) => updateFeatureSettings('render', { scene: patch })}
-                    show={{ archStyle: true }}
-                  />
-                </>
+          <div className="flex flex-col gap-3 border-t border-hairline p-5">
+            <div className="flex flex-wrap items-center gap-3">
+              <Button
+                variant="primary"
+                icon={<Sparkles size={16} strokeWidth={1.75} />}
+                onClick={handleGenerate}
+                loading={loading}
+                disabled={!input || loading || needsMoreStyles}
+              >
+                {loading ? 'Generating…' : compareActive ? `Generate ${compareSel.length} styles` : 'Generate'}
+              </Button>
+              {loading ? (
+                <Button variant="secondary" size="sm" icon={<X size={14} strokeWidth={1.75} />} onClick={cancel}>
+                  Cancel
+                </Button>
               ) : null}
-            </>
-          )}
-
-          {/* Prompt — visible + editable, same as every other generation tab. */}
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center justify-between gap-3">
-              <label htmlFor="render-prompt" className="mono-meta">
-                Prompt · auto-generated
-              </label>
-              {promptEdited ? (
-                <button
-                  type="button"
-                  onClick={() => setFeaturePrompt('render', suggestedPrompt, false)}
-                  className="flex items-center gap-1 text-[0.7rem] text-ochre hover:text-ochre-deep focus-visible:outline-ochre"
-                >
-                  <RotateCcw size={12} strokeWidth={1.75} /> Reset
-                </button>
+              {!input ? (
+                <span className="text-body text-mist">Upload a floor plan to begin.</span>
+              ) : needsMoreStyles ? (
+                <span className="text-body text-mist">Pick at least 2 styles to compare.</span>
               ) : null}
             </div>
-            <textarea
-              id="render-prompt"
-              value={prompt}
-              onChange={(e) => setFeaturePrompt('render', e.target.value, true)}
-              rows={4}
-              className="resize-none border border-hairline bg-paper px-3 py-2.5 text-sm leading-relaxed text-graphite placeholder:text-mist focus-visible:outline-ochre"
-            />
-          </div>
-
-          <div className="flex items-center gap-3">
-            <Button
-              variant="primary"
-              icon={<Sparkles size={16} strokeWidth={1.75} />}
-              onClick={handleGenerate}
-              loading={loading}
-              disabled={!input || loading || (compare && mode !== 'refine' && compareSel.length < 2)}
-            >
-              {loading ? 'Generating…' : compareActive ? `Generate ${compareSel.length} styles` : 'Generate'}
-            </Button>
-            {loading ? (
-              <Button variant="secondary" size="sm" icon={<X size={14} strokeWidth={1.75} />} onClick={cancel}>
-                Cancel
-              </Button>
-            ) : null}
-            {!input ? (
-              <span className="text-xs text-mist">Upload a floor plan to begin.</span>
-            ) : !engineReady ? (
-              <span className="text-xs text-ochre">Add your Gemini key in Settings to generate.</span>
-            ) : null}
+            {/* A blocked run is a warning state, not an accent one — and it names
+                a destination, so it gets its own readable line. */}
+            {!engineReady ? <Notice tone="warning" message="Add your Gemini key in Settings to generate." /> : null}
           </div>
         </div>
 
         {/* Output */}
         <div className="flex flex-col gap-4">
-          <p className="mono-meta">Output · {style === 'plan2d' ? '2D furnished plan' : '3D isometric'}</p>
+          <div>
+            <p className="section-heading">Output</p>
+            <p className="mt-1 text-caption text-mist">{style === 'plan2d' ? '2D furnished plan' : '3D isometric'}</p>
+          </div>
           {error ? <ErrorBanner message={error} onRetry={handleGenerate} /> : null}
-          {warning ? (
-            <p className="border border-hairline bg-drafting px-3 py-2 text-xs leading-relaxed text-graphite">{warning}</p>
-          ) : null}
+          {warning ? <Notice tone="warning" message={warning} /> : null}
           {loading || outputs.length > 0 ? (
             <OutputGrid
               outputs={outputs}
@@ -296,12 +339,13 @@ export function RenderFeature() {
               onSend={(target, image) => sendToFeature(target, image.url)}
             />
           ) : !error ? (
-            <div className="flex flex-1 items-center justify-center border border-dashed border-hairline bg-paper px-6 py-16 text-center">
-              <p className="max-w-xs text-sm leading-relaxed text-mist">
-                Your {style === 'plan2d' ? 'furnished plan' : '3D isometric view'} will appear here. Upload a floor plan
-                and press Generate.
-              </p>
-            </div>
+            <EmptyState
+              icon={Boxes}
+              title={style === 'plan2d' ? 'No furnished plan yet' : 'No isometric view yet'}
+              description={`Upload a floor plan and press Generate — your ${
+                style === 'plan2d' ? 'furnished plan' : '3D isometric view'
+              } will appear here.`}
+            />
           ) : null}
         </div>
       </div>

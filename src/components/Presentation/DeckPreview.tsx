@@ -79,17 +79,24 @@ export function DeckPreview({ html, projectName, onRegenerate, onClear, regenera
         </Button>
       </div>
 
-      <div className="w-full overflow-hidden border border-hairline bg-black" style={{ aspectRatio: '16 / 9' }}>
+      {/* bg-ink, not bg-black: the letterbox must be the same black as every
+          other dark surface. The skeleton sits behind the frame so the slab does
+          not flash before srcDoc paints. */}
+      <div
+        className="relative w-full overflow-hidden rounded-card border border-hairline bg-ink shadow-card-lg"
+        style={{ aspectRatio: '16 / 9' }}
+      >
+        <div aria-hidden="true" className="absolute inset-0 animate-pulse bg-drafting" />
         <iframe
           ref={iframeRef}
           title="Generated presentation"
           srcDoc={previewHtml}
-          className="h-full w-full"
+          className="relative h-full w-full"
           sandbox="allow-scripts allow-modals allow-popups allow-downloads"
         />
       </div>
 
-      <p className="text-[0.7rem] text-mist">
+      <p className="text-caption text-mist">
         Navigate with arrow keys, space, or swipe. “Print / PDF” prints one 16:9 slide per page — choose “Save as PDF”.
       </p>
     </div>

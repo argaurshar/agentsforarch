@@ -1,6 +1,7 @@
 import { Suspense, lazy } from 'react';
 import { AppShell } from './components/Layout/AppShell';
-import { Spinner } from './components/ui/Spinner';
+import { FeatureErrorBoundary } from './components/ui/FeatureErrorBoundary';
+import { FeatureSkeleton } from './components/ui/FeatureSkeleton';
 import { AxonometricFeature } from './features/axonometric/AxonometricFeature';
 import { ElevationFeature } from './features/elevation/ElevationFeature';
 import { DashboardFeature } from './features/home/DashboardFeature';
@@ -39,15 +40,11 @@ export default function App() {
       {/* `key={tab}` remounts on tab change so the reveal animation replays,
           giving each feature screen a composed, unhurried arrival. */}
       <div key={tab} className="view-enter">
-        <Suspense
-          fallback={
-            <div className="flex items-center justify-center py-24">
-              <Spinner size={24} className="text-ochre" />
-            </div>
-          }
-        >
-          <ActiveFeature />
-        </Suspense>
+        <FeatureErrorBoundary resetKey={tab}>
+          <Suspense fallback={<FeatureSkeleton />}>
+            <ActiveFeature />
+          </Suspense>
+        </FeatureErrorBoundary>
       </div>
     </AppShell>
   );

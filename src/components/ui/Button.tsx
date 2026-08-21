@@ -13,20 +13,21 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const base =
-  'inline-flex items-center justify-center gap-2 font-medium tracking-wide select-none ' +
-  'border transition-colors disabled:cursor-not-allowed disabled:opacity-45 focus-visible:outline-ochre';
+  'inline-flex items-center justify-center gap-2 font-medium select-none rounded-full ' +
+  'border transition-all active:scale-[0.98] disabled:cursor-not-allowed ' +
+  'disabled:opacity-50 disabled:shadow-none disabled:active:scale-100';
 
 const variants: Record<Variant, string> = {
-  // The single accent — Ochre — square corners, no shadow, subtle lift on hover.
-  primary: 'lift bg-ochre text-bone border-ochre hover:bg-ochre-deep hover:border-ochre-deep',
-  secondary: 'bg-paper text-ink border-hairline hover:bg-drafting',
+  // The single accent — a soft accent glow instead of the old flat block.
+  primary: 'bg-ochre text-white border-ochre shadow-btn hover:bg-ochre-deep hover:border-ochre-deep',
+  secondary: 'bg-paper text-ink border-hairline shadow-card hover:bg-drafting hover:border-mist/40',
   ghost: 'bg-transparent text-graphite border-transparent hover:bg-drafting',
-  danger: 'bg-transparent text-ochre border-hairline hover:bg-drafting',
+  danger: 'bg-transparent text-danger border-danger/30 hover:bg-danger-soft hover:border-danger/50',
 };
 
 const sizes: Record<Size, string> = {
-  sm: 'text-xs px-3 py-1.5',
-  md: 'text-sm px-5 py-2.5',
+  sm: 'text-label px-3.5 py-1.5',
+  md: 'text-body font-medium px-5 py-2.5',
 };
 
 export function Button({
@@ -47,7 +48,12 @@ export function Button({
       className={`${base} ${variants[variant]} ${sizes[size]} ${className}`}
       {...rest}
     >
-      {loading ? <Spinner size={size === 'sm' ? 14 : 16} /> : icon}
+      {/* Reserve the glyph slot so a button does not jump width when it starts loading. */}
+      {icon || loading ? (
+        <span className="inline-flex w-4 shrink-0 justify-center">
+          {loading ? <Spinner size={size === 'sm' ? 14 : 16} /> : icon}
+        </span>
+      ) : null}
       {children}
     </button>
   );

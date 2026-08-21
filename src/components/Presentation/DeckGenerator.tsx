@@ -1,57 +1,45 @@
-import { Check, Sparkles, Wand2, X } from 'lucide-react';
+import { Check, Images, Sparkles, Wand2, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { cancelDeck, runDeck } from '../../features/presentation/deckRunner';
 import type { DeckDensity, DeckImage, DeckLength, DeckOptions, DeckPurpose } from '../../lib/slidesDeck';
 import { SKILL_ATTRIBUTION } from '../../lib/skill/frontendSlides';
 import { poolFromProject, useProjectStore } from '../../store/useProjectStore';
 import { Button } from '../ui/Button';
+import { ChipGroup } from '../ui/ChipGroup';
+import type { ChipOption } from '../ui/ChipGroup';
+import { EmptyState } from '../ui/EmptyState';
 import { ErrorBanner } from '../ui/ErrorBanner';
+import { Notice } from '../ui/Notice';
 import { Spinner } from '../ui/Spinner';
 import { DeckPreview } from './DeckPreview';
 
-const PURPOSES: DeckPurpose[] = ['Pitch deck', 'Teaching / tutorial', 'Conference talk', 'Internal presentation'];
-const LENGTHS: DeckLength[] = ['Short (5–10 slides)', 'Medium (10–20 slides)', 'Long (20+ slides)'];
-const DENSITIES: DeckDensity[] = ['Low density / speaker-led', 'High density / reading-first'];
+// The shared ChipGroup takes {value,label} options; these labels ARE the values
+// the composer prompt expects, so value and label stay identical.
+const asOptions = <T extends string>(values: readonly T[]): ChipOption<T>[] =>
+  values.map((value) => ({ value, label: value }));
 
-interface ChipGroupProps<T extends string> {
-  label: string;
-  value: T;
-  options: readonly T[];
-  onChange: (v: T) => void;
-}
-
-function ChipGroup<T extends string>({ label, value, options, onChange }: ChipGroupProps<T>) {
-  return (
-    <div className="flex flex-col gap-2">
-      <span className="mono-meta">{label}</span>
-      <div className="flex flex-wrap gap-1.5">
-        {options.map((opt) => {
-          const active = opt === value;
-          return (
-            <button
-              key={opt}
-              type="button"
-              aria-pressed={active}
-              onClick={() => onChange(opt)}
-              className={`border px-3 py-1.5 text-xs transition-colors focus-visible:outline-ochre ${
-                active ? 'border-ochre bg-ochre text-bone' : 'border-hairline bg-paper text-graphite hover:bg-drafting'
-              }`}
-            >
-              {opt}
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
+const PURPOSES: ChipOption<DeckPurpose>[] = asOptions<DeckPurpose>([
+  'Pitch deck',
+  'Teaching / tutorial',
+  'Conference talk',
+  'Internal presentation',
+]);
+const LENGTHS: ChipOption<DeckLength>[] = asOptions<DeckLength>([
+  'Short (5–10 slides)',
+  'Medium (10–20 slides)',
+  'Long (20+ slides)',
+]);
+const DENSITIES: ChipOption<DeckDensity>[] = asOptions<DeckDensity>([
+  'Low density / speaker-led',
+  'High density / reading-first',
+]);
 
 function Warnings({ items }: { items: string[] }) {
   if (items.length === 0) return null;
   return (
-    <div className="border border-hairline bg-drafting px-3 py-2 text-xs leading-relaxed text-graphite">
+    <div className="flex flex-col gap-2">
       {items.map((w, i) => (
-        <p key={i}>{w}</p>
+        <Notice key={i} tone="warning" message={w} />
       ))}
     </div>
   );
@@ -67,6 +55,7 @@ export function DeckGenerator() {
   const deckError = useProjectStore((s) => s.deckError);
   const deckWarnings = useProjectStore((s) => s.deckWarnings);
   const patchDeck = useProjectStore((s) => s.patchDeck);
+  const setTab = useProjectStore((s) => s.setTab);
 
   const pool = useMemo(() => poolFromProject(project), [project]);
   const groups = useMemo(() => {
@@ -131,12 +120,14 @@ export function DeckGenerator() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="border border-hairline bg-paper p-5">
+      <div className="rounded-card border border-hairline bg-paper p-5 shadow-card">
         <div className="mb-5 flex items-start gap-3">
-          <Wand2 size={18} strokeWidth={1.75} className="mt-0.5 shrink-0 text-ochre" />
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-drafting">
+            <Wand2 size={18} strokeWidth={1.75} className="text-mist" />
+          </span>
           <div>
-            <h3 className="text-lg font-light text-ink">Generate a presentation</h3>
-            <p className="mt-1 text-sm text-graphite">
+            <h3 className="font-display text-title text-ink">Generate a presentation</h3>
+            <p className="mt-1 text-body text-graphite">
               Claude builds a distinctive, self-contained HTML deck from your brand and the images you pick below — a
               fixed 16:9 stage with real motion.
             </p>
@@ -145,31 +136,26 @@ export function DeckGenerator() {
 
         {/* Image picker — choose which generated images Claude builds the deck from. */}
         {pool.length > 0 ? (
-          <div className="mb-6 flex flex-col gap-3 border-t border-hairline pt-5">
+          <div className="mb-6 flex flex-col gap-4 border-t border-hairline pt-5">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <span className="mono-meta">
-                Images for the deck · {selectedCount} of {pool.length} selected
+              <span className="flex flex-wrap items-baseline gap-2">
+                <span className="section-heading">Images for the deck</span>
+                <span className="mono-meta text-mist">
+                  {selectedCount} of {pool.length} selected
+                </span>
               </span>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={selectAll}
-                  className="border border-hairline bg-paper px-2.5 py-1 font-mono text-[0.6rem] uppercase tracking-[0.12em] text-graphite hover:bg-drafting focus-visible:outline-ochre"
-                >
+              <div className="flex gap-1">
+                <Button variant="ghost" size="sm" onClick={selectAll}>
                   Select all
-                </button>
-                <button
-                  type="button"
-                  onClick={clearAll}
-                  className="border border-hairline bg-paper px-2.5 py-1 font-mono text-[0.6rem] uppercase tracking-[0.12em] text-graphite hover:bg-drafting focus-visible:outline-ochre"
-                >
+                </Button>
+                <Button variant="ghost" size="sm" onClick={clearAll}>
                   Clear
-                </button>
+                </Button>
               </div>
             </div>
             {groups.map((group) => (
               <div key={group} className="flex flex-col gap-2">
-                <p className="font-mono text-[0.6rem] uppercase tracking-[0.14em] text-graphite">{group}</p>
+                <p className="mono-meta">{group}</p>
                 <div className="flex flex-wrap gap-2">
                   {pool
                     .filter((p) => p.group === group)
@@ -182,18 +168,26 @@ export function DeckGenerator() {
                           onClick={() => toggleImage(ref.image.id)}
                           aria-pressed={isSel}
                           title={ref.image.label}
-                          className={`relative h-16 w-24 overflow-hidden border transition-all focus-visible:outline-ochre ${
-                            isSel ? 'border-ochre' : 'border-hairline opacity-45 hover:opacity-75'
+                          className={`relative h-16 w-24 overflow-hidden rounded-control border transition-all active:scale-[0.98] ${
+                            isSel
+                              ? 'border-ochre ring-1 ring-ochre/20'
+                              : 'border-hairline hover:border-mist/40'
                           }`}
                         >
-                          <img src={ref.image.url} alt={ref.image.label} className="h-full w-full object-cover" />
-                          <span
-                            className={`absolute right-1 top-1 flex h-4 w-4 items-center justify-center border ${
-                              isSel ? 'border-ochre bg-ochre text-bone' : 'border-mist bg-bone/80 text-transparent'
-                            }`}
-                          >
-                            <Check size={11} strokeWidth={2.5} />
-                          </span>
+                          <img
+                            src={ref.image.url}
+                            alt={ref.image.label}
+                            // Unselected reads as "not picked", not "broken": a
+                            // light scrim + full-opacity image instead of a 45%
+                            // wash over the whole tile.
+                            className="h-full w-full object-cover"
+                          />
+                          {!isSel ? <span aria-hidden="true" className="absolute inset-0 bg-bone/55" /> : null}
+                          {isSel ? (
+                            <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-control bg-ochre-deep text-white">
+                              <Check size={11} strokeWidth={2} />
+                            </span>
+                          ) : null}
                         </button>
                       );
                     })}
@@ -201,15 +195,23 @@ export function DeckGenerator() {
               </div>
             ))}
             {selectedCount === 0 ? (
-              <p className="text-[0.7rem] text-ochre">No images selected — the deck will be built from your brand only.</p>
+              <p className="text-caption text-warning">
+                No images selected — the deck will be built from your brand only.
+              </p>
             ) : null}
           </div>
         ) : (
           <div className="mb-6 border-t border-hairline pt-5">
-            <p className="text-sm text-graphite">
-              No generated images yet. Create some on the Isometric, Elevation, or Axonometric tabs (or upload images in
-              the Manual storyboard) and they’ll appear here to include in the deck.
-            </p>
+            <EmptyState
+              icon={Images}
+              title="No images yet"
+              description="Create some on the Isometric, Elevation, or Axonometric tabs (or upload them in the Manual storyboard) and they’ll appear here to include in the deck."
+              action={
+                <Button variant="primary" onClick={() => setTab('render')}>
+                  Generate images
+                </Button>
+              }
+            />
           </div>
         )}
 
@@ -231,11 +233,11 @@ export function DeckGenerator() {
             onChange={(e) => setNotes(e.target.value)}
             rows={3}
             placeholder="Anything specific to include — project story, site context, key moves. Leave blank to let Claude narrate from your images."
-            className="resize-none border border-hairline bg-paper px-3 py-2 text-sm text-graphite placeholder:text-mist focus-visible:outline-ochre"
+            className="resize-none rounded-field border border-hairline bg-paper px-3.5 py-2 text-body text-graphite placeholder:text-mist"
           />
         </div>
 
-        <div className="mt-5 flex flex-col gap-2">
+        <div className="mt-5 flex flex-col gap-3">
           <div className="flex items-center gap-3">
             <Button
               variant="primary"
@@ -253,15 +255,15 @@ export function DeckGenerator() {
             ) : null}
           </div>
           {!claudeApiKey ? (
-            <p className="text-[0.7rem] text-mist">Add a Claude API key in Settings to enable generation.</p>
+            <p className="text-caption text-warning">Add a Claude API key in Settings to enable generation.</p>
           ) : null}
-          <p className="text-[0.7rem] text-mist">
+          <p className="text-caption text-mist">
             Built with the open-source{' '}
             <a
               href={SKILL_ATTRIBUTION.url}
               target="_blank"
               rel="noreferrer"
-              className="underline decoration-hairline underline-offset-2 hover:text-ochre"
+              className="underline decoration-hairline underline-offset-2 hover:text-ochre-deep"
             >
               {SKILL_ATTRIBUTION.name}
             </a>{' '}
@@ -271,10 +273,16 @@ export function DeckGenerator() {
       </div>
 
       {generating ? (
-        <div className="flex items-center gap-3 border border-hairline bg-drafting px-4 py-3 text-sm text-graphite">
-          <Spinner size={16} />
-          <span>
-            Designing your deck… {deckProgress > 0 ? `${deckProgress.toLocaleString()} characters` : 'thinking through the structure'}
+        <div className="flex flex-col gap-2.5 rounded-field border border-hairline bg-drafting px-4 py-3.5">
+          <div className="flex items-center gap-3 text-body text-graphite">
+            <Spinner size={16} />
+            {/* Character counts are developer telemetry — report the phase instead. */}
+            <span>
+              {deckProgress > 0 ? 'Designing your deck… writing the slides' : 'Designing your deck… planning the structure'}
+            </span>
+          </div>
+          <span aria-hidden="true" className="relative block h-0.5 overflow-hidden rounded-full bg-hairline">
+            <span className="absolute inset-y-0 left-0 w-1/3 animate-pulse rounded-full bg-ochre" />
           </span>
         </div>
       ) : null}

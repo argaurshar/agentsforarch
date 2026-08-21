@@ -18,7 +18,7 @@ export function RefineChips({ value, onChange, chips = REFINE_CHIPS }: RefineChi
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex flex-wrap gap-1.5">
+      <div className="flex flex-wrap gap-2">
         {chips.map((chip) => {
           const active = value.chips.includes(chip.key);
           return (
@@ -27,8 +27,13 @@ export function RefineChips({ value, onChange, chips = REFINE_CHIPS }: RefineChi
               type="button"
               aria-pressed={active}
               onClick={() => toggle(chip.key)}
-              className={`border px-3 py-1.5 text-xs transition-colors focus-visible:outline-ochre ${
-                active ? 'border-ochre bg-ochre text-bone' : 'border-hairline bg-paper text-graphite hover:bg-drafting'
+              // Small filled chips take the deep ochre: white on plain ochre is
+              // only AA at >=18.66px semibold. The accent glow belongs to the
+              // primary Button alone.
+              className={`pill border px-3.5 py-1.5 text-label font-medium transition-colors active:scale-[0.98] ${
+                active
+                  ? 'border-ochre-deep bg-ochre-deep text-white'
+                  : 'border-hairline bg-paper text-graphite hover:border-mist/40 hover:bg-drafting'
               }`}
             >
               {chip.label}
@@ -40,7 +45,7 @@ export function RefineChips({ value, onChange, chips = REFINE_CHIPS }: RefineChi
         value={value.freeText}
         onChange={(e) => onChange({ freeText: e.target.value })}
         placeholder="…or describe a change in your own words"
-        className="border border-hairline bg-paper px-3 py-2 text-sm text-graphite placeholder:text-mist focus-visible:outline-ochre"
+        className="rounded-field border border-hairline bg-paper px-3.5 py-2 text-body text-graphite placeholder:text-mist"
       />
     </div>
   );

@@ -3,7 +3,7 @@
 // ALL generation goes through this interface. No component may call an image
 // API directly — features resolve a provider via `getActiveProvider()`.
 
-export type FeatureKind = 'render' | 'elevation' | 'axonometric' | 'interior';
+export type FeatureKind = 'render' | 'elevation' | 'axonometric' | 'interior' | 'moodboard';
 
 export interface GenerateRequest {
   feature: FeatureKind;
@@ -17,6 +17,7 @@ export interface GenerateRequest {
     referenceImage?: string; // dataURL — a style reference (e.g. an elevation mood board) sent alongside the input
     styleVariants?: { label: string; clause: string }[]; // compare-styles batch: one output per design language
     refine?: boolean; // this is an iterative refine of an existing output (single job, refined label)
+    aspectRatio?: string; // e.g. '4:5' — output shape override (defaults to following the input)
   };
 }
 

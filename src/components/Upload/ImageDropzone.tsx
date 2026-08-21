@@ -65,21 +65,22 @@ export function ImageDropzone({ value, onImage, onClear, hint }: ImageDropzonePr
   if (value) {
     return (
       <div className="flex flex-col gap-3">
-        <div className="relative border border-hairline bg-drafting">
+        <div className="relative overflow-hidden rounded-card border border-hairline bg-drafting">
           <img src={value} alt="Uploaded input" className="max-h-72 w-full object-contain" />
           {processing ? (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-bone/80">
               <Spinner size={22} className="text-ochre" />
-              <p className="text-sm text-graphite">Processing image…</p>
+              <p className="text-body text-graphite">Processing image…</p>
             </div>
           ) : null}
-          <div className="absolute right-0 top-0 flex">
+          {/* Floated inset, not welded into the corner as two flush slabs. */}
+          <div className="absolute right-3 top-3 flex items-center gap-1.5">
             <button
               type="button"
               onClick={open}
-              className="flex items-center gap-1.5 bg-ink/85 px-3 py-2 font-mono text-[0.65rem] uppercase tracking-[0.14em] text-bone hover:bg-ink"
+              className="flex items-center gap-1.5 rounded-full bg-ink/80 px-3 py-1.5 text-label font-medium text-bone backdrop-blur-sm transition-colors hover:bg-ink active:scale-[0.98]"
             >
-              <RefreshCw size={13} strokeWidth={1.75} /> Replace
+              <RefreshCw size={14} strokeWidth={1.75} /> Replace
             </button>
             <button
               type="button"
@@ -87,25 +88,26 @@ export function ImageDropzone({ value, onImage, onClear, hint }: ImageDropzonePr
                 setError(null);
                 onClear();
               }}
-              className="flex items-center bg-ink/85 px-2.5 py-2 text-bone hover:bg-ink"
+              className="flex items-center rounded-full bg-ink/80 p-2 text-bone backdrop-blur-sm transition-colors hover:bg-ink active:scale-[0.98]"
               aria-label="Remove image"
             >
-              <X size={15} strokeWidth={1.75} />
+              <X size={16} strokeWidth={1.75} />
             </button>
           </div>
           {/* Hidden input so Replace can open the picker. */}
           <input {...getInputProps()} />
         </div>
-        {error ? <p className="text-xs text-ochre">{error}</p> : null}
+        {error ? <p className="text-body text-danger">{error}</p> : null}
       </div>
     );
   }
 
   return (
     <div className="flex flex-col gap-3">
+      {/* A 1px dash: the old 2px rule was the heaviest border on the page. */}
       <div
         {...getRootProps()}
-        className={`flex cursor-pointer flex-col items-center justify-center border border-dashed px-8 py-14 text-center transition-colors ${
+        className={`flex cursor-pointer flex-col items-center justify-center rounded-card border border-dashed px-8 py-16 text-center transition-colors ${
           isDragActive ? 'border-ochre bg-drafting' : 'border-hairline bg-paper hover:border-mist'
         }`}
       >
@@ -113,20 +115,20 @@ export function ImageDropzone({ value, onImage, onClear, hint }: ImageDropzonePr
         {processing ? (
           <>
             <Spinner size={22} className="text-ochre" />
-            <p className="mt-4 text-sm text-graphite">Processing image…</p>
+            <p className="mt-4 text-body text-graphite">Processing image…</p>
           </>
         ) : (
           <>
-            <ImageUp size={28} strokeWidth={1} className="text-mist" />
-            <p className="mt-4 text-sm text-graphite">
+            <ImageUp size={24} strokeWidth={1.5} className="text-mist" />
+            <p className="mt-4 text-body text-graphite">
               {isDragActive ? 'Drop to upload' : 'Drag an image here, or click to browse'}
             </p>
-            <p className="mono-meta mt-3 text-mist">PNG · JPG · WEBP · max 10MB</p>
-            {hint ? <p className="mt-3 max-w-sm text-xs leading-relaxed text-mist">{hint}</p> : null}
+            <p className="mt-3 text-caption text-graphite">PNG · JPG · WEBP · max 10MB</p>
+            {hint ? <p className="mt-3 max-w-sm text-body text-graphite">{hint}</p> : null}
           </>
         )}
       </div>
-      {error ? <p className="text-xs text-ochre">{error}</p> : null}
+      {error ? <p className="text-body text-danger">{error}</p> : null}
     </div>
   );
 }
