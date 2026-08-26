@@ -5,9 +5,11 @@ sketches and models into renders, elevations, axonometric views, interior
 redesigns and material boards.
 
 **▶ Live app:** https://argaurshar.github.io/agentsforarch/ — a fully functional
-tool. On first visit it asks you to connect your own API keys (Settings opens
-automatically): a Google **Gemini** key (Nano Banana Pro) **or** a kie.ai key (Nano Banana 2) for image
-generation. Both are free to get, stay in your browser, and are never sent
+tool. It needs one of your own API keys to generate: a Google **Gemini** key
+(Nano Banana Pro) **or** a kie.ai key (Nano Banana 2). Connect it from the key
+button in the top bar — on desktop that panel also opens by itself on the first
+visit; on a phone it does not, so the dashboard and its worked examples land
+first. Both are free to get, stay in your browser, and are never sent
 anywhere but Google / kie.ai.
 
 Built to the internal build spec (`build.mb`).
@@ -124,8 +126,11 @@ the images that succeeded. Nothing is persisted (in-memory by design) — a
 
 ### Generating real images (two engines)
 
-Open **Settings** (the key button, top-right — it also opens automatically on
-first run), pick an **engine**, and paste that engine's API key:
+Open **Settings** (the key button, top-right), pick an **engine**, and paste
+that engine's API key. On a desktop-width screen the panel opens by itself on
+the first visit, since it sits beside the dashboard rather than over it; below
+Tailwind's `md` breakpoint it is full-screen, so it stays closed until you tap
+the button:
 
 - **Google Gemini** — **Nano Banana Pro** (Gemini 3 Pro Image), called directly
   with your Gemini key. Get a free key at
