@@ -30,7 +30,7 @@ import { useGenerate, useStyleRef } from '../hooks';
 const VIEW_OPTIONS = [
   { value: 'isometric', label: '3D isometric' },
   { value: 'plan2d', label: '2D furnished plan' },
-];
+] as const;
 
 const VIEW_LABEL: Record<string, string> = { isometric: 'Isometric', plan2d: 'Furnished plan' };
 

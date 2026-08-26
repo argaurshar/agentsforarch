@@ -33,7 +33,7 @@ const STYLE_OPTIONS = [
   { value: 'line', label: 'Line' },
   { value: 'rendered', label: 'Rendered' },
   { value: 'shaded', label: 'Shaded' },
-];
+] as const;
 
 const SOURCE_OPTIONS = [
   { value: 'theme', label: 'Design theme' },

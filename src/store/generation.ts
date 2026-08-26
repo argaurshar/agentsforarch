@@ -49,8 +49,16 @@ export interface SceneOptions {
   entourage: boolean; // include people for scale
 }
 
+// Style unions, not bare `string`. With `SettingsPatch` distributing per tool,
+// these are the last thing standing between a typo and a silently wrong run —
+// `updateFeatureSettings('axonometric', { style: 'realistc' })` used to compile.
+// The old inline comments here had already drifted from what the UI offers.
+export type RenderStyleKey = 'photoreal' | 'isometric' | 'plan2d' | 'clay' | 'line' | 'watercolour';
+export type ElevationStyleKey = 'line' | 'rendered' | 'shaded';
+export type AxonStyleKey = 'realistic' | 'lineart' | 'bw';
+
 export interface RenderSettings {
-  style: string; // photoreal | clay | line | watercolour
+  style: RenderStyleKey;
   variations: number; // 1 | 2 | 4
   scene: SceneOptions;
 }
@@ -58,7 +66,7 @@ export type ElevationThemeKey = 'none' | 'contemporary' | 'modern' | 'traditiona
 
 export interface ElevationSettings {
   face: 'Front' | 'Side' | 'Rear' | 'All';
-  style: string; // line | rendered | shaded
+  style: ElevationStyleKey;
   theme: ElevationThemeKey; // design language for a rendered elevation
   styleSource: 'theme' | 'moodboard'; // drive the render from a theme OR a mood board (mutually exclusive)
   moodboard: string | null; // dataURL of an uploaded mood-board reference image
@@ -89,7 +97,7 @@ export interface InteriorSettings {
 }
 export interface AxonSettings {
   viewpoints: string[]; // NE/NW/SE/SW
-  style: string; // realistic | lineart | bw
+  style: AxonStyleKey;
   section: boolean;
   scene: SceneOptions;
 }
@@ -131,6 +139,24 @@ export interface FeatureRun<S extends FeatureSettings> {
   lastAssetId: string | null; // to delete "this run"
   runId: number; // stale-completion guard
 }
+
+/**
+ * A settings patch for ONE tool.
+ *
+ * The previous shape was `Partial<Omit<A & B & C & D & E, 'scene' | 'theme'>>`
+ * — an intersection of every feature's settings. It had already been hand-
+ * patched once because `theme` is a different union on elevation and interior,
+ * and it accepted nonsense silently (passing `viewpoints` to the mood board
+ * typechecked). At 54 tools every same-named key with a differing type collapses
+ * to `never` and the manual escape hatch has to be repeated per collision.
+ *
+ * Distributing over the union instead keeps each tool's keys exactly its own,
+ * and `scene` is only accepted by tools that actually have one.
+ */
+type OnePatch<S> = Partial<Omit<S, 'scene'>> &
+  ('scene' extends keyof S ? { scene?: Partial<SceneOptions> } : { scene?: never });
+
+export type SettingsPatch<S extends FeatureSettings> = S extends unknown ? OnePatch<S> : never;
 
 export function baseRun<S extends FeatureSettings>(settings: S, prompt: string): FeatureRun<S> {
   return {

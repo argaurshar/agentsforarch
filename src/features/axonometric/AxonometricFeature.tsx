@@ -22,7 +22,7 @@ const STYLE_OPTIONS = [
   { value: 'realistic', label: 'Realistic render' },
   { value: 'lineart', label: 'Line art' },
   { value: 'bw', label: 'Black & white lines' },
-];
+] as const;
 
 export function AxonometricFeature() {
   const { input, settings, mode, refine, prompt, promptEdited } = useProjectStore((s) => s.generation.axonometric);

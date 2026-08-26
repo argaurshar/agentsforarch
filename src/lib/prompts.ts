@@ -47,7 +47,10 @@ const WATERCOLOUR_PROMPT =
   'gently graded skies, hand-painted presentation illustration, light and airy. ' +
   NO_TEXT;
 
-export type RenderStyleKey = 'photoreal' | 'isometric' | 'clay' | 'line' | 'watercolour';
+// Style unions live with the settings that carry them (store/generation.ts).
+// This file used to declare its own copy, which had already drifted: it was
+// missing 'plan2d', a style the builder below actually handles.
+export type { RenderStyleKey } from '../store/generation';
 
 // Reference-chaining: when a pooled image is picked as a style reference it rides
 // alongside the input as a second image, and this clause tells the model to match
@@ -408,7 +411,7 @@ export function buildMoodboardPrompt(): string {
 
 // --- Axonometric ------------------------------------------------------------
 
-export type AxonStyleKey = 'realistic' | 'lineart' | 'bw';
+export type { AxonStyleKey } from '../store/generation';
 
 /**
  * The critical move: a flat elevation must be REBUILT as a 3D volume and rotated
