@@ -1,6 +1,7 @@
 import { Boxes, FileImage, RotateCcw, Sparkles, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { ImageDropzone } from '../../components/Upload/ImageDropzone';
+import { PlanTips } from '../../components/Upload/PlanTips';
 import { CompareSection } from '../../components/Output/CompareSection';
 import { OutputGrid } from '../../components/Output/OutputGrid';
 import { RefineChips } from '../../components/Scene/RefineChips';
@@ -121,6 +122,13 @@ export function RenderFeature() {
       options: {
         style,
         variations: 1,
+        // A 45-degree isometric of ANY plan is a ~4:3 landscape composition: the
+        // plan's own width:depth cancels out in the projection. Without this the
+        // model inherits the plan's canvas shape, so a portrait plan gets a tall
+        // frame it must squeeze an inherently wide composition into — and what
+        // gives is the footprint. The flat 2D mode is the opposite case: there,
+        // following the input is correct, so it stays unpinned.
+        aspectRatio: style === 'isometric' ? '4:3' : undefined,
         refine: mode === 'refine' ? true : undefined,
         referenceImage: useRef ? (styleRefUrl ?? undefined) : undefined,
         styleVariants: compareActive
@@ -165,6 +173,9 @@ export function RenderFeature() {
                 hint="Upload a top-down 2D floor plan."
               />
               {!input ? <SamplePlanButton /> : null}
+              {/* The failure mode here is input-dependent and otherwise
+                  invisible, so the guidance sits next to the dropzone. */}
+              <PlanTips />
             </div>
 
             {mode === 'refine' ? (

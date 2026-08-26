@@ -33,7 +33,8 @@ const asset = (file: string): string => `${import.meta.env.BASE_URL}examples/${f
 export const EXAMPLES: Partial<Record<FeatureKind | 'presentation', ExampleSet>> = {
   render: {
     summary:
-      'A flat 2D floor plan becomes a furnished 3D cutaway you can hand a client — the room layout, walls and openings stay exactly as drawn.',
+      'A flat 2D floor plan becomes a furnished 3D cutaway you can hand a client. It follows your plan’s layout and ' +
+      'character — an ideation render, not a measured drawing.',
     cases: [
       {
         label: '3D isometric cutaway',

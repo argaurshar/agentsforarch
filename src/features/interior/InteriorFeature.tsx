@@ -30,7 +30,7 @@ const MODE_OPTIONS: { value: InteriorMode; label: string }[] = [
 
 const MODE_HINT: Record<InteriorMode, string> = {
   restyle: 'Keeps the room’s architecture; replaces furniture, finishes and décor in the new style.',
-  stage: 'Furnishes an empty or bare room completely — architecture and camera stay untouched.',
+  stage: 'Furnishes a bare room with movable pieces only — walls, windows, doors, finishes and camera stay untouched.',
   renovate: 'Bigger changes allowed: finishes, flooring, ceiling and fixtures may be replaced.',
 };
 

@@ -52,7 +52,13 @@ export const INTERIOR_REFINE_CHIPS: RefineChip[] = [
   { key: 'declutter', label: 'Declutter', clause: 'declutter and simplify the styling' },
   { key: 'cozier', label: 'Cozier', clause: 'make the room cozier with layered textiles and warm accent lighting' },
   { key: 'swap-sofa', label: 'New sofa', clause: 'replace the main seating with a different design in the same position' },
-  { key: 'change-curtains', label: 'New curtains', clause: 'replace the curtains / window treatment' },
+  {
+    key: 'change-curtains',
+    label: 'New curtains',
+    // Scoped to windows that already have a treatment — an unscoped "add curtains"
+    // is what made the model drape blank walls and invent the window behind them.
+    clause: 'restyle the window treatment on the windows that already have one, and leave bare windows bare',
+  },
 ];
 
 /** Every chip, for prompt-side lookup regardless of which set the UI showed. */

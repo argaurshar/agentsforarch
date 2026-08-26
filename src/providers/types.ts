@@ -17,7 +17,10 @@ export interface GenerateRequest {
     referenceImage?: string; // dataURL — a style reference (e.g. an elevation mood board) sent alongside the input
     styleVariants?: { label: string; clause: string }[]; // compare-styles batch: one output per design language
     refine?: boolean; // this is an iterative refine of an existing output (single job, refined label)
-    aspectRatio?: string; // e.g. '4:5' — output shape override (defaults to following the input)
+    // e.g. '4:5'. Gemini accepts a fixed set (1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4,
+    // 9:16, 16:9, 21:9) and rejects 'auto'; kie.ai accepts 'auto'. Measured
+    // behaviour when omitted: Gemini edits follow the input image's ratio.
+    aspectRatio?: string;
   };
 }
 

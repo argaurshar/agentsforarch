@@ -38,7 +38,11 @@ export function ImageDropzone({ value, onImage, onClear, hint }: ImageDropzonePr
       setProcessing(true);
       try {
         const raw = await fileToDataURL(file);
-        const resized = await resizeDataURL(raw);
+        // Architectural drawings are line art headed for a vision model: keep
+        // them lossless and at a higher cap so hairline walls, door swing arcs
+        // and hatching survive the trip. (The 1600px/JPEG default remains for
+        // paths that feed jsPDF, where payload size matters more than linework.)
+        const resized = await resizeDataURL(raw, 2048, 'image/png');
         onImage(resized);
       } catch {
         setError('Could not read that image. Try another file.');
