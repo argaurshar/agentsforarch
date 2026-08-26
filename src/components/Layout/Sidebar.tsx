@@ -1,4 +1,5 @@
-import { Box, Building2, Images, LayoutDashboard, Palette, PencilRuler, Sofa } from 'lucide-react';
+import { Images, LayoutDashboard } from 'lucide-react';
+import { ALL_FEATURES } from '../../features/registry';
 import type { LucideIcon } from 'lucide-react';
 import { useProjectStore } from '../../store/useProjectStore';
 import type { TabKey } from '../../types';
@@ -15,11 +16,10 @@ interface NavItem {
 // ever locked, greyed out, or gated behind another feature.
 const NAV_ITEMS: NavItem[] = [
   { key: 'home', name: 'Home', sub: 'Project Dashboard', icon: LayoutDashboard },
-  { key: 'render', name: 'Isometric', sub: 'Floor Plan to 3D', icon: PencilRuler },
-  { key: 'elevation', name: 'Elevation', sub: 'Sketch to Elevation', icon: Building2 },
-  { key: 'axonometric', name: 'Axonometric', sub: 'Elevation to Axonometric', icon: Box },
-  { key: 'interior', name: 'Interior', sub: 'Room Photo to Design', icon: Sofa },
-  { key: 'moodboard', name: 'Mood Board', sub: 'Image → Material Board', icon: Palette },
+  // Generation tools are derived — a new one appears here by existing, not by
+  // being remembered. This row used to be hand-maintained, which is how a
+  // feature could ship and be unreachable.
+  ...ALL_FEATURES.map((f) => ({ key: f.key, name: f.name, sub: f.blurb, icon: f.icon })),
   { key: 'gallery', name: 'Gallery', sub: 'All Outputs · Save / Load', icon: Images },
 ];
 
@@ -63,6 +63,11 @@ export function Sidebar({ onNavigate }: SidebarProps = {}) {
               <button
                 type="button"
                 aria-current={active ? 'page' : undefined}
+                // A stable handle for tests. The QA suite used to select nav rows
+                // POSITIONALLY (nav.nth(1), nth(2), nth(4)); now that this list is
+                // derived from the registry, inserting a tool would silently
+                // re-point every one of those assertions at the wrong screen.
+                data-nav={item.key}
                 title={item.sub}
                 onClick={() => {
                   setTab(item.key);

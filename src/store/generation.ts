@@ -3,9 +3,10 @@
 // generation survives a tab switch (App.tsx remounts the routed feature on tab
 // change), lets one feature seed another's input (the cross-feature pipeline),
 // and gives the refine loop a place to live. Types + pure defaults only — no
-// React, no provider imports — so this file stays cheap and in the main chunk.
+// React, no provider imports, no prompt builders — so this file stays cheap and
+// in the main chunk. Per-feature seed state is assembled by the feature
+// registry (src/features/registry), which owns each tool's defaults.
 
-import { axonometricPrompt, buildMoodboardPrompt, elevationPrompt, interiorPrompt, renderPrompt } from '../lib/prompts';
 import { defaultScene } from '../lib/scene';
 import type { GeneratedImage } from '../types';
 
@@ -131,15 +132,7 @@ export interface FeatureRun<S extends FeatureSettings> {
   runId: number; // stale-completion guard
 }
 
-export interface GenerationState {
-  render: FeatureRun<RenderSettings>;
-  elevation: FeatureRun<ElevationSettings>;
-  axonometric: FeatureRun<AxonSettings>;
-  interior: FeatureRun<InteriorSettings>;
-  moodboard: FeatureRun<MoodboardSettings>;
-}
-
-function baseRun<S extends FeatureSettings>(settings: S, prompt: string): FeatureRun<S> {
+export function baseRun<S extends FeatureSettings>(settings: S, prompt: string): FeatureRun<S> {
   return {
     input: null,
     settings,
@@ -155,22 +148,5 @@ function baseRun<S extends FeatureSettings>(settings: S, prompt: string): Featur
     inputUsed: null,
     lastAssetId: null,
     runId: 0,
-  };
-}
-
-export function initialGeneration(): GenerationState {
-  const scene = defaultScene();
-  return {
-    render: baseRun<RenderSettings>({ style: 'isometric', variations: 1, scene: defaultScene() }, renderPrompt('isometric')),
-    elevation: baseRun<ElevationSettings>(
-      { face: 'Front', style: 'rendered', theme: 'none', styleSource: 'theme', moodboard: null, scene: defaultScene() },
-      elevationPrompt('Front', 'rendered'),
-    ),
-    axonometric: baseRun<AxonSettings>({ viewpoints: ['NE'], style: 'realistic', section: false, scene }, axonometricPrompt(false)),
-    interior: baseRun<InteriorSettings>(
-      { mode: 'restyle', roomType: 'living', theme: 'contemporary', styleSource: 'theme', moodboard: null, scene: defaultScene() },
-      interiorPrompt(),
-    ),
-    moodboard: baseRun<MoodboardSettings>({ aspect: '4:5' }, buildMoodboardPrompt()),
   };
 }

@@ -115,8 +115,12 @@ const check = (name, ok, detail = '') => {
   const enginePill = page.locator('button[title="API keys"], button[title="Connect your API key to generate"]').first();
   check('header pill shows Nano Banana Pro on Gemini', /Nano Banana Pro/i.test(await enginePill.innerText()));
 
+  // Nav rows are addressed by their stable data-nav key, never by position: the
+  // sidebar is derived from the feature registry now, so any new tool shifts
+  // every index. `.first()` because the mobile drawer renders a second Sidebar.
+  const navTo = (key) => page.locator(`nav[aria-label="Features"] [data-nav="${key}"]`).first();
   const nav = page.locator('nav[aria-label="Features"] button');
-  await nav.nth(1).click();
+  await navTo('render').click();
   await page.waitForTimeout(300);
 
   // 3. The Isometric tab now has the editable prompt box.
@@ -161,7 +165,7 @@ const check = (name, ok, detail = '') => {
   await page.waitForTimeout(250);
   check('header pill shows Nano Banana 2 · kie.ai', /Nano Banana 2/i.test(await enginePill.innerText()));
 
-  await nav.nth(2).click(); // Elevation
+  await navTo('elevation').click();
   await page.waitForTimeout(300);
   await page.setInputFiles('input[type=file]', PLAN);
   await page.waitForTimeout(200);
@@ -178,7 +182,7 @@ const check = (name, ok, detail = '') => {
   // 7. Interior: the shell lock. Staging must add furniture only — the old prompt
   //    asked for "curtains" in the same breath as "windows must not change", and
   //    the model settled that by draping blank walls, i.e. inventing windows.
-  await nav.nth(4).click(); // Interior
+  await navTo('interior').click();
   await page.waitForTimeout(300);
   const interiorPrompt = page.locator('#interior-prompt');
   await page.getByRole('button', { name: 'Stage (furnish empty room)' }).click();
@@ -212,6 +216,10 @@ const check = (name, ok, detail = '') => {
   // 8. The Concept Presentation tab is gone — nav, deep link and output cards.
   const navNames = await nav.allInnerTexts();
   check('sidebar has no Presentation destination', !/presentation/i.test(navNames.join(' ')));
+  check(
+    'every nav row carries a stable data-nav handle',
+    (await page.locator('nav[aria-label="Features"] [data-nav]').first().count()) === 1,
+  );
   await page.goto(BASE + '#/presentation', { waitUntil: 'domcontentloaded' });
   await page.waitForTimeout(400);
   check(

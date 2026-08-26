@@ -3,7 +3,11 @@
 // ALL generation goes through this interface. No component may call an image
 // API directly — features resolve a provider via `getActiveProvider()`.
 
-export type FeatureKind = 'render' | 'elevation' | 'axonometric' | 'interior' | 'moodboard';
+// The tool list lives in the feature registry. `keys.ts` deliberately has no
+// imports of its own, so this stays a leaf dependency and never cycles.
+import type { FeatureKind } from '../features/registry/keys';
+
+export type { FeatureKind };
 
 export interface GenerateRequest {
   feature: FeatureKind;

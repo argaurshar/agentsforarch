@@ -13,13 +13,13 @@ import {
 import type { EngineKey } from '../providers/runtimeConfig';
 import { storage } from '../storage';
 import type { Asset, Brand, FeatureKind, GeneratedImage, Project, TabKey } from '../types';
-import { initialGeneration } from './generation';
+import { FEATURE_KEYS, featureDef, initialGeneration } from '../features/registry';
+import type { GenerationState } from '../features/registry';
 import type {
   AxonSettings,
   ElevationSettings,
   FeatureRun,
   FeatureSettings,
-  GenerationState,
   InteriorSettings,
   MoodboardSettings,
   RenderSettings,
@@ -320,15 +320,15 @@ export const useProjectStore = create<ProjectState>((set, get) => {
         if (next.styleRef === imageId) next = { ...next, styleRef: null };
         return next;
       };
-      set({
-        generation: {
-          render: scrub(gen.render),
-          elevation: scrub(gen.elevation),
-          axonometric: scrub(gen.axonometric),
-          interior: scrub(gen.interior),
-          moodboard: scrub(gen.moodboard),
-        },
-      });
+      // Derived: a new tool is scrubbed because it exists, not because someone
+      // remembered to add a line here.
+      // Loose accumulator, narrowed once — see initialGeneration() for why a
+      // direct mapped-type write does not typecheck here.
+      const scrubbed: Record<string, FeatureRun<FeatureSettings>> = {};
+      for (const key of FEATURE_KEYS) {
+        scrubbed[key] = scrub(gen[key] as FeatureRun<FeatureSettings>);
+      }
+      set({ generation: scrubbed as GenerationState });
     },
 
     resetProject: () => {
@@ -374,13 +374,10 @@ export interface PoolImage {
   group: string;
 }
 
-const POOL_GROUPS: { key: FeatureKind; label: string }[] = [
-  { key: 'render', label: 'Renders' },
-  { key: 'elevation', label: 'Elevations' },
-  { key: 'axonometric', label: 'Axonometrics' },
-  { key: 'interior', label: 'Interiors' },
-  { key: 'moodboard', label: 'Material boards' },
-];
+const POOL_GROUPS: { key: FeatureKind; label: string }[] = FEATURE_KEYS.map((key) => ({
+  key,
+  label: featureDef(key).poolLabel,
+}));
 
 /** Every image in the project — generated outputs plus anything added directly. */
 export function poolFromProject(project: Project): PoolImage[] {

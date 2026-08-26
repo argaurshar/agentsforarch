@@ -1,12 +1,13 @@
 import { useEffect } from 'react';
 import { useProjectStore } from '../store/useProjectStore';
+import { FEATURE_KEYS } from '../features/registry/keys';
 import type { TabKey } from '../types';
 
 // Two-way sync between the active tab and the URL hash, so tabs are deep-linkable
 // (#/interior) and the browser back/forward buttons move between them. Keeps the
 // in-memory model as the source of truth; the hash is just a mirror.
 
-const TAB_SLUGS: TabKey[] = ['home', 'render', 'elevation', 'axonometric', 'interior', 'moodboard', 'gallery'];
+const TAB_SLUGS: TabKey[] = ['home', ...FEATURE_KEYS, 'gallery'];
 
 function hashToTab(hash: string): TabKey | null {
   const slug = hash.replace(/^#\/?/, '');
