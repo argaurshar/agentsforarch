@@ -282,28 +282,84 @@ interface InteriorPromptArgs {
   mood: SceneOptions['mood'];
 }
 
+// The architecture lock for the interior tab. The previous wording asserted a
+// general "walls, windows, doors … must not change" and then, in the same
+// sentence, asked for "curtains" — a direct contradiction. The model resolved it
+// the only way it could: it hung drapery on blank walls, which reads as windows
+// that were never there (the reported bug). Three moves fix it — read the
+// openings before touching anything, enumerate the specific alterations that are
+// forbidden rather than asserting a soft blanket rule, and never name a
+// wall-mounted element in the additive list.
+const SHELL_READ =
+  'STEP 1 — READ THE ROOM FIRST. Before you change anything, count the windows, doors and openings in this photo and ' +
+  'note exactly where each one sits, how wide and how tall it is, and what frames it. Note which walls are blank. Note ' +
+  'where the walls meet, where the ceiling and floor lines run, and where the camera is standing.';
+
+const SHELL_LOCK =
+  'STEP 2 — LOCK THE SHELL. The room’s architecture is fixed input, not part of what you are designing. Do NOT add, ' +
+  'remove, move, widen, narrow, raise, lower or reshape any window, door, doorway, arch, opening, glazed panel or ' +
+  'skylight, and do NOT change its frame, mullions or glazing. A wall that is blank in the photo stays blank — never ' +
+  'place a window, a glazed panel, a curtain, a blind, a drape or a fake opening on it. Keep every wall exactly where it ' +
+  'is: add and remove no partitions, columns, beams, niches, coves, ledges, panelling or built-in joinery. Keep the ' +
+  'ceiling height, the ceiling and floor lines, the camera position, the lens and the crop exactly as shown, and leave ' +
+  'whatever is visible outside the windows unchanged.';
+
+// Window treatments are the specific trap: they are the one "soft furnishing"
+// that is read as architecture, because a curtain implies the window behind it.
+const NO_NEW_DRAPERY =
+  'Treat window treatments as architecture, not as décor: if a window has no curtain, blind or shade in the input photo, ' +
+  'leave it bare. Only restyle a curtain or blind that is already there.';
+
+const SHELL_CHECK =
+  'Before you finish, compare your output against the input photo opening by opening. If any window or door has appeared, ' +
+  'vanished, moved or changed size, or if a wall that was blank now carries a window, a glazed panel or a curtain, ' +
+  'rebuild it — matching the room’s existing architecture matters more than any styling instruction above.';
+
 /**
- * Room photo → restyled / staged / renovated interior. Each mode fixes what must
- * NOT change (the room's architecture and camera) and scopes what may change,
- * so the output reads as the client's own room redesigned — not a random room.
+ * Room photo → restyled / staged / renovated interior. Each mode is staged the
+ * same way the plan and elevation features are: read the room, lock what is not
+ * yours to change, and only then design — so the output reads as the client’s own
+ * room redesigned, not a room that resembles it.
  */
 export function buildInteriorPrompt(a: InteriorPromptArgs): string {
   const room = ROOM_TYPE_LABEL[a.roomType];
   const parts: string[] = [];
   if (a.mode === 'stage') {
     parts.push(
-      `This photo shows an empty or sparsely furnished room. Fully furnish and stage it as a beautiful ${room}.`,
-      'Keep the room’s architecture exactly as shown — walls, windows, doors, ceiling, floor position and the camera angle must not change. Add furniture, lighting, rugs, curtains, art and décor appropriate to the room.',
+      `You are virtually staging a real, existing ${room}. The photo shows the room empty or barely furnished. Your job ` +
+        'is to place furniture and décor into it — nothing else. You are not redesigning the room, renovating it or ' +
+        'rebuilding it.',
+      SHELL_READ,
+      SHELL_LOCK,
+      NO_NEW_DRAPERY,
+      'Also leave the existing surfaces alone: keep the wall colour and finish, the flooring, the ceiling and the ' +
+        'skirtings as they are.',
+      `STEP 3 — ONLY THEN FURNISH IT. Into that unchanged shell, place free-standing furniture, rugs, floor and table ` +
+        `lamps, cushions, throws, plants, books, ceramics, framed art hung flat against an existing wall and styling ` +
+        `accessories, arranged as a professional stylist would for a ${room}. Every single thing you add must be an ` +
+        'object that could be carried back out of the room again — nothing built, fitted, mounted into a wall or cut ' +
+        'into the shell.',
     );
   } else if (a.mode === 'renovate') {
     parts.push(
       `Renovate this ${room}.`,
-      'You may replace the finishes — flooring, wall treatment, ceiling design, joinery, doors and fixtures — and refurnish the space, but keep the room’s overall dimensions, window and door positions and the camera angle exactly as shown.',
+      SHELL_READ,
+      'STEP 2 — LOCK THE SHELL. You may replace the finishes — flooring, wall treatment, ceiling design, joinery, door ' +
+        'leaves, fittings and fixtures — and refurnish the space completely. You may NOT change the room’s shape or its ' +
+        'openings: keep every wall, window and door exactly where it is and exactly the size it is, add no window or ' +
+        'opening that is not in the photo, remove none that is, and keep the ceiling height, the camera position and the ' +
+        'crop as shown.',
+      'STEP 3 — ONLY THEN RENOVATE. Redesign the finishes and furnishings within that fixed shell.',
     );
   } else {
     parts.push(
       `Redesign the interior of this ${room}.`,
-      'Keep the room’s architecture exactly as shown — walls, windows, doors, ceiling and the camera angle must not change. Replace the furniture, finishes, colours, textiles and décor to match the new style.',
+      SHELL_READ,
+      SHELL_LOCK,
+      NO_NEW_DRAPERY,
+      'STEP 3 — ONLY THEN RESTYLE. Inside that unchanged shell, replace the furniture, textiles, colours, surface ' +
+        'finishes and décor to match the new style. Recolouring or re-finishing a wall or floor is fine; moving, adding ' +
+        'or removing one is not.',
     );
   }
   if (a.useMoodboard) {
@@ -321,6 +377,7 @@ export function buildInteriorPrompt(a: InteriorPromptArgs): string {
   parts.push(
     'Photorealistic interior render, physically based lighting, soft natural light from the existing windows, ' +
       'crisp material detail, natural colour grade, reads as a photograph, ultra-detailed.',
+    SHELL_CHECK,
     NO_TEXT,
   );
   return parts.join(' ');
@@ -404,7 +461,8 @@ export function buildRefinePrompt(a: { chips: string[]; freeText: string }): str
   if (free) changes.push(free);
   const list = changes.length ? changes.join('; ') : 'subtly improve the image';
   return (
-    'Edit this image. Keep the composition, geometry, camera angle and proportions exactly as shown. ' +
+    'Edit this image. Keep the composition, geometry, camera angle and proportions exactly as shown, and keep every ' +
+    'window, door, opening and wall exactly where and as it is — add none, remove none, resize none. ' +
     `Apply only these changes: ${list}. ` +
     NO_TEXT
   );

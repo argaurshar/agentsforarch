@@ -5,7 +5,7 @@
 // Covers: the Settings engine picker (Gemini ⇄ kie.ai), the full kie.ai task
 // flow (upload → createTask → poll → result fetch), the Gemini flow, the
 // overhauled prompts (no-text guard, footprint contract, elevation
-// grammar/lighting fix), and the Isometric tab's editable prompt box.
+// grammar/lighting fix, interior shell lock), and the editable prompt boxes.
 
 let chromium;
 try {
@@ -174,6 +174,40 @@ const check = (name, ok, detail = '') => {
   check('kie.ai task carries the uploaded image URL', /kie-cdn\.mock\/in\.png/.test(kBody));
   check('elevation prompt grammar fixed', /elevation of the building shown in the input image/.test(kBody));
   check('elevation lighting scoped to the flat façade', /applied purely as illumination/.test(kBody));
+
+  // 7. Interior: the shell lock. Staging must add furniture only — the old prompt
+  //    asked for "curtains" in the same breath as "windows must not change", and
+  //    the model settled that by draping blank walls, i.e. inventing windows.
+  await nav.nth(4).click(); // Interior
+  await page.waitForTimeout(300);
+  const interiorPrompt = page.locator('#interior-prompt');
+  await page.getByRole('button', { name: 'Stage (furnish empty room)' }).click();
+  await page.waitForTimeout(200);
+  const stagePrompt = await interiorPrompt.inputValue();
+  check('stage prompt locks the shell', /LOCK THE SHELL/.test(stagePrompt));
+  check('stage prompt keeps blank walls blank', /A wall that is blank in the photo stays blank/.test(stagePrompt));
+  check('stage prompt no longer asks for curtains', !/\badd\b[^.]*\bcurtains\b/i.test(stagePrompt));
+  check(
+    'stage prompt allows only movable objects',
+    /could be carried back out of the room again/.test(stagePrompt),
+  );
+  check('stage prompt audits the openings at the end', /opening by opening/.test(stagePrompt));
+
+  await page.getByRole('button', { name: 'Renovate' }).click();
+  await page.waitForTimeout(200);
+  check(
+    'renovate may change finishes but not openings',
+    /add no window or opening that is not in the photo/.test(await interiorPrompt.inputValue()),
+  );
+
+  await page.getByRole('button', { name: 'Restyle' }).click();
+  await page.waitForTimeout(200);
+  const restylePrompt = await interiorPrompt.inputValue();
+  check('restyle prompt carries the same shell lock', /LOCK THE SHELL/.test(restylePrompt));
+  check(
+    'restyle may re-finish a wall but not move one',
+    /Recolouring or re-finishing a wall or floor is fine; moving, adding or removing one is not/.test(restylePrompt),
+  );
 
   check('no page crashes', perr.length === 0, perr.slice(0, 2).join(' | '));
   await browser.close();
