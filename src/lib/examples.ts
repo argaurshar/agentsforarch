@@ -30,7 +30,7 @@ export interface ExampleSet {
 const asset = (file: string): string => `${import.meta.env.BASE_URL}examples/${file}`;
 
 /** Every tab that can show worked examples. `moodboard` covers both its modes. */
-export const EXAMPLES: Partial<Record<FeatureKind | 'presentation', ExampleSet>> = {
+export const EXAMPLES: Partial<Record<FeatureKind, ExampleSet>> = {
   render: {
     summary:
       'A flat 2D floor plan becomes a furnished 3D cutaway you can hand a client. It follows your plan’s layout and ' +
@@ -197,31 +197,6 @@ export const EXAMPLES: Partial<Record<FeatureKind | 'presentation', ExampleSet>>
         note: 'The second mode: your own outputs composed into a branded grid board — no generation call.',
         output: asset('board-collage.jpg'),
         outputLabel: 'Collage board',
-      },
-    ],
-  },
-
-  presentation: {
-    summary:
-      'Your outputs become a client-ready deck — an editorial cover, magazine-style slides with figure labels, and a closing page, exported to PDF exactly as previewed.',
-    cases: [
-      {
-        label: 'Cover page',
-        note: 'Generated automatically from the project name, with your first image as the hero panel.',
-        output: asset('deck-cover.jpg'),
-        outputLabel: 'Deck cover',
-      },
-      {
-        label: 'Content page',
-        note: 'A numbered rail carries the title and caption; images sit in a staggered editorial layout.',
-        output: asset('deck-slide.jpg'),
-        outputLabel: 'Slide page',
-      },
-      {
-        label: 'Closing page',
-        note: 'A quiet studio sign-off closes every deck.',
-        output: asset('deck-closing.jpg'),
-        outputLabel: 'Closing page',
       },
     ],
   },

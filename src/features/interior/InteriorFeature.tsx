@@ -20,7 +20,7 @@ import { INTERIOR_THEMES } from '../../lib/scene';
 import { buildInteriorPrompt, buildRefinePrompt } from '../../lib/prompts';
 import { useProjectStore } from '../../store/useProjectStore';
 import type { InteriorMode, InteriorThemeKey, RoomTypeKey } from '../../store/generation';
-import { useGenerate, usePresentationAdder, useStyleRef } from '../hooks';
+import { useGenerate, useStyleRef } from '../hooks';
 
 const MODE_OPTIONS: { value: InteriorMode; label: string }[] = [
   { value: 'restyle', label: 'Restyle' },
@@ -96,7 +96,6 @@ export function InteriorFeature() {
   }, [suggestedPrompt, promptEdited, prompt, setFeaturePrompt]);
 
   const { status, error, warning, outputs, inputUsed, engineReady, run, cancel } = useGenerate('interior');
-  const { addToPresentation, addedIds } = usePresentationAdder();
 
   const loading = status === 'loading';
 
@@ -320,8 +319,6 @@ export function InteriorFeature() {
               outputs={outputs}
               loading={loading}
               loadingCount={compareActive ? compareSel.length : 1}
-              onAddToPresentation={addToPresentation}
-              addedIds={addedIds}
               onDelete={removeImage}
               onRefine={(image) => beginRefine('interior', image)}
             />

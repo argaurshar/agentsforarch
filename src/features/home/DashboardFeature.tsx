@@ -1,4 +1,4 @@
-import { ArrowRight, Box, Building2, Check, FileImage, Images, KeyRound, LayoutTemplate, Palette, PencilRuler, Sofa, Sparkles, X } from 'lucide-react';
+import { ArrowRight, Box, Building2, Check, FileImage, Images, KeyRound, Palette, PencilRuler, Sofa, Sparkles, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
@@ -34,12 +34,6 @@ interface ShortcutDef {
 
 const SHORTCUTS: ShortcutDef[] = [
   { key: 'moodboard', name: 'Mood board', what: 'Compose your outputs into a branded material board.', icon: Palette },
-  {
-    key: 'presentation',
-    name: 'Concept presentation',
-    what: 'Build an AI deck or a branded PDF from your outputs.',
-    icon: LayoutTemplate,
-  },
   { key: 'gallery', name: 'Gallery · save / load', what: 'Every output, plus whole-project export and import.', icon: Images },
 ];
 
@@ -115,7 +109,7 @@ export function DashboardFeature() {
         index="00"
         eyebrow="Project Dashboard"
         title={project.name || 'Untitled Project'}
-        description="Your project at a glance — jump into any stage of the pipeline, pick up where you left off, or open the presentation and gallery."
+        description="Your project at a glance — jump into any stage of the pipeline, pick up where you left off, or open the mood board and gallery."
       />
 
       {/* Getting started — shown until the key is set and something exists. */}

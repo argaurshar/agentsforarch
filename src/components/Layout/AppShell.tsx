@@ -17,7 +17,6 @@ export function AppShell({ children }: AppShellProps) {
   const resetProject = useProjectStore((s) => s.resetProject);
   const providerName = useProjectStore((s) => s.providerName);
   const engineReady = useProjectStore((s) => s.engineReady);
-  const claudeApiKey = useProjectStore((s) => s.claudeApiKey);
 
   // Any work worth warning about before the tab unloads (in-memory by design —
   // nothing is persisted, so a refresh would discard it, and each generated
@@ -25,10 +24,7 @@ export function AppShell({ children }: AppShellProps) {
   const hasWork = useProjectStore(
     (s) =>
       s.project.assets.length > 0 ||
-      s.project.slides.length > 0 ||
       s.project.uploads.length > 0 ||
-      Boolean(s.deckHtml) ||
-      s.deckStatus === 'loading' ||
       s.generation.render.status === 'loading' ||
       s.generation.elevation.status === 'loading' ||
       s.generation.axonometric.status === 'loading' ||
@@ -46,11 +42,11 @@ export function AppShell({ children }: AppShellProps) {
   // dialog (Escape / scrim / focus trap), not a bare toggled popover.
   const confirmRef = useDialog<HTMLDivElement>({ open: confirmNew, onClose: () => setConfirmNew(false) });
 
-  // First-run onboarding: if no keys are configured yet, open Settings once so
+  // First-run onboarding: if no key is configured yet, open Settings once so
   // a first-time visitor (e.g. a client following the link) is guided to connect
-  // their keys rather than hitting an error on the first Generate.
+  // their key rather than hitting an error on the first Generate.
   useEffect(() => {
-    if (!engineReady && !claudeApiKey) setSettingsOpen(true);
+    if (!engineReady) setSettingsOpen(true);
     // Run once on mount only.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

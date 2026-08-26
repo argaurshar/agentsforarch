@@ -41,7 +41,7 @@ export function ImageDropzone({ value, onImage, onClear, hint }: ImageDropzonePr
         // Architectural drawings are line art headed for a vision model: keep
         // them lossless and at a higher cap so hairline walls, door swing arcs
         // and hatching survive the trip. (The 1600px/JPEG default remains for
-        // paths that feed jsPDF, where payload size matters more than linework.)
+        // paths where payload size matters more than linework.)
         const resized = await resizeDataURL(raw, 2048, 'image/png');
         onImage(resized);
       } catch {

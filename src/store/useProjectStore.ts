@@ -3,7 +3,6 @@ import { abortAllFeatures } from '../features/abortRegistry';
 import { newId } from '../lib/images';
 import { activeProviderName, isImageEngineReady } from '../providers';
 import {
-  getClaudeApiKey,
   getEngine,
   getGeminiApiKey,
   getGeminiModel,
@@ -13,24 +12,13 @@ import {
 } from '../providers/runtimeConfig';
 import type { EngineKey } from '../providers/runtimeConfig';
 import { storage } from '../storage';
-import type {
-  Asset,
-  Brand,
-  ComposedSlide,
-  FeatureKind,
-  GeneratedImage,
-  Project,
-  Slide,
-  SlideLayout,
-  TabKey,
-} from '../types';
+import type { Asset, Brand, FeatureKind, GeneratedImage, Project, TabKey } from '../types';
 import { initialGeneration } from './generation';
 import type {
   AxonSettings,
   ElevationSettings,
   FeatureRun,
   FeatureSettings,
-  GenerateStatus,
   GenerationState,
   InteriorSettings,
   MoodboardSettings,
@@ -52,17 +40,18 @@ type FeatureSettingsPatch = Partial<
 // All project data access lives here (spec §9 — auth/persistence seam). No
 // component reads or writes the model directly; they go through these actions.
 
-/** Default brand — matches AND Studio's own palette so unbranded decks look native. */
-function makeDefaultBrand(): Brand {
+/**
+ * Default brand. These are the *artefact* palette — the colours the mood board
+ * and social export are stamped in — deliberately independent of the app
+ * chrome's design tokens. BrandPanel's "Reset to studio default" writes this
+ * exact object back, so the two must stay in step (it is exported for that).
+ */
+export function makeDefaultBrand(): Brand {
   return {
-    name: '',
     primary: '#0f1729',
     accent: '#c2410c',
     background: '#f7f2e8',
     text: '#334155',
-    headingFont: 'Fraunces, Georgia, serif',
-    bodyFont: 'Inter, system-ui, sans-serif',
-    voice: '',
   };
 }
 
@@ -74,7 +63,6 @@ function createEmptyProject(): Project {
     createdAt: now,
     updatedAt: now,
     assets: [],
-    slides: [],
     uploads: [],
     brand: makeDefaultBrand(),
   };
@@ -93,7 +81,6 @@ interface ApiConfigInput {
   model?: string;
   kieKey?: string | undefined;
   remember: boolean;
-  claudeKey?: string | undefined;
 }
 
 interface ProjectState {
@@ -110,7 +97,6 @@ interface ProjectState {
   kieApiKey: string | undefined; // kie.ai key
   rememberKey: boolean;
   engineReady: boolean; // true once the chosen engine has its key configured
-  claudeApiKey: string | undefined; // Claude key for the presentation composer
   setApiConfig: (cfg: ApiConfigInput) => void;
 
   // Per-feature generation state (input, settings, outputs, status). Lives in the
@@ -125,18 +111,6 @@ interface ProjectState {
   exitRefine: (feature: FeatureKind) => void;
   sendToFeature: (target: FeatureKind, dataURL: string) => void;
 
-  // The frontend-slides deck generated for the Concept Presentation tab (in-memory
-  // session artifact — a full self-contained HTML document, not project data).
-  deckHtml: string | null;
-  setDeckHtml: (html: string | null) => void;
-  // Deck generation lifecycle (owned here so an in-flight stream survives a tab
-  // or AI↔Manual toggle, and a single-flight guard prevents a second stream).
-  deckStatus: GenerateStatus;
-  deckProgress: number;
-  deckError: string | null;
-  deckWarnings: string[];
-  patchDeck: (patch: Partial<Pick<ProjectState, 'deckHtml' | 'deckStatus' | 'deckProgress' | 'deckError' | 'deckWarnings'>>) => void;
-
   setTab: (tab: TabKey) => void;
   renameProject: (name: string) => void;
   /** Session flag: the dashboard's getting-started card was dismissed. */
@@ -146,17 +120,11 @@ interface ProjectState {
   setBrand: (patch: Partial<Brand>) => void;
   addUploads: (images: GeneratedImage[]) => void;
   removeUpload: (imageId: string) => void;
-  setComposedSlides: (slides: ComposedSlide[]) => void;
 
   addAsset: (input: AddAssetInput) => Asset;
   removeAsset: (assetId: string) => void;
-  /** Delete a single image wherever it lives (generated output or upload), scrubbing slides + feature displays. */
+  /** Delete a single image wherever it lives (generated output or upload), scrubbing feature displays. */
   removeImage: (imageId: string) => void;
-
-  addSlide: (imageIds: string[], layout: SlideLayout) => string;
-  updateSlide: (slideId: string, patch: Partial<Pick<Slide, 'layout' | 'title' | 'caption' | 'imageIds'>>) => void;
-  removeSlide: (slideId: string) => void;
-  moveSlide: (slideId: string, direction: 'up' | 'down') => void;
 
   resetProject: () => void;
   /** Replace the whole project with an imported one (project save/load). */
@@ -191,7 +159,6 @@ export const useProjectStore = create<ProjectState>((set, get) => {
     kieApiKey: rc.kieApiKey,
     rememberKey: rc.remembered,
     engineReady: isImageEngineReady(),
-    claudeApiKey: rc.claudeApiKey,
     setApiConfig: (cfg) => {
       setGeminiConfig(cfg);
       set({
@@ -201,7 +168,6 @@ export const useProjectStore = create<ProjectState>((set, get) => {
         kieApiKey: getKieApiKey(),
         rememberKey: cfg.remember,
         engineReady: isImageEngineReady(),
-        claudeApiKey: getClaudeApiKey(),
         providerName: activeProviderName(),
       });
     },
@@ -268,14 +234,6 @@ export const useProjectStore = create<ProjectState>((set, get) => {
       set({ tab: target });
     },
 
-    deckHtml: null,
-    setDeckHtml: (html) => set({ deckHtml: html }),
-    deckStatus: 'idle',
-    deckProgress: 0,
-    deckError: null,
-    deckWarnings: [],
-    patchDeck: (patch) => set(patch),
-
     setTab: (tab) => set({ tab }),
 
     tipsDismissed: false,
@@ -304,26 +262,7 @@ export const useProjectStore = create<ProjectState>((set, get) => {
     removeUpload: (imageId) => {
       const project = get().project;
       const uploads = project.uploads.filter((u) => u.id !== imageId);
-      const slides = project.slides
-        .map((s) => ({ ...s, imageIds: s.imageIds.filter((id) => id !== imageId) }))
-        .filter((s) => s.imageIds.length > 0)
-        .map((s, index) => ({ ...s, order: index }));
-      const next = touch({ ...project, uploads, slides });
-      persist(next);
-      set({ project: next });
-    },
-
-    setComposedSlides: (composed) => {
-      const project = get().project;
-      const slides: Slide[] = composed.map((c, index) => ({
-        id: newId('slide'),
-        imageIds: [...c.imageIds],
-        layout: c.layout,
-        title: c.title || undefined,
-        caption: c.caption || undefined,
-        order: index,
-      }));
-      const next = touch({ ...project, slides });
+      const next = touch({ ...project, uploads });
       persist(next);
       set({ project: next });
     },
@@ -346,17 +285,9 @@ export const useProjectStore = create<ProjectState>((set, get) => {
 
     removeAsset: (assetId) => {
       const project = get().project;
-      const asset = project.assets.find((a) => a.id === assetId);
-      const removedImageIds = new Set(asset?.outputs.map((o) => o.id) ?? []);
-      // Drop the asset and scrub its images from any slides.
-      const slides = project.slides
-        .map((s) => ({ ...s, imageIds: s.imageIds.filter((id) => !removedImageIds.has(id)) }))
-        .filter((s) => s.imageIds.length > 0)
-        .map((s, index) => ({ ...s, order: index }));
       const next = touch({
         ...project,
         assets: project.assets.filter((a) => a.id !== assetId),
-        slides,
       });
       persist(next);
       set({ project: next });
@@ -366,7 +297,7 @@ export const useProjectStore = create<ProjectState>((set, get) => {
       const state = get();
       const project = state.project;
       if (project.uploads.some((u) => u.id === imageId)) {
-        state.removeUpload(imageId); // handles slide scrub + persist
+        state.removeUpload(imageId); // handles persist
       } else {
         const asset = project.assets.find((a) => a.outputs.some((o) => o.id === imageId));
         if (asset) {
@@ -375,11 +306,7 @@ export const useProjectStore = create<ProjectState>((set, get) => {
             remaining.length > 0
               ? project.assets.map((a) => (a.id === asset.id ? { ...a, outputs: remaining } : a))
               : project.assets.filter((a) => a.id !== asset.id);
-          const slides = project.slides
-            .map((s) => ({ ...s, imageIds: s.imageIds.filter((id) => id !== imageId) }))
-            .filter((s) => s.imageIds.length > 0)
-            .map((s, index) => ({ ...s, order: index }));
-          const next = touch({ ...project, assets, slides });
+          const next = touch({ ...project, assets });
           persist(next);
           set({ project: next });
         }
@@ -404,84 +331,18 @@ export const useProjectStore = create<ProjectState>((set, get) => {
       });
     },
 
-    addSlide: (imageIds, layout) => {
-      const project = get().project;
-      const id = newId('slide');
-      const slide: Slide = {
-        id,
-        imageIds: [...imageIds],
-        layout,
-        order: project.slides.length,
-      };
-      const next = touch({ ...project, slides: [...project.slides, slide] });
-      persist(next);
-      set({ project: next });
-      return id;
-    },
-
-    updateSlide: (slideId, patch) => {
-      const project = get().project;
-      const next = touch({
-        ...project,
-        slides: project.slides.map((s) => (s.id === slideId ? { ...s, ...patch } : s)),
-      });
-      persist(next);
-      set({ project: next });
-    },
-
-    removeSlide: (slideId) => {
-      const project = get().project;
-      const slides = project.slides
-        .filter((s) => s.id !== slideId)
-        .sort((a, b) => a.order - b.order)
-        .map((s, index) => ({ ...s, order: index }));
-      const next = touch({ ...project, slides });
-      persist(next);
-      set({ project: next });
-    },
-
-    moveSlide: (slideId, direction) => {
-      const project = get().project;
-      const ordered = [...project.slides].sort((a, b) => a.order - b.order);
-      const index = ordered.findIndex((s) => s.id === slideId);
-      if (index === -1) return;
-      const target = direction === 'up' ? index - 1 : index + 1;
-      if (target < 0 || target >= ordered.length) return;
-      [ordered[index], ordered[target]] = [ordered[target], ordered[index]];
-      const slides = ordered.map((s, i) => ({ ...s, order: i }));
-      const next = touch({ ...project, slides });
-      persist(next);
-      set({ project: next });
-    },
-
     resetProject: () => {
       abortAllFeatures(); // stop any in-flight image generation
       const fresh = createEmptyProject();
       persist(fresh);
-      set({
-        project: fresh,
-        generation: initialGeneration(),
-        deckHtml: null,
-        deckStatus: 'idle',
-        deckProgress: 0,
-        deckError: null,
-        deckWarnings: [],
-      });
+      set({ project: fresh, generation: initialGeneration() });
     },
 
     importProject: (project) => {
       abortAllFeatures();
       const next = touch(project);
       persist(next);
-      set({
-        project: next,
-        generation: initialGeneration(),
-        deckHtml: null,
-        deckStatus: 'idle',
-        deckProgress: 0,
-        deckError: null,
-        deckWarnings: [],
-      });
+      set({ project: next, generation: initialGeneration() });
     },
   };
 });
@@ -507,18 +368,7 @@ export function imagesFromAssets(assets: Asset[]): ImageRef[] {
   );
 }
 
-/** Lookup map from image id → GeneratedImage, for slide rendering/export. */
-export function imageMapFromAssets(assets: Asset[]): Map<string, GeneratedImage> {
-  const map = new Map<string, GeneratedImage>();
-  for (const asset of assets) {
-    for (const image of asset.outputs) {
-      map.set(image.id, image);
-    }
-  }
-  return map;
-}
-
-/** A presentation-pool image, tagged with its display group. */
+/** A project-pool image, tagged with its display group. */
 export interface PoolImage {
   image: GeneratedImage;
   group: string;
@@ -532,7 +382,7 @@ const POOL_GROUPS: { key: FeatureKind; label: string }[] = [
   { key: 'moodboard', label: 'Material boards' },
 ];
 
-/** All images available to the presentation — generated outputs + uploads. */
+/** Every image in the project — generated outputs plus anything added directly. */
 export function poolFromProject(project: Project): PoolImage[] {
   const out: PoolImage[] = [];
   for (const group of POOL_GROUPS) {
@@ -543,11 +393,4 @@ export function poolFromProject(project: Project): PoolImage[] {
   }
   for (const image of project.uploads) out.push({ image, group: 'Uploaded' });
   return out;
-}
-
-/** Lookup map including uploaded images, for slide rendering/export. */
-export function imageMapFromProject(project: Project): Map<string, GeneratedImage> {
-  const map = imageMapFromAssets(project.assets);
-  for (const image of project.uploads) map.set(image.id, image);
-  return map;
 }

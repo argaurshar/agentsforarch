@@ -14,7 +14,7 @@ import { Select } from '../../components/ui/Select';
 import { Switch } from '../../components/ui/Switch';
 import { buildAxonometricPrompt, buildRefinePrompt } from '../../lib/prompts';
 import { useProjectStore } from '../../store/useProjectStore';
-import { useGenerate, usePresentationAdder } from '../hooks';
+import { useGenerate } from '../hooks';
 
 const VIEWPOINTS = ['NE', 'NW', 'SE', 'SW'] as const;
 
@@ -49,7 +49,6 @@ export function AxonometricFeature() {
   }, [suggestedPrompt, promptEdited, prompt, setFeaturePrompt]);
 
   const { status, error, warning, outputs, inputUsed, engineReady, run, cancel } = useGenerate('axonometric');
-  const { addToPresentation, addedIds } = usePresentationAdder();
 
   const loading = status === 'loading';
 
@@ -262,8 +261,6 @@ export function AxonometricFeature() {
               outputs={outputs}
               loading={loading}
               loadingCount={mode === 'refine' ? 1 : orderedSelection.length}
-              onAddToPresentation={addToPresentation}
-              addedIds={addedIds}
               onDelete={removeImage}
               onRefine={(image) => beginRefine('axonometric', image)}
             />

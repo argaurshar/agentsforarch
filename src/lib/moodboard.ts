@@ -13,7 +13,7 @@ export interface MoodboardOrientation {
 }
 
 // Print-friendly proportions (2:2.5 / 4:3 / 1:1). Rendered at generous pixel
-// sizes so the exported PNG stays crisp when placed in a deck or printed.
+// sizes so the exported PNG stays crisp when placed in a document or printed.
 export const MOODBOARD_ORIENTATIONS: MoodboardOrientation[] = [
   { key: 'portrait', label: 'Portrait', w: 1600, h: 2000 },
   { key: 'landscape', label: 'Landscape', w: 2000, h: 1500 },

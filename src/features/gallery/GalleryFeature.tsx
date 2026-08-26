@@ -211,7 +211,7 @@ export function GalleryFeature() {
         <EmptyState
           icon={Images}
           title="Nothing here yet"
-          description="Images you generate on any tab (or upload into the presentation) collect here automatically. You can also import a previously exported project file."
+          description="Images you generate on any tab collect here automatically. You can also import a previously exported project file."
           action={
             <Button icon={<FileUp size={15} strokeWidth={1.75} />} onClick={() => importRef.current?.click()}>
               Import a project file

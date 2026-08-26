@@ -8,7 +8,7 @@ import { Button } from '../ui/Button';
 import { Spinner } from '../ui/Spinner';
 
 interface ExampleShowcaseProps {
-  feature: FeatureKind | 'presentation';
+  feature: FeatureKind;
   /**
    * Open on arrival. True on a tab with nothing generated yet — the whole point
    * is that a first-time visitor sees what the tab does without running anything.
@@ -48,7 +48,7 @@ function CasePanel({ example }: { example: ExampleCase }) {
           </div>
         </div>
       ) : (
-        // Composed outputs (a collage board, a deck page) have no transformed
+        // Composed outputs (a collage board) have no transformed
         // input — show the result full width rather than faking a pair.
         <div className="flex flex-col gap-1.5">
           <span className="text-caption text-mist">{example.outputLabel ?? 'Output'}</span>
@@ -78,7 +78,7 @@ export function ExampleShowcase({ feature, defaultOpen = false }: ExampleShowcas
 
   if (!set) return null;
 
-  const tryInput = feature !== 'presentation' ? TRY_INPUT[feature] : undefined;
+  const tryInput = TRY_INPUT[feature];
 
   const handleTry = () => {
     if (!tryInput) return;

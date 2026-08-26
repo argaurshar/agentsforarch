@@ -107,7 +107,6 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
   const kieApiKey = useProjectStore((s) => s.kieApiKey);
   const rememberKey = useProjectStore((s) => s.rememberKey);
   const engineReady = useProjectStore((s) => s.engineReady);
-  const claudeApiKey = useProjectStore((s) => s.claudeApiKey);
   const providerName = useProjectStore((s) => s.providerName);
   const setApiConfig = useProjectStore((s) => s.setApiConfig);
 
@@ -115,11 +114,9 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
   const [keyDraft, setKeyDraft] = useState(apiKey ?? '');
   const [modelDraft, setModelDraft] = useState(model);
   const [kieDraft, setKieDraft] = useState(kieApiKey ?? '');
-  const [claudeDraft, setClaudeDraft] = useState(claudeApiKey ?? '');
   const [remember, setRemember] = useState(rememberKey);
   const [reveal, setReveal] = useState(false);
   const [kieReveal, setKieReveal] = useState(false);
-  const [claudeReveal, setClaudeReveal] = useState(false);
   const [saved, setSaved] = useState(false);
 
   // Re-sync the form to the store whenever the panel opens.
@@ -129,11 +126,10 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
       setKeyDraft(apiKey ?? '');
       setModelDraft(model);
       setKieDraft(kieApiKey ?? '');
-      setClaudeDraft(claudeApiKey ?? '');
       setRemember(rememberKey);
       setSaved(false);
     }
-  }, [open, engine, apiKey, model, kieApiKey, claudeApiKey, rememberKey]);
+  }, [open, engine, apiKey, model, kieApiKey, rememberKey]);
 
   const dialogRef = useDialog<HTMLElement>({ open, onClose });
 
@@ -148,7 +144,6 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
       model: modelDraft.trim() || DEFAULT_MODEL,
       kieKey: kieDraft.trim() || undefined,
       remember,
-      claudeKey: claudeDraft.trim() || undefined,
     });
     setSaved(true);
   };
@@ -156,14 +151,12 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
   const clearAll = () => {
     setKeyDraft('');
     setKieDraft('');
-    setClaudeDraft('');
     setApiConfig({
       engine: engineDraft,
       key: undefined,
       model: modelDraft.trim() || DEFAULT_MODEL,
       kieKey: undefined,
       remember: false,
-      claudeKey: undefined,
     });
     setSaved(false);
   };
@@ -314,33 +307,6 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
             )}
           </section>
 
-          {/* Presentation composer (Claude) — sections are separated by one
-              divider treatment; the first abuts the header rule instead. */}
-          <section className="flex flex-col gap-4 border-t border-hairline pt-8">
-            <h3 className="section-heading">Presentation composer</h3>
-            <p className="text-body text-graphite">
-              Add a Claude API key to let <strong>Compose&nbsp;with&nbsp;Claude</strong> arrange your deck and write
-              brand-voiced titles and captions (uses Claude Opus&nbsp;4.8).
-            </p>
-
-            <KeyField
-              id="claude-key"
-              label="Claude API key"
-              value={claudeDraft}
-              onChange={(v) => {
-                setClaudeDraft(v);
-                setSaved(false);
-              }}
-              placeholder="sk-ant-…"
-              revealed={claudeReveal}
-              onToggleReveal={() => setClaudeReveal((r) => !r)}
-              showLabel="Show Claude key"
-              hideLabel="Hide Claude key"
-              linkHref="https://console.anthropic.com/settings/keys"
-              linkText="Get a key from the Anthropic Console →"
-            />
-          </section>
-
           {/* Storage & trust ------------------------------------------------- */}
           <section className="flex flex-col gap-4 border-t border-hairline pt-8">
             <h3 className="section-heading">Key storage</h3>
@@ -369,7 +335,7 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
                   ? `${providerName} is active. Generations call the engine directly from your browser using your key.`
                   : 'No image key set yet — pick an engine and add its key above to start generating.'}{' '}
                 Because this is a static app with no server, all requests go straight from your browser to the engine
-                you chose (Google, kie.ai or Anthropic). Your keys are never sent anywhere else, but a browser CORS
+                you chose (Google or kie.ai). Your keys are never sent anywhere else, but a browser CORS
                 block or an invalid key will surface as an inline error.
               </p>
             </div>
@@ -382,7 +348,7 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
           <Button variant="primary" onClick={apply} icon={saved ? <Check size={16} strokeWidth={2} /> : undefined}>
             {saved ? 'Saved' : 'Save'}
           </Button>
-          {apiKey || kieApiKey || claudeApiKey ? (
+          {apiKey || kieApiKey ? (
             <Button variant="secondary" onClick={clearAll}>
               Clear keys
             </Button>

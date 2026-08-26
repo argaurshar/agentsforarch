@@ -25,7 +25,6 @@ export class MemoryStorageAdapter implements StorageAdapter {
         createdAt: p.createdAt,
         updatedAt: p.updatedAt,
         assetCount: p.assets.length,
-        slideCount: p.slides.length,
       }))
       .sort((a, b) => b.updatedAt - a.updatedAt);
   }

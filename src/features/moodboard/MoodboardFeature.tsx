@@ -1,5 +1,6 @@
-import { ArrowRight, Download, LayoutGrid, LayoutTemplate, Palette, RotateCcw, Sparkles, Wand2, X } from 'lucide-react';
+import { ArrowRight, Download, LayoutGrid, Palette, RotateCcw, Save, Sparkles, Wand2, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
+import { BrandPanel } from '../../components/Brand/BrandPanel';
 import { OutputGrid } from '../../components/Output/OutputGrid';
 import { ImageDropzone } from '../../components/Upload/ImageDropzone';
 import { Button } from '../../components/ui/Button';
@@ -17,7 +18,7 @@ import { buildMoodboardPrompt } from '../../lib/prompts';
 import { poolFromProject, useProjectStore } from '../../store/useProjectStore';
 import type { BoardAspectKey } from '../../store/generation';
 import type { GeneratedImage } from '../../types';
-import { useGenerate, usePresentationAdder } from '../hooks';
+import { useGenerate } from '../hooks';
 
 /**
  * Feature 05 · Mood Board — two ways to make a board:
@@ -140,7 +141,6 @@ function BoardGenerator() {
   }, [suggestedPrompt, promptEdited, prompt, setFeaturePrompt]);
 
   const { status, error, warning, outputs, engineReady, run, cancel } = useGenerate('moodboard');
-  const { addToPresentation, addedIds } = usePresentationAdder();
   const loading = status === 'loading';
 
   const handleGenerate = () => {
@@ -256,8 +256,6 @@ function BoardGenerator() {
             outputs={outputs}
             loading={loading}
             loadingCount={1}
-            onAddToPresentation={addToPresentation}
-            addedIds={addedIds}
             onDelete={removeImage}
           />
         ) : !error ? (
@@ -367,7 +365,7 @@ function CollageComposer() {
 
   const boardName = title.trim() || 'mood-board';
 
-  const addToPresentation = () => {
+  const saveToProject = () => {
     if (!preview) return;
     const image: GeneratedImage = {
       id: newId('img'),
@@ -389,7 +387,7 @@ function CollageComposer() {
       <EmptyState
         icon={Palette}
         title="No images to compose yet"
-        description="Generate renders, elevations, axonometrics or interiors on the earlier tabs (or upload images in the presentation) and they'll appear here to arrange into a collage board."
+        description="Generate renders, elevations, axonometrics or interiors on the earlier tabs and they'll appear here to arrange into a collage board."
         action={
           <Button variant="primary" icon={<ArrowRight size={15} strokeWidth={1.75} />} onClick={() => setTab('render')}>
             Start on the Isometric tab
@@ -484,6 +482,10 @@ function CollageComposer() {
           </div>
         </div>
 
+        {/* The palette the board is stamped in — colours only, collapsed by
+            default so it never competes with the image picker. */}
+        <BrandPanel />
+
         {/* Actions */}
         <div className="flex flex-col gap-2">
           <div className="flex flex-wrap items-center gap-2">
@@ -497,11 +499,11 @@ function CollageComposer() {
             </Button>
             <Button
               variant="secondary"
-              icon={<LayoutTemplate size={16} strokeWidth={1.75} />}
+              icon={<Save size={16} strokeWidth={1.75} />}
               disabled={!preview}
-              onClick={addToPresentation}
+              onClick={saveToProject}
             >
-              Add to presentation
+              Save to project
             </Button>
           </div>
           {/* Height is reserved so the confirmation does not shove the column. */}
@@ -509,7 +511,7 @@ function CollageComposer() {
             {added ? (
               <Notice
                 tone="success"
-                message="Added to the presentation pool — it appears under Uploaded on the Presentation and Gallery tabs."
+                message="Saved to the project — it appears under Uploaded in the Gallery, and in the image picker above."
               />
             ) : null}
           </div>

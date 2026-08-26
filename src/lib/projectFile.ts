@@ -2,7 +2,7 @@
 // "I closed the tab and lost my work". The file embeds every image as a dataURL,
 // so one .json round-trips the whole project between machines and sessions.
 
-import type { Project } from '../types';
+import type { Brand, Project } from '../types';
 
 const FILE_KIND = 'and-studio-project';
 const FILE_VERSION = 1;
@@ -48,17 +48,24 @@ export function parseProjectFile(text: string): Project {
   if (file.kind !== FILE_KIND || typeof file.version !== 'number' || !file.project) {
     throw new Error('That file is not an AND Studio project export.');
   }
-  const p = file.project as Partial<Project>;
-  if (
-    typeof p.id !== 'string' ||
-    typeof p.name !== 'string' ||
-    !Array.isArray(p.assets) ||
-    !Array.isArray(p.slides) ||
-    !Array.isArray(p.uploads) ||
-    typeof p.brand !== 'object' ||
-    p.brand === null
-  ) {
+  const p = file.project as Partial<Project> & Record<string, unknown>;
+  if (typeof p.id !== 'string' || typeof p.name !== 'string' || !Array.isArray(p.assets) || !Array.isArray(p.uploads)) {
     throw new Error('That project file is incomplete or from an incompatible version.');
   }
-  return file.project as Project;
+  // Files exported before the Concept Presentation tab was removed carry a
+  // `slides` array and a brand with deck-only fields (fonts, logo, voice).
+  // Import them anyway — the images are the valuable part — keeping only the
+  // brand colours the mood board and social export still use, and dropping the
+  // rest rather than carrying dead weight (a logo dataURL) around forever.
+  const { slides: _slides, brand: rawBrand, ...rest } = p;
+  const b = (typeof rawBrand === 'object' && rawBrand !== null ? rawBrand : {}) as Partial<Brand>;
+  const hex = (v: unknown, fallback: string): string =>
+    typeof v === 'string' && /^#[0-9a-f]{3,8}$/i.test(v) ? v : fallback;
+  const brand: Brand = {
+    primary: hex(b.primary, '#0f1729'),
+    accent: hex(b.accent, '#c2410c'),
+    background: hex(b.background, '#f7f2e8'),
+    text: hex(b.text, '#334155'),
+  };
+  return { ...(rest as unknown as Project), brand };
 }

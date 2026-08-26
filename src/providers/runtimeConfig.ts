@@ -17,13 +17,15 @@ const ENGINE_STORAGE = 'and-studio.engine';
 const KEY_STORAGE = 'and-studio.gemini-key';
 const MODEL_STORAGE = 'and-studio.gemini-model';
 const KIE_KEY_STORAGE = 'and-studio.kie-key';
-const CLAUDE_KEY_STORAGE = 'and-studio.claude-key';
+// Retired with the Concept Presentation tab. Kept only so startup can delete a
+// key an earlier version remembered — an orphaned credential should not sit in
+// a user's localStorage forever with nothing left to use it.
+const RETIRED_CLAUDE_KEY_STORAGE = 'and-studio.claude-key';
 
 let engine: EngineKey = 'gemini';
 let apiKey: string | undefined;
 let model: string = DEFAULT_MODEL;
 let kieApiKey: string | undefined;
-let claudeApiKey: string | undefined;
 
 function safeGet(name: string): string | undefined {
   try {
@@ -49,8 +51,8 @@ export function initRuntimeConfig(): {
   model: string;
   kieApiKey: string | undefined;
   remembered: boolean;
-  claudeApiKey: string | undefined;
 } {
+  safeSet(RETIRED_CLAUDE_KEY_STORAGE, null);
   const savedKey = safeGet(KEY_STORAGE);
   if (savedKey) apiKey = savedKey;
   const savedModel = safeGet(MODEL_STORAGE);
@@ -59,15 +61,12 @@ export function initRuntimeConfig(): {
   if (savedKie) kieApiKey = savedKie;
   const savedEngine = safeGet(ENGINE_STORAGE);
   if (savedEngine === 'gemini' || savedEngine === 'kie') engine = savedEngine;
-  const savedClaude = safeGet(CLAUDE_KEY_STORAGE);
-  if (savedClaude) claudeApiKey = savedClaude;
   return {
     engine,
     apiKey,
     model,
     kieApiKey,
     remembered: Boolean(savedKey || savedKie),
-    claudeApiKey,
   };
 }
 
@@ -87,35 +86,26 @@ export function getKieApiKey(): string | undefined {
   return kieApiKey;
 }
 
-/** The Claude (Anthropic) key used by the presentation composer. */
-export function getClaudeApiKey(): string | undefined {
-  return claudeApiKey;
-}
-
 export function setGeminiConfig(cfg: {
   engine?: EngineKey;
   key: string | undefined;
   model?: string;
   kieKey?: string | undefined;
   remember: boolean;
-  claudeKey?: string | undefined;
 }): void {
   if (cfg.engine) engine = cfg.engine;
   apiKey = cfg.key?.trim() || undefined;
   model = cfg.model?.trim() || DEFAULT_MODEL;
   kieApiKey = cfg.kieKey?.trim() || undefined;
-  claudeApiKey = cfg.claudeKey?.trim() || undefined;
   if (cfg.remember) {
     safeSet(ENGINE_STORAGE, engine);
     safeSet(KEY_STORAGE, apiKey ?? null);
     safeSet(MODEL_STORAGE, model);
     safeSet(KIE_KEY_STORAGE, kieApiKey ?? null);
-    safeSet(CLAUDE_KEY_STORAGE, claudeApiKey ?? null);
   } else {
     safeSet(ENGINE_STORAGE, null);
     safeSet(KEY_STORAGE, null);
     safeSet(MODEL_STORAGE, null);
     safeSet(KIE_KEY_STORAGE, null);
-    safeSet(CLAUDE_KEY_STORAGE, null);
   }
 }
