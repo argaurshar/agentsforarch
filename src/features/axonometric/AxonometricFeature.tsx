@@ -65,7 +65,7 @@ export function AxonometricFeature() {
     if (!canGenerate || !input) return;
     void run({
       feature: 'axonometric',
-      inputImage: input,
+      inputImages: [input],
       prompt: prompt.trim() || undefined,
       options:
         mode === 'refine'

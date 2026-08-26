@@ -100,10 +100,12 @@ export function InteriorFeature() {
   const loading = status === 'loading';
 
   const handleGenerate = () => {
+    // One reference image today; the array is what lets a tool send several.
+    const refImage = useMoodboard ? moodboard : useRefStyle ? styleRefUrl : null;
     if (!input) return;
     void run({
       feature: 'interior',
-      inputImage: input,
+      inputImages: [input],
       prompt: prompt.trim() || undefined,
       // The mode rides in `style` so output labels reflect it; a mood board
       // (when active) is attached as a style reference image.
@@ -112,7 +114,7 @@ export function InteriorFeature() {
           ? { style: mode, refine: true }
           : {
               style: mode,
-              referenceImage: useMoodboard ? (moodboard ?? undefined) : useRefStyle ? (styleRefUrl ?? undefined) : undefined,
+              referenceImages: refImage ? [refImage] : undefined,
               styleVariants: compareActive
                 ? compareSel.map((k) => ({ label: `${INTERIOR_THEMES[k].label} interior`, clause: INTERIOR_THEMES[k].clause }))
                 : undefined,

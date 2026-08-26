@@ -1,5 +1,7 @@
 import { newId } from '../lib/images';
 import { getEngine, getKieApiKey, KIE_MODEL } from './runtimeConfig';
+import { kieAspect } from './options';
+import type { AspectRatio, Resolution } from './options';
 import { abortableDelay, FALLBACK_PROMPT, jobsFor } from './shared';
 import type { GenerateFailure, GeneratedImage, GenerateRequest, GenerateResult, ImageProvider } from './types';
 
@@ -108,7 +110,8 @@ async function generateOne(
   imageUrls: string[],
   label: string,
   signal?: AbortSignal,
-  aspectRatio?: string,
+  aspectRatio?: AspectRatio,
+  resolution: Resolution = '1K',
 ): Promise<GeneratedImage> {
   const created = await kieFetch<{ taskId?: string }>(
     key,
@@ -120,9 +123,11 @@ async function generateOne(
         model: KIE_MODEL,
         input: {
           prompt,
-          image_input: imageUrls,
-          aspect_ratio: aspectRatio ?? 'auto', // default: follow the input image's shape
-          resolution: '1K',
+          // Omit the key entirely when there is nothing to send — a text-only
+          // tool must not post an empty array.
+          ...(imageUrls.length ? { image_input: imageUrls } : {}),
+          aspect_ratio: kieAspect(aspectRatio), // 'auto' follows the input image's shape
+          resolution,
           output_format: 'png',
         },
       }),
@@ -192,8 +197,12 @@ export class KieProvider implements ImageProvider {
     // Upload the input (and optional style reference) once for the whole batch.
     let imageUrls: string[];
     try {
-      imageUrls = [await uploadImage(key, req.inputImage, signal)];
-      if (req.options.referenceImage) imageUrls.push(await uploadImage(key, req.options.referenceImage, signal));
+      // Inputs then references, in the same order Gemini receives them, so a
+      // prompt that addresses images positionally means the same thing on both
+      // engines. May be EMPTY for a text-only tool.
+      const all = [...req.inputImages, ...(req.options.referenceImages ?? [])];
+      imageUrls = [];
+      for (const url of all) imageUrls.push(await uploadImage(key, url, signal));
     } catch (err) {
       if (signal?.aborted) return { images, providerName: this.name, elapsedMs: Math.round(performance.now() - start) };
       throw err instanceof Error ? err : new Error('Could not upload the input image to kie.ai.');
@@ -209,7 +218,9 @@ export class KieProvider implements ImageProvider {
       }
       const job = jobs[i];
       try {
-        images.push(await generateOne(key, job.prompt, imageUrls, job.label, signal, req.options.aspectRatio));
+        images.push(
+          await generateOne(key, job.prompt, imageUrls, job.label, signal, req.options.aspectRatio, req.options.resolution),
+        );
       } catch (err) {
         if (signal?.aborted) break;
         failures.push({ label: job.label, error: err instanceof Error ? err.message : 'Generation failed.' });

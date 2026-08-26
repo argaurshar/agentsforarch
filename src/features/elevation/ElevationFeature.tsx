@@ -80,10 +80,12 @@ export function ElevationFeature() {
   const loading = status === 'loading';
 
   const handleGenerate = () => {
+    // One reference image today; the array is what lets a tool send several.
+    const refImage = useMoodboard ? moodboard : useRefStyle ? styleRefUrl : null;
     if (!input) return;
     void run({
       feature: 'elevation',
-      inputImage: input,
+      inputImages: [input],
       prompt: prompt.trim() || undefined,
       // The elevation face(s) ride in `viewpoints` so each output label reflects it.
       // A mood board (when active) is attached as a style reference image.
@@ -93,7 +95,7 @@ export function ElevationFeature() {
           : {
               style,
               viewpoints: faces,
-              referenceImage: useMoodboard ? (moodboard ?? undefined) : useRefStyle ? (styleRefUrl ?? undefined) : undefined,
+              referenceImages: refImage ? [refImage] : undefined,
             },
     });
   };

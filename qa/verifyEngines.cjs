@@ -155,6 +155,19 @@ const check = (name, ok, detail = '') => {
   check('isometric request pins a 4:3 canvas', /"aspectRatio":"4:3"/.test(gBody));
   check('isometric request carried the footprint lock', /outer wall silhouette/.test(gBody));
 
+  // 5b. The 2D furnished plan pins NOTHING — following the input's own ratio is
+  //     correct for a flat top-down view. This exercises the normalizer's omit
+  //     path, which the isometric run above cannot.
+  await page.getByRole('button', { name: '2D furnished plan' }).click();
+  await page.waitForTimeout(250);
+  await page.getByRole('button', { name: /^Generate$/ }).click();
+  await page.waitForTimeout(1200);
+  const planBody = geminiBodies[geminiBodies.length - 1] || '';
+  check('flat plan request omits imageConfig entirely', !/"imageConfig"/.test(planBody));
+  check('flat plan request is still a real generation', /"inlineData"/.test(planBody));
+  await page.getByRole('button', { name: '3D isometric' }).click();
+  await page.waitForTimeout(250);
+
   // 6. Switch to kie.ai and generate an elevation.
   await enginePill.click();
   await page.waitForSelector('[role="dialog"]');
@@ -252,6 +265,23 @@ const check = (name, ok, detail = '') => {
   await mob.waitForTimeout(400);
   check('tapping Connect key opens Settings on mobile', (await mob.locator('[role="dialog"]').count()) === 1);
   check('no mobile page crashes', mobErr.length === 0, mobErr.slice(0, 2).join(' | '));
+
+  // 10. The hardened request shape. These pin the wire format so the multi-image
+  //     and text-only tools coming next cannot regress it silently.
+  const gBodies = geminiBodies.join('\n');
+  check(
+    'gemini sends the input as an inlineData part',
+    /"inlineData"/.test(gBodies),
+  );
+  check(
+    'a single-input run sends exactly one image part',
+    (geminiBodies[0].match(/"inlineData"/g) || []).length === 1,
+  );
+  check(
+    'kie omits image_input only when there is nothing to send',
+    kie.createBodies.every((b) => /"image_input":\[/.test(b)),
+  );
+  check('kie sends a resolution', kie.createBodies.every((b) => /"resolution":"/.test(b)));
 
   check('no page crashes', perr.length === 0, perr.slice(0, 2).join(' | '));
   await browser.close();

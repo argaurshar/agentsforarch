@@ -9,23 +9,24 @@ import type { FeatureKind } from '../features/registry/keys';
 
 export type { FeatureKind };
 
+import type { GenerateOptions } from './options';
+
+export type { GenerateOptions };
+
 export interface GenerateRequest {
   feature: FeatureKind;
-  inputImage: string; // dataURL
+  /**
+   * Input images as dataURLs, 0..MAX_INPUT_IMAGES.
+   *
+   * An ARRAY, and possibly empty: several planned tools need a second image
+   * (target + style reference, site + building), one needs four, and five
+   * generate from prose or coordinates with no image at all. A single required
+   * `inputImage: string` could express none of that, and both providers capped
+   * at two images total because of it.
+   */
+  inputImages: string[];
   prompt?: string; // optional user styling notes
-  options: {
-    style?: string; // e.g. 'photoreal' | 'clay' | 'line' | axon 'realistic' | 'lineart' | 'bw'
-    viewpoints?: string[]; // axonometric viewpoints, or elevation faces for the all-faces batch
-    variations?: number; // how many outputs, default 1
-    section?: boolean; // axonometric: also cut a section-axonometric
-    referenceImage?: string; // dataURL — a style reference (e.g. an elevation mood board) sent alongside the input
-    styleVariants?: { label: string; clause: string }[]; // compare-styles batch: one output per design language
-    refine?: boolean; // this is an iterative refine of an existing output (single job, refined label)
-    // e.g. '4:5'. Gemini accepts a fixed set (1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4,
-    // 9:16, 16:9, 21:9) and rejects 'auto'; kie.ai accepts 'auto'. Measured
-    // behaviour when omitted: Gemini edits follow the input image's ratio.
-    aspectRatio?: string;
-  };
+  options: GenerateOptions;
 }
 
 export interface GeneratedImage {

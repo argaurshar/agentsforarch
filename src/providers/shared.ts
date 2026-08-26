@@ -6,10 +6,40 @@ import type { GenerateRequest } from './types';
 // kie.ai) expand a request into the same per-image jobs and share the same
 // abort-aware pacing, so switching engines never changes batch semantics.
 
-export function inlineFromDataUrl(dataUrl: string): { mimeType: string; data: string } {
+export interface Inline {
+  mimeType: string;
+  data: string;
+}
+
+export function inlineFromDataUrl(dataUrl: string): Inline {
   const match = /^data:([^;]+);base64,(.+)$/s.exec(dataUrl);
   if (!match) throw new Error('The input image could not be read (expected a base64 data URL).');
   return { mimeType: match[1], data: match[2] };
+}
+
+function blobToDataUrl(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(new Error('Could not read that image.'));
+    reader.readAsDataURL(blob);
+  });
+}
+
+/**
+ * Resolve any image the app holds to inline base64.
+ *
+ * Not every stored image is a dataURL: when kie.ai's CDN blocks a browser fetch
+ * it falls back to returning the REMOTE result URL so the paid-for image is not
+ * lost. Feeding that straight to `inlineFromDataUrl` threw, and because a
+ * reference image is resolved once for the whole batch, one such image killed
+ * every job in the run — after the user had already paid.
+ */
+export async function toInline(url: string, signal?: AbortSignal): Promise<Inline> {
+  if (url.startsWith('data:')) return inlineFromDataUrl(url);
+  const res = await fetch(url, { signal });
+  if (!res.ok) throw new Error('Could not read that image (it may have expired — download it and re-upload).');
+  return inlineFromDataUrl(await blobToDataUrl(await res.blob()));
 }
 
 /** Expand a request into one prompt+label per output image. */

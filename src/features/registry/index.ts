@@ -20,6 +20,7 @@ import {
   buildRenderPrompt,
 } from '../../lib/prompts';
 import { defaultScene } from '../../lib/scene';
+import type { AspectRatio } from '../../providers/options';
 import type { GenerateRequest } from '../../providers/types';
 import type {
   AxonSettings,
@@ -80,8 +81,12 @@ export interface FeatureDef<S extends FeatureSettings = FeatureSettings> {
   buildPrompt: (settings: S, ctx: PromptContext) => string;
   /** Which SceneControls rows this tool's prompt actually reads. */
   sceneShow: Record<string, boolean>;
-  /** Pinned output ratio, when the transformation implies one. */
-  aspectRatio?: (settings: S) => string | undefined;
+  /**
+   * Pinned output ratio, when the transformation implies one. Typed to the
+   * union the engines actually accept, so an illegal ratio is a build error
+   * here rather than a runtime 400 mid-batch.
+   */
+  aspectRatio?: (settings: S) => AspectRatio | undefined;
 
   /** Cross-feature pipeline destinations offered on this tool's outputs. */
   sendTargets: FeatureKind[];

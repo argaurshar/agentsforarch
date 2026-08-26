@@ -31,7 +31,13 @@ export interface Project {
 export interface Asset {
   id: string;
   feature: FeatureKind;
-  inputImage: string; // dataURL
+  /**
+   * The primary input, as a dataURL — what the before/after compare shows.
+   * `null` for tools that generate from prose or coordinates with no image.
+   * Deliberately NOT an array: multi-image tools still have one primary, and
+   * widening this would change the exported project-file format.
+   */
+  inputImage: string | null;
   outputs: GeneratedImage[];
   prompt?: string;
   createdAt: number;

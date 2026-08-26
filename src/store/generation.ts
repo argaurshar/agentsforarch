@@ -8,6 +8,7 @@
 // registry (src/features/registry), which owns each tool's defaults.
 
 import { defaultScene } from '../lib/scene';
+import type { AspectRatio } from '../providers/options';
 import type { GeneratedImage } from '../types';
 
 export { defaultScene };
@@ -103,7 +104,7 @@ export interface AxonSettings {
 }
 
 // --- Material & mood board (Feature 05: any image → AI board) ---------------
-export type BoardAspectKey = '4:5' | '1:1' | '16:9';
+export type BoardAspectKey = Extract<AspectRatio, '4:5' | '1:1' | '16:9'>;
 export interface MoodboardSettings {
   aspect: BoardAspectKey; // board shape (portrait presentation default)
 }

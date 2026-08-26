@@ -50,7 +50,7 @@ function createEmptyProject(): Project {
 
 interface AddAssetInput {
   feature: FeatureKind;
-  inputImage: string;
+  inputImage: string | null;
   outputs: GeneratedImage[];
   prompt?: string;
 }

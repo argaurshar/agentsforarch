@@ -15,6 +15,7 @@ import { Notice } from '../../components/ui/Notice';
 import { ExampleShowcase } from '../../components/Examples/ExampleShowcase';
 import { SectionHeader } from '../../components/ui/SectionHeader';
 import { Switch } from '../../components/ui/Switch';
+import { featureDef } from '../registry';
 import { loadDemoPlan } from '../../lib/demoPlan';
 import { buildRefinePrompt, buildRenderPrompt } from '../../lib/prompts';
 import { ARCH_STYLES } from '../../lib/scene';
@@ -116,20 +117,15 @@ export function RenderFeature() {
     if (!input) return;
     void run({
       feature: 'render',
-      inputImage: input,
+      inputImages: [input],
       prompt: prompt.trim() || undefined,
       options: {
         style,
         variations: 1,
-        // A 45-degree isometric of ANY plan is a ~4:3 landscape composition: the
-        // plan's own width:depth cancels out in the projection. Without this the
-        // model inherits the plan's canvas shape, so a portrait plan gets a tall
-        // frame it must squeeze an inherently wide composition into — and what
-        // gives is the footprint. The flat 2D mode is the opposite case: there,
-        // following the input is correct, so it stays unpinned.
-        aspectRatio: style === 'isometric' ? '4:3' : undefined,
+        // Pinned by the tool's registry entry, which carries the reasoning.
+        aspectRatio: featureDef('render').aspectRatio?.(settings),
         refine: mode === 'refine' ? true : undefined,
-        referenceImage: useRef ? (styleRefUrl ?? undefined) : undefined,
+        referenceImages: useRef && styleRefUrl ? [styleRefUrl] : undefined,
         styleVariants: compareActive
           ? compareSel.map((k) => ({ label: `${ARCH_STYLES[k].label} — ${VIEW_LABEL[style]}`, clause: ARCH_STYLES[k].clause }))
           : undefined,

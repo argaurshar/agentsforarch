@@ -1,6 +1,9 @@
 import { newId } from '../lib/images';
 import { getEngine, getGeminiApiKey, getGeminiModel } from './runtimeConfig';
-import { abortableDelay, FALLBACK_PROMPT, inlineFromDataUrl, jobsFor } from './shared';
+import { geminiAspect } from './options';
+import type { AspectRatio } from './options';
+import { abortableDelay, FALLBACK_PROMPT, jobsFor, toInline } from './shared';
+import type { Inline } from './shared';
 import type { GenerateFailure, GeneratedImage, GenerateRequest, GenerateResult, ImageProvider } from './types';
 
 // Nano Banana Pro (Google Gemini 3 Pro Image) provider. The user's browser
@@ -39,22 +42,20 @@ async function generateOne(
   key: string,
   model: string,
   prompt: string,
-  inline: { mimeType: string; data: string },
+  images: Inline[],
   label: string,
   signal?: AbortSignal,
-  reference?: { mimeType: string; data: string } | null,
-  aspectRatio?: string,
+  aspectRatio?: AspectRatio,
 ): Promise<GeneratedImage> {
   // Key travels in a header, not the URL query string (URLs leak into devtools,
   // logs, and referrers).
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
-  // The primary input goes first; an optional style reference (mood board)
-  // follows so the prompt can point at "the attached reference image".
-  const parts: ({ text: string } | { inlineData: { mimeType: string; data: string } })[] = [
+  // Inputs first, then references, so a prompt can address them positionally.
+  // `images` may be EMPTY — a text-only tool sends the prompt alone.
+  const parts: ({ text: string } | { inlineData: Inline })[] = [
     { text: prompt },
-    { inlineData: inline },
+    ...images.map((inlineData) => ({ inlineData })),
   ];
-  if (reference) parts.push({ inlineData: reference });
   const body = JSON.stringify({
     contents: [{ role: 'user', parts }],
     // Image-only output — verified with gemini-3-pro-image-preview in production;
@@ -62,7 +63,9 @@ async function generateOne(
     // optional aspect override (also live-verified) shapes e.g. the 4:5 board.
     generationConfig: {
       responseModalities: ['IMAGE'],
-      ...(aspectRatio ? { imageConfig: { aspectRatio } } : {}),
+      // Normalised: Gemini rejects 'auto' and anything outside its fixed set.
+      // Omitting imageConfig makes an edit follow the input's own ratio.
+      ...(geminiAspect(aspectRatio) ? { imageConfig: { aspectRatio: geminiAspect(aspectRatio) } } : {}),
     },
   });
 
@@ -126,8 +129,12 @@ export class GeminiProvider implements ImageProvider {
     }
     const model = getGeminiModel();
     const start = performance.now();
-    const inline = inlineFromDataUrl(req.inputImage);
-    const reference = req.options.referenceImage ? inlineFromDataUrl(req.options.referenceImage) : null;
+    // Inputs then references, resolved once for the whole batch. `toInline`
+    // (not `inlineFromDataUrl`) so a remote kie result URL used as a style
+    // reference resolves instead of throwing and killing every job.
+    const inlines = await Promise.all(
+      [...req.inputImages, ...(req.options.referenceImages ?? [])].map((u) => toInline(u, signal)),
+    );
     const base = req.prompt?.trim() ? req.prompt.trim() : FALLBACK_PROMPT;
 
     const jobs = jobsFor(req, base);
@@ -145,7 +152,7 @@ export class GeminiProvider implements ImageProvider {
       }
       const job = jobs[i];
       try {
-        images.push(await generateOne(key, model, job.prompt, inline, job.label, signal, reference, req.options.aspectRatio));
+        images.push(await generateOne(key, model, job.prompt, inlines, job.label, signal, req.options.aspectRatio));
       } catch (err) {
         if (signal?.aborted) break; // cancellation — keep successes, stop
         failures.push({ label: job.label, error: err instanceof Error ? err.message : 'Generation failed.' });
