@@ -4,7 +4,7 @@
 //
 // Covers: the Settings engine picker (Gemini ⇄ kie.ai), the full kie.ai task
 // flow (upload → createTask → poll → result fetch), the Gemini flow, the
-// overhauled prompts (no-text guard, dollhouse label handling, elevation
+// overhauled prompts (no-text guard, footprint contract, elevation
 // grammar/lighting fix), and the Isometric tab's editable prompt box.
 
 let chromium;
@@ -123,15 +123,20 @@ const check = (name, ok, detail = '') => {
   const promptBox = page.locator('#render-prompt');
   check('isometric tab has a prompt box', (await promptBox.count()) === 1);
   const autoPrompt = await promptBox.inputValue();
-  check('dollhouse prompt visible in the box', /dollhouse/i.test(autoPrompt));
-  check('dollhouse prompt strips plan labels', /no text at all/i.test(autoPrompt));
+  // The isometric prompt must carry the FOOTPRINT contract, not just interior
+  // preservation — protecting rooms while never naming the building's outline
+  // is what let the model square off an L-shaped plan.
+  check('isometric prompt names the footprint', /outer wall silhouette/i.test(autoPrompt));
+  check('isometric prompt forbids squaring off an irregular plan', /do NOT simplify an irregular footprint/i.test(autoPrompt));
+  check('isometric prompt treats symbols as geometry', /GEOMETRY, NOT ANNOTATION/i.test(autoPrompt));
+  check('isometric prompt strips plan labels', /no text or numbers anywhere/i.test(autoPrompt));
 
   // 4. Edited prompt → Reset appears and restores the suggestion.
   await promptBox.fill('my custom prompt');
   const resetBtn = page.getByRole('button', { name: /^Reset$/ });
   check('editing the prompt reveals Reset', await resetBtn.isVisible());
   await resetBtn.click();
-  check('Reset restores the auto prompt', /dollhouse/i.test(await promptBox.inputValue()));
+  check('Reset restores the auto prompt', /outer wall silhouette/i.test(await promptBox.inputValue()));
 
   // 5. Gemini generation end-to-end with the sample plan.
   await page.setInputFiles('input[type=file]', PLAN);
@@ -141,6 +146,10 @@ const check = (name, ok, detail = '') => {
   check('gemini generation renders an output', true);
   const gBody = geminiBodies[geminiBodies.length - 1] || '';
   check('gemini request carried the no-text guard', /watermark, signature, caption or stray text/.test(gBody));
+  // An isometric of ANY plan is a ~4:3 landscape composition; inheriting a
+  // portrait plan's canvas is what pressured the model to compact the footprint.
+  check('isometric request pins a 4:3 canvas', /"aspectRatio":"4:3"/.test(gBody));
+  check('isometric request carried the footprint lock', /outer wall silhouette/.test(gBody));
 
   // 6. Switch to kie.ai and generate an elevation.
   await enginePill.click();

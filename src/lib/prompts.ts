@@ -55,27 +55,61 @@ export type RenderStyleKey = 'photoreal' | 'isometric' | 'clay' | 'line' | 'wate
 const STYLE_REF_CLAUSE =
   'Match the overall material palette, colours, textures, finish and mood of the attached reference image so this output belongs to the same visual family — while keeping this drawing’s exact geometry, layout, viewpoint and composition unchanged.';
 
+// The footprint contract. The model does not trace a drawing — it forms an
+// understanding of it and redraws from scratch, so wherever the instructions are
+// silent it falls back on its prior, and its prior for "floor plan" is a
+// rectangle. The old wording protected the INTERIOR only (rooms, walls, openings)
+// and never once named the building's outline, so an L-shape or a bay window —
+// exactly the features that contradict the prior hardest — got squared off.
+// Naming each irregularity, and forbidding the observed failure explicitly, is
+// what gives the model something to arbitrate with.
+const FOOTPRINT_READ =
+  'STEP 1 — READ THE PLAN FIRST. Before drawing anything, trace the outer perimeter and note whether it is a plain ' +
+  'rectangle or irregular: L-shaped, T-shaped, U-shaped, stepped, chamfered, or carrying an angled or curved bay window. ' +
+  'Count the rooms. Note each room’s position relative to the others, and the position of every door and window in every wall.';
+
+const FOOTPRINT_LOCK =
+  'STEP 2 — LOCK THE GEOMETRY. Reproduce that exact footprint. Seen from directly above, the outer wall silhouette of ' +
+  'your output must be identical in shape to the outline of the input plan — every corner, every set-back, every angled ' +
+  'or splayed wall, every bay window. Do NOT simplify an irregular footprint into a rectangle or a plain box. Keep the ' +
+  'same number of rooms, in the same relative positions, at the same relative sizes. Keep every internal wall, door ' +
+  'opening and window opening exactly where the plan puts it. Do not rotate or mirror the plan.';
+
+const FOOTPRINT_CHECK =
+  'Before you finish, compare your output’s outer outline against the input plan’s outline. If they are not the same ' +
+  'shape, rebuild the geometry — matching the plan’s footprint, room count and room positions matters more than any ' +
+  'styling instruction above.';
+
 /**
- * 2D plan → 3D isometric "dollhouse" cutaway. The model extrudes the plan into
- * a roofless, open-topped volume seen at a strict 45° isometric angle so the
- * full interior is visible — the reference output architects asked for. The
- * geometry-preservation clauses keep the exact plan layout intact.
+ * 2D plan → 3D isometric cutaway. Staged deliberately: read the plan, lock the
+ * geometry, and only then build in 3D — the same "understand it first, then
+ * draw" structure that fixed the elevation feature's side/rear faces. Invention
+ * (materials, furniture, lighting) is subordinated behind the geometry so it
+ * competes with it as little as possible.
  */
 function buildIsometricPrompt(a: SceneOptions): string {
   const parts: string[] = [
-    "Transform this 2D architectural floor plan into a 3D isometric 'dollhouse' cutaway view.",
-    'Extrude the walls upward to show verticality, apply realistic flooring and wall-surface textures, and render every piece of furniture, joinery and fixture in three dimensions.',
-    'Use a strict 45-degree isometric camera angle looking down into the plan, with parallel projection and no perspective distortion.',
-    'Maintain the exact room layout, wall positions, door and window openings and overall proportions of the original plan — do not move, add or remove rooms.',
-    'Do not add a ceiling or roof: leave the rooms open from above so the whole interior is visible from the top.',
-    'Replace the plan’s text labels, dimension strings and annotation symbols with the real rendered rooms they describe — a room marked as a kitchen becomes a furnished kitchen, a bedroom a furnished bedroom. The output must contain no text at all.',
+    'You are converting an existing architectural floor plan into a 3D isometric cutaway view. The plan’s geometry is ' +
+      'fixed survey data, not a starting suggestion — the output must be the SAME building, seen in three dimensions.',
+    FOOTPRINT_READ,
+    FOOTPRINT_LOCK,
+    'STEP 3 — ONLY THEN BUILD IT IN 3D. Extrude the walls to a consistent storey height and apply realistic floor and ' +
+      'wall finishes. Every furniture, joinery and fixture symbol drawn on the plan is GEOMETRY, NOT ANNOTATION: replace ' +
+      'each symbol with the real object it represents — a bed symbol becomes a bed, a hob and sink become a fitted ' +
+      'kitchen run, a WC and basin become the real fixtures, a hatched rectangle becomes a wardrobe — each in the same ' +
+      'position, at the same size and in the same orientation as the symbol. Add no furniture that is not drawn on the ' +
+      'plan, and omit none that is.',
+    'Camera: a strict 45-degree isometric view in parallel projection, looking down into the plan, with no perspective ' +
+      'distortion. Leave the model open from above — no roof, no ceiling — so the whole interior is visible.',
+    'Remove only the plan’s typed text, room-name labels and dimension strings. The finished image contains no text or numbers anywhere.',
   ];
   const arch = archStyleClause(a);
   if (arch) parts.push(`Architectural style: ${arch}.`);
   if (MOODS[a.mood].clause) parts.push(`Mood: ${MOODS[a.mood].clause}.`);
   parts.push(
     'Clean neutral studio background, soft even ambient lighting, a subtle contact shadow beneath the model, ' +
-      'the whole model centred and fully inside the frame, professional architectural presentation render, ultra-detailed.',
+      'professional architectural presentation render, ultra-detailed.',
+    FOOTPRINT_CHECK,
     NO_TEXT,
   );
   return parts.join(' ');
@@ -87,17 +121,28 @@ function buildIsometricPrompt(a: SceneOptions): string {
  * brochure staple for residential projects.
  */
 function buildFurnishedPlanPrompt(a: SceneOptions): string {
+  // The flat mode carried a character-for-character copy of the isometric's old
+  // interior-only preservation clause, so it had the identical footprint blind
+  // spot. It gets the same staged treatment.
   const parts: string[] = [
-    'Transform this 2D architectural floor plan into a beautifully rendered, fully furnished top-down 2D plan (a presentation / marketing plan).',
+    'You are rendering an existing architectural floor plan as a beautifully finished, fully furnished top-down 2D ' +
+      'presentation plan. The plan’s geometry is fixed survey data — the output must be the SAME plan, drawn better.',
+    FOOTPRINT_READ,
+    FOOTPRINT_LOCK,
     'Keep the view strictly top-down orthographic — flat, with no perspective and no 3D extrusion of the walls.',
-    'Maintain the exact room layout, wall positions, door and window openings and overall proportions of the original plan — do not move, add or remove rooms.',
-    'Render realistic flooring materials per room, furniture and fixtures drawn in clean top view, soft subtle drop shadows for depth, and a crisp white background around the plan.',
+    'Render realistic flooring materials per room, and every furniture and fixture symbol as the real object it ' +
+      'represents drawn in clean top view — each in the same position, at the same size and in the same orientation as ' +
+      'the symbol. Add nothing that is not drawn, omit nothing that is. Soft subtle drop shadows for depth, and a crisp ' +
+      'white background around the plan.',
     'Re-set the room names as small, clean, minimal sans-serif labels; drop the dimension strings and annotation marks.',
   ];
   const arch = archStyleClause(a);
   if (arch) parts.push(`Architectural style: ${arch}.`);
   if (MOODS[a.mood].clause) parts.push(`Mood: ${MOODS[a.mood].clause}.`);
-  parts.push('Professional architectural presentation graphics, ultra-detailed, print quality. No watermark or signature.');
+  parts.push(
+    'Professional architectural presentation graphics, ultra-detailed, print quality. No watermark or signature.',
+    FOOTPRINT_CHECK,
+  );
   return parts.join(' ');
 }
 

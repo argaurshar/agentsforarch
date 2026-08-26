@@ -96,6 +96,16 @@ export async function resizeDataURL(
   if (!ctx) {
     return dataURL;
   }
+  // Fill white FIRST: a transparent-background CAD export composited straight
+  // onto an unfilled canvas encodes to solid black under JPEG (the HTML spec
+  // composites transparency onto black). Every other canvas path in this repo
+  // already fills white; this one handles uploads, so it mattered most.
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, width, height);
+  // Default 'low' aliases rather than area-averages, which manufactures moire
+  // out of the regular hatching architects use for poche and wardrobes.
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
   ctx.drawImage(img, 0, 0, width, height);
   return canvas.toDataURL(outputMime, outputMime === 'image/jpeg' ? 0.92 : undefined);
 }
