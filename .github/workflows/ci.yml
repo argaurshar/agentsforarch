@@ -28,3 +28,9 @@ jobs:
       # `npm run build` runs `tsc --noEmit` (strict) then `vite build`.
       - name: Type-check and build
         run: npm run build
+
+      # Design-system lint + the prompt snapshot. The snapshot is the only gate
+      # that can see a changed prompt: TypeScript cannot, and prompt wording is
+      # what produced both of this app's shipped visual bugs.
+      - name: Static QA
+        run: npm run qa

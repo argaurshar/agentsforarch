@@ -3,12 +3,14 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "AND Studio — Internal Visualization Platform",
+  "description": "AND Studio \u2014 Internal Visualization Platform",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit -p tsconfig.json && vite build",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit -p tsconfig.json"
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "qa": "node qa/designLint.cjs && node qa/promptSnapshot.cjs",
+    "qa:e2e": "node qa/verifyEngines.cjs"
   },
   "dependencies": {
     "lucide-react": "^0.454.0",
