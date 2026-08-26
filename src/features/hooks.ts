@@ -128,30 +128,3 @@ export function useStyleRef(feature: FeatureKind): { id: string | null; url: str
   }, [id, project]);
   return { id, url };
 }
-
-interface UsePresentationAdderResult {
-  addToPresentation: (imageId: string) => void;
-  addedIds: Set<string>;
-}
-
-/**
- * "Add to presentation" from an output card creates a single-image `full`
- * slide, and reports which images already live on a slide so cards can show a
- * confirmed state.
- */
-export function usePresentationAdder(): UsePresentationAdderResult {
-  const slides = useProjectStore((s) => s.project.slides);
-  const addSlide = useProjectStore((s) => s.addSlide);
-
-  const addedIds = useMemo(() => new Set(slides.flatMap((s) => s.imageIds)), [slides]);
-
-  const addToPresentation = useCallback(
-    (imageId: string) => {
-      if (addedIds.has(imageId)) return;
-      addSlide([imageId], 'full');
-    },
-    [addSlide, addedIds],
-  );
-
-  return { addToPresentation, addedIds };
-}

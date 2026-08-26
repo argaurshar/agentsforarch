@@ -1,4 +1,4 @@
-import { ArrowRight, Check, Download, Plus, Sparkles, Trash2, X } from 'lucide-react';
+import { ArrowRight, Download, Sparkles, Trash2, X } from 'lucide-react';
 import { useState } from 'react';
 import { downloadDataURL, slugify } from '../../lib/images';
 import type { FeatureKind, GeneratedImage } from '../../types';
@@ -8,8 +8,6 @@ import type { SendTarget } from './OutputGrid';
 
 interface OutputCardProps {
   image: GeneratedImage;
-  onAddToPresentation: (imageId: string) => void;
-  added: boolean;
   onDelete?: (imageId: string) => void;
   onRefine?: (image: GeneratedImage) => void;
   sendTargets?: SendTarget[];
@@ -24,8 +22,6 @@ const TARGET_LABEL: Record<string, string> = { elevation: 'Elevation', axonometr
 
 export function OutputCard({
   image,
-  onAddToPresentation,
-  added,
   onDelete,
   onRefine,
   sendTargets,
@@ -57,22 +53,11 @@ export function OutputCard({
         <span className="truncate text-label text-graphite" title={image.label}>
           {image.label}
         </span>
-        {/* Two groups: the decision the card is asking for (add / refine) stays
+        {/* Two groups: the decision the card is asking for (refine) stays
             visible; the housekeeping actions only surface on hover or keyboard
             focus, so a grid of results no longer reads as a wall of buttons. */}
         <div className="flex items-center justify-between gap-2">
           <div className="flex flex-wrap items-center gap-2">
-            {/* title stays the short form the rest of the app uses; the longer
-                accessible name is unchanged. */}
-            <IconButton
-              icon={added ? <Check size={16} strokeWidth={2} /> : <Plus size={16} strokeWidth={1.75} />}
-              label={added ? 'Already in presentation' : `Add ${image.label} to presentation`}
-              title={added ? 'Already in presentation' : 'Add to presentation'}
-              tone={added ? 'neutral' : 'accent'}
-              disabled={added}
-              className={added ? 'cursor-default border-hairline bg-drafting text-mist' : ''}
-              onClick={() => onAddToPresentation(image.id)}
-            />
             {onRefine ? (
               <IconButton
                 icon={<Sparkles size={16} strokeWidth={1.75} />}

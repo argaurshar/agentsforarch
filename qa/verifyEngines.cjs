@@ -209,6 +209,20 @@ const check = (name, ok, detail = '') => {
     /Recolouring or re-finishing a wall or floor is fine; moving, adding or removing one is not/.test(restylePrompt),
   );
 
+  // 8. The Concept Presentation tab is gone — nav, deep link and output cards.
+  const navNames = await nav.allInnerTexts();
+  check('sidebar has no Presentation destination', !/presentation/i.test(navNames.join(' ')));
+  await page.goto(BASE + '#/presentation', { waitUntil: 'domcontentloaded' });
+  await page.waitForTimeout(400);
+  check(
+    'a stale #/presentation deep link does not crash or blank the app',
+    (await page.locator('nav[aria-label="Features"] button').count()) > 0,
+  );
+  check(
+    'output cards no longer offer "Add to presentation"',
+    (await page.locator('[title="Add to presentation"]').count()) === 0,
+  );
+
   check('no page crashes', perr.length === 0, perr.slice(0, 2).join(' | '));
   await browser.close();
   const failed = results.filter((r) => !r.ok).length;

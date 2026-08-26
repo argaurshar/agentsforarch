@@ -13,8 +13,6 @@ interface OutputGridProps {
   outputs: GeneratedImage[];
   loading: boolean;
   loadingCount: number;
-  onAddToPresentation: (imageId: string) => void;
-  addedIds: Set<string>;
   onDelete?: (imageId: string) => void;
   onRefine?: (image: GeneratedImage) => void;
   sendTargets?: SendTarget[];
@@ -36,7 +34,7 @@ function SkeletonCard({ tall = false }: { tall?: boolean }) {
       <div className="flex items-center justify-between gap-2 px-4 py-4">
         <div className="h-3 w-2/3 animate-pulse rounded-full bg-hairline" />
         <div className="flex shrink-0 items-center gap-2">
-          {Array.from({ length: 4 }).map((_, i) => (
+          {Array.from({ length: 3 }).map((_, i) => (
             <div key={i} className="h-7 w-7 animate-pulse rounded-control bg-hairline" />
           ))}
         </div>
@@ -49,8 +47,6 @@ export function OutputGrid({
   outputs,
   loading,
   loadingCount,
-  onAddToPresentation,
-  addedIds,
   onDelete,
   onRefine,
   sendTargets,
@@ -85,8 +81,6 @@ export function OutputGrid({
             key={image.id}
             image={image}
             size={single ? 'full' : 'grid'}
-            onAddToPresentation={onAddToPresentation}
-            added={addedIds.has(image.id)}
             onDelete={onDelete}
             onRefine={onRefine}
             sendTargets={sendTargets}

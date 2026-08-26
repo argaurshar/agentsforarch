@@ -1,7 +1,5 @@
-import { Suspense, lazy } from 'react';
 import { AppShell } from './components/Layout/AppShell';
 import { FeatureErrorBoundary } from './components/ui/FeatureErrorBoundary';
-import { FeatureSkeleton } from './components/ui/FeatureSkeleton';
 import { AxonometricFeature } from './features/axonometric/AxonometricFeature';
 import { ElevationFeature } from './features/elevation/ElevationFeature';
 import { DashboardFeature } from './features/home/DashboardFeature';
@@ -14,11 +12,6 @@ import { useProjectStore } from './store/useProjectStore';
 import type { ComponentType } from 'react';
 import type { TabKey } from './types';
 
-// The Presentation tab pulls in the Anthropic SDK, jspdf, and ~55KB of vendored
-// skill markdown — none of which the image tabs need — so it is lazy-loaded to
-// keep those out of the main chunk.
-const PresentationFeature = lazy(() => import('./features/presentation/PresentationFeature'));
-
 const FEATURES: Record<TabKey, ComponentType> = {
   home: DashboardFeature,
   render: RenderFeature,
@@ -26,7 +19,6 @@ const FEATURES: Record<TabKey, ComponentType> = {
   axonometric: AxonometricFeature,
   interior: InteriorFeature,
   moodboard: MoodboardFeature,
-  presentation: PresentationFeature,
   gallery: GalleryFeature,
 };
 
@@ -41,9 +33,7 @@ export default function App() {
           giving each feature screen a composed, unhurried arrival. */}
       <div key={tab} className="view-enter">
         <FeatureErrorBoundary resetKey={tab}>
-          <Suspense fallback={<FeatureSkeleton />}>
-            <ActiveFeature />
-          </Suspense>
+          <ActiveFeature />
         </FeatureErrorBoundary>
       </div>
     </AppShell>

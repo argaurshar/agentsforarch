@@ -1,22 +1,21 @@
 # AND Studio — Internal Visualization Platform
 
 A single-page tool for AND Studio's architects and interior designers: turn
-sketches and models into renders, elevations, axonometric views, and client
-concept presentations.
+sketches and models into renders, elevations, axonometric views, interior
+redesigns and material boards.
 
 **▶ Live app:** https://argaurshar.github.io/agentsforarch/ — a fully functional
 tool. On first visit it asks you to connect your own API keys (Settings opens
-automatically): a Google **Gemini** key (Nano Banana Pro) **or** a kie.ai key (Nano Banana 2) for image generation
-and an **Anthropic** key for the presentation generator. Both are free to get,
-stay in your browser, and are never sent anywhere but Google / Anthropic.
+automatically): a Google **Gemini** key (Nano Banana Pro) **or** a kie.ai key (Nano Banana 2) for image
+generation. Both are free to get, stay in your browser, and are never sent
+anywhere but Google / kie.ai.
 
 Built to the internal build spec (`build.mb`).
 
 ## Quick start
 
 The app generates **real** output only — there is no demo/placeholder engine.
-Bring a Gemini or kie.ai key (images) and an Anthropic key (presentations); add
-them in **Settings** on first run.
+Bring a Gemini or kie.ai key and add it in **Settings** on first run.
 
 ```bash
 npm install
@@ -46,8 +45,7 @@ disabled, or gated behind another.
 | 03 | Elevation → Axonometric | Elevation image | True 3D axonometric + section-axonometric views in **realistic / line-art / black-&-white**, one per viewpoint (with before/after compare) |
 | 04 | Room Photo → Interior Design | Photo of a room (furnished or empty) | **Restyled / staged / renovated interior** in a chosen design theme (Contemporary · Modern · Traditional · Boho · Minimalist · Japandi · Industrial · Luxury) or from an uploaded mood board, with interior-specific refine chips |
 | 05 | Mood Board | Any image (render, sketch or photo) — or up to 9 outputs in Collage mode | **AI board** (default): a flat-lay **material & mood board extracted from the image** — labelled samples, furniture suggestions, colour dots, a 5-swatch material palette strip and a vibe line, in Portrait / Square / Landscape. **Collage**: the branded canvas grid board, as before |
-| 06 | Concept Presentation | Selected outputs from 01–05 + brand identity | AI-generated self-contained HTML deck, or an **editorial storyboard deck** (auto cover page, magazine-style slide layouts with serif numbering + figure labels, closing sign-off) exported to PDF exactly as previewed |
-| 07 | Gallery · Save / Load | — | Every generated/uploaded image with reuse/download/delete, plus **whole-project export/import as a single file** (the no-backend persistence answer) |
+| 06 | Gallery · Save / Load | — | Every generated/uploaded image with reuse/download/delete, plus **whole-project export/import as a single file** (the no-backend persistence answer) |
 
 Each feature accepts its input by direct upload, independent of anything else
 in the session. Feature 03 works from a directly uploaded elevation without
@@ -57,7 +55,7 @@ and guides you to add some.
 ## Architecture
 
 - **React 18 + TypeScript (strict)**, **Vite**, **Tailwind CSS**, **Zustand**,
-  **react-dropzone**, **jspdf**, **lucide-react**.
+  **react-dropzone**, **lucide-react**.
 - **Image providers** (`src/providers/`) sit behind a single `ImageProvider`
   adapter. No component calls an image API directly — they resolve a provider
   via `getActiveProvider()`, which returns the first configured real provider
@@ -69,10 +67,6 @@ and guides you to add some.
   Gemini API key/model (see below).
 - **State** lives in a Zustand store (`src/store/`), the only path to the
   project model — leaving clean seams for auth and persistence.
-- **Presentation generation** (`src/lib/slidesDeck.ts`) runs the vendored
-  `frontend-slides` skill through Claude to produce a self-contained HTML deck;
-  image placeholder tokens are swapped for embedded data URIs after generation
-  so the downloaded file is fully portable. Used only by the Presentation tab.
 
 ### Prompts are automatic
 
@@ -118,8 +112,8 @@ unless you've edited it.
 - **Mood board** — the **Mood Board** tab composes up to nine pooled outputs into a
   single branded material & mood board on canvas (serif header, adaptive cover-fit
   grid with a centred partial last row, brand-accent footer) in Portrait / Landscape
-  / Square. Download it as a PNG or **Add to presentation** to reuse it in a deck —
-  no generation call, entirely client-side (`src/lib/moodboard.ts`).
+  / Square, in a palette you control. Download it as a PNG or **Save to project**
+  to reuse it — no generation call, entirely client-side (`src/lib/moodboard.ts`).
 - **Deep links** — every tab has a URL (`#/interior`), so links are shareable and
   the browser back/forward buttons move between tabs.
 
@@ -148,32 +142,6 @@ and Generate prompts you to add one.
 The Magnific / Flux env-keyed stubs (`.env` → `VITE_MAGNIFIC_KEY`,
 `VITE_FLUX_KEY`) remain as additional adapter seams.
 
-### Building a presentation (frontend-slides skill)
-
-The Concept Presentation tab has two modes:
-
-- **AI deck** (default) — Claude generates a distinctive, self-contained HTML
-  presentation from your brand identity and images: a fixed 1920×1080 stage that
-  scales to any screen, real motion, and keyboard/touch navigation. A built-in
-  **image picker** shows every generated image (grouped by Renders / Elevations /
-  Axonometrics / Uploaded) so you choose exactly which ones Claude builds from —
-  all selected by default. Preview it inline, download the single `.html` file,
-  open it in a new tab, or print it to PDF. Choose a purpose / length / density
-  (all optional, sensible defaults) and optionally add talking points — you never
-  have to write a prompt.
-- **Manual storyboard** — arrange pooled images into `full` / `two-up` /
-  `four-grid` slides by hand (or let Claude compose them), then export a branded
-  PDF.
-
-Generation runs the open-source
-[frontend-slides](https://github.com/zarazhangrui/frontend-slides) skill by
-zarazhangrui. Its instruction and resource files are vendored **verbatim** under
-`src/lib/skill/resources/` and sent to Claude (`claude-opus-4-8`) so every deck
-follows the skill precisely — its fixed-stage rules, design system, and
-animation grammar. Add a **Claude (Anthropic) API key** in Settings to enable
-it; the browser calls Anthropic directly with your key. This skill is used
-**only** on the Concept Presentation tab.
-
 ## Design language
 
 Warm "drafting-instrument" palette (Bone background, Ink, single Ochre accent),
@@ -187,5 +155,4 @@ drawer on mobile.
 A few items from the spec (§12) are intentionally left for the studio to
 confirm — see the pull request description: the Feature 03 label
 ("Axonometric" vs "Ergonomical Perception"), which real provider goes live
-first, the deployment target, PDF branding, and whether a project switcher is
-needed now.
+first, the deployment target, and whether a project switcher is needed now.

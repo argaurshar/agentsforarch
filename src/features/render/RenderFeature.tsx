@@ -20,7 +20,7 @@ import { buildRefinePrompt, buildRenderPrompt } from '../../lib/prompts';
 import { ARCH_STYLES } from '../../lib/scene';
 import { useProjectStore } from '../../store/useProjectStore';
 import type { ArchStyleKey } from '../../store/generation';
-import { useGenerate, usePresentationAdder, useStyleRef } from '../hooks';
+import { useGenerate, useStyleRef } from '../hooks';
 
 // This feature turns a 2D floor plan into either a 3D isometric cutaway
 // ("dollhouse") or a fully furnished top-down 2D marketing plan. The prompt is
@@ -108,7 +108,6 @@ export function RenderFeature() {
   }, [suggestedPrompt, promptEdited, prompt, setFeaturePrompt]);
 
   const { status, error, warning, outputs, inputUsed, engineReady, run, cancel } = useGenerate('render');
-  const { addToPresentation, addedIds } = usePresentationAdder();
 
   const loading = status === 'loading';
   const needsMoreStyles = compare && mode !== 'refine' && compareSel.length < 2;
@@ -342,8 +341,6 @@ export function RenderFeature() {
               outputs={outputs}
               loading={loading}
               loadingCount={compareActive ? compareSel.length : 1}
-              onAddToPresentation={addToPresentation}
-              addedIds={addedIds}
               onDelete={removeImage}
               onRefine={(image) => beginRefine('render', image)}
               sendTargets={[{ label: 'Send to Elevation', target: 'elevation' }]}

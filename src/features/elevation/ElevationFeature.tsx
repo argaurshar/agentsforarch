@@ -18,7 +18,7 @@ import { ELEVATION_THEMES } from '../../lib/scene';
 import { buildElevationPrompt, buildRefinePrompt } from '../../lib/prompts';
 import { useProjectStore } from '../../store/useProjectStore';
 import type { ElevationSettings, ElevationThemeKey } from '../../store/generation';
-import { useGenerate, usePresentationAdder, useStyleRef } from '../hooks';
+import { useGenerate, useStyleRef } from '../hooks';
 
 const TYPE_OPTIONS = [
   { value: 'Front', label: 'Front' },
@@ -76,7 +76,6 @@ export function ElevationFeature() {
   }, [suggestedPrompt, promptEdited, prompt, setFeaturePrompt]);
 
   const { status, error, warning, outputs, inputUsed, engineReady, run, cancel } = useGenerate('elevation');
-  const { addToPresentation, addedIds } = usePresentationAdder();
 
   const loading = status === 'loading';
 
@@ -264,8 +263,6 @@ export function ElevationFeature() {
               outputs={outputs}
               loading={loading}
               loadingCount={mode === 'refine' ? 1 : faces.length}
-              onAddToPresentation={addToPresentation}
-              addedIds={addedIds}
               onDelete={removeImage}
               onRefine={(image) => beginRefine('elevation', image)}
               sendTargets={[{ label: 'Send to Axonometric', target: 'axonometric' }]}

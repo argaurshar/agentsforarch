@@ -71,9 +71,9 @@ export function loadImage(src: string): Promise<HTMLImageElement> {
 /**
  * Downscale a dataURL so its longest edge is at most `maxEdge`, re-encoding to
  * `outputMime`. Images already within bounds are returned unchanged — EXCEPT
- * WEBP, which is always re-encoded because jsPDF can't reliably embed it (a
- * WEBP upload or logo would otherwise vanish from the exported PDF). Keeps
- * uploaded/generated images bounded and in-memory state light.
+ * WEBP, which is always re-encoded to JPEG/PNG so it survives every downstream
+ * path (image APIs and older browsers still refuse WEBP). Keeps uploaded and
+ * generated images bounded and in-memory state light.
  */
 export async function resizeDataURL(
   dataURL: string,

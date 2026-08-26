@@ -3,22 +3,18 @@ import type { FeatureKind, GeneratedImage } from '../providers/types';
 // Re-export the provider-owned types so app code has a single import surface.
 export type { FeatureKind, GeneratedImage };
 
-export type SlideLayout = 'full' | 'two-up' | 'four-grid';
+/** The sidebar destinations. Home, Moodboard and Gallery are not generation features. */
+export type TabKey = FeatureKind | 'home' | 'moodboard' | 'gallery';
 
-/** The sidebar destinations. Home, Moodboard, Presentation and Gallery are not generation features. */
-export type TabKey = FeatureKind | 'home' | 'moodboard' | 'presentation' | 'gallery';
-
-/** The studio/client's brand identity, applied to slides and the PDF export. */
+/**
+ * The studio/client's brand colours, stamped onto the artefacts the app renders
+ * itself — the mood-board collage and the social-format export.
+ */
 export interface Brand {
-  name: string;
   primary: string; // hex — headings / strong marks
   accent: string; // hex — the single accent
-  background: string; // hex — slide background
+  background: string; // hex — board background
   text: string; // hex — body text
-  headingFont: string; // CSS font-family stack
-  bodyFont: string; // CSS font-family stack
-  logo?: string; // dataURL
-  voice?: string; // tone-of-voice notes, used by the Claude composer
 }
 
 export interface Project {
@@ -27,18 +23,9 @@ export interface Project {
   createdAt: number;
   updatedAt: number;
   assets: Asset[];
-  slides: Slide[];
-  /** Images uploaded directly into the presentation (not generated). */
+  /** Images added to the project directly rather than produced by a feature run. */
   uploads: GeneratedImage[];
   brand: Brand;
-}
-
-/** A slide the Claude composer proposes (image ids resolved by the caller). */
-export interface ComposedSlide {
-  imageIds: string[];
-  layout: SlideLayout;
-  title: string;
-  caption: string;
 }
 
 export interface Asset {
@@ -50,15 +37,6 @@ export interface Asset {
   createdAt: number;
 }
 
-export interface Slide {
-  id: string;
-  imageIds: string[]; // references GeneratedImage.id
-  layout: SlideLayout;
-  title?: string;
-  caption?: string;
-  order: number;
-}
-
 /** Lightweight listing shape for the storage adapter. */
 export interface ProjectSummary {
   id: string;
@@ -66,5 +44,4 @@ export interface ProjectSummary {
   createdAt: number;
   updatedAt: number;
   assetCount: number;
-  slideCount: number;
 }

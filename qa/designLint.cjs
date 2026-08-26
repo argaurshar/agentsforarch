@@ -5,8 +5,8 @@
 // Run: node qa/designLint.cjs
 //
 // Scope note: client-facing print artefacts are intentionally editorial and are
-// NOT linted — src/lib/deckRender.ts (deck pages) and src/lib/moodboard.ts
-// (collage board) draw on canvas in a serif/mono print language by design.
+// NOT linted — src/lib/moodboard.ts (the collage board) draws on canvas in a
+// serif/mono print language by design.
 
 const fs = require('fs');
 const path = require('path');
@@ -15,9 +15,7 @@ const ROOT = path.join(__dirname, '..');
 const SRC = path.join(ROOT, 'src');
 
 const EXCLUDE = [
-  path.join('lib', 'deckRender.ts'),
   path.join('lib', 'moodboard.ts'),
-  path.join('lib', 'skill'),
   path.join('lib', 'social.ts'),
 ];
 
@@ -107,7 +105,7 @@ check('semantic state tokens present', /--danger-rgb:/.test(css) && /--warning-r
 const glow = findAll(/shadow-btn/).filter((h) => !/components\/ui\/(Button|IconButton)\.tsx/.test(h));
 check('accent glow reserved for the primary button', glow.length === 0, show(glow));
 
-// 9. The editorial serif belongs to client deliverables (deck, board), not chrome.
+// 9. The editorial serif belongs to client deliverables (the board), not chrome.
 const serif = findAll(/font-serif/);
 check('no editorial serif in app chrome', serif.length === 0, show(serif));
 
