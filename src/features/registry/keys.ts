@@ -11,9 +11,17 @@
 
 export const FEATURE_KEYS = [
   'massing',
+  // Plans & Drawings, in the order the work happens: draw the plan, take it to
+  // 3D, draw the elevation, take THAT to 3D, then the remaining flat drawings,
+  // then the one tool that runs backwards. This order also drives the home
+  // pipeline, so a tool must not appear before the tool that feeds it.
+  'sketchPlan',
   'render',
   'elevation',
   'axonometric',
+  'cadElevation',
+  'section',
+  'renderToPlan',
   'interior',
   'declutter',
   'placeObject',

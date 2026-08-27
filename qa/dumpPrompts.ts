@@ -10,6 +10,12 @@
 import { buildAxonometricPrompt, buildElevationPrompt, buildInteriorPrompt, buildMoodboardPrompt, buildRefinePrompt, buildRenderPrompt } from '../src/lib/prompts';
 import { buildMassingPrompt } from '../src/lib/prompt/concept';
 import {
+  buildCadElevationPrompt,
+  buildRenderToPlanPrompt,
+  buildSectionPrompt,
+  buildSketchPlanPrompt,
+} from '../src/lib/prompt/drawings';
+import {
   buildDeclutterPrompt,
   buildPlaceObjectPrompt,
   buildSpecSheetPrompt,
@@ -47,6 +53,25 @@ for (const density of ['low','medium','high'] as const)
     add(`massing:${density}:${filled ? 'full' : 'bare'}`, buildMassingPrompt(filled
       ? { brief: '40-unit residential block with ground-floor retail', siteSize: '45m x 60m corner plot', density, storeys: '6 storeys stepping to 4', context: 'four-storey terraces on two sides' }
       : { brief: '', siteSize: '', density, storeys: '', context: '' }));
+// Plans & Drawings. Units are enumerated even where annotation is 'none' — a
+// unit clause leaking into an unannotated drawing is exactly the kind of
+// cross-axis surprise full enumeration exists to catch.
+const ANN = ['none','labels','dimensioned'] as const;
+const UNITS = ['metric','imperial'] as const;
+for (const annotation of ANN) for (const units of UNITS) for (const furnished of [false,true]) {
+  add(`sketchplan:${annotation}:${units}:f${furnished}`, buildSketchPlanPrompt({ annotation, units, furnished }));
+  add(`rendertoplan:${annotation}:${units}:f${furnished}`, buildRenderToPlanPrompt({ annotation, units, furnished }));
+}
+for (const face of ['front','left','right','rear'] as const)
+  for (const annotation of ANN) for (const units of UNITS) for (const hatch of [false,true])
+    add(`cadelev:${face}:${annotation}:${units}:h${hatch}`, buildCadElevationPrompt({ face, annotation, units, hatch }));
+for (const axis of ['longitudinal','cross'] as const)
+  for (const style of ['line','shaded'] as const)
+    for (const entourage of [false,true])
+      for (const annotation of ANN) for (const units of UNITS)
+        for (const levels of ['', 'Ground + 2, 3m floor-to-floor'])
+          add(`section:${axis}:${style}:e${entourage}:${annotation}:${units}:${levels ? 'lv' : 'nolv'}`,
+            buildSectionPrompt({ axis, style, entourage, annotation, units, levels }));
 add('moodboard', buildMoodboardPrompt());
 add('refine', buildRefinePrompt({ chips: ['warmer-light','change-curtains'], freeText: 'more plants' }));
 console.log(out.join('\n\n'));

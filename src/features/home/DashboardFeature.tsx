@@ -21,9 +21,12 @@ interface StageDef {
 
 // Derived: a tool joins the pipeline map by declaring a `stage`, not by being
 // hand-added here.
-const STAGES: StageDef[] = ALL_FEATURES.filter((f) => f.stage).map((f) => ({
+// The number follows the order the cards render in, so it can never disagree
+// with what the user sees — the hand-written version was numbering them
+// 01, 03, 02, 04 after a category reorder.
+const STAGES: StageDef[] = ALL_FEATURES.filter((f) => f.stage).map((f, i) => ({
   key: f.key,
-  index: f.stage!.index,
+  index: String(i + 1).padStart(2, '0'),
   name: f.name,
   what: f.stage!.what,
   icon: f.icon,

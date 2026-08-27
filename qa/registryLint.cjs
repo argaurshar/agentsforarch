@@ -38,11 +38,19 @@ const files = walk(SRC).map((f) => ({ path: f, rel: path.relative(ROOT, f), text
 const registry = files.find((f) => f.rel.endsWith(path.join('features', 'registry', 'index.ts')));
 const keysFile = files.find((f) => f.rel.endsWith(path.join('features', 'registry', 'keys.ts')));
 
+// Comments must be stripped before any of these rules parse source. Matching
+// quotes across raw source makes an apostrophe in prose ("the user's browser")
+// open a string that closes at the next apostrophe several lines later, so a
+// rule reports garbage and proves nothing. The same helper keeps a `//` comment
+// inside FEATURE_KEYS from being parsed as a feature key — which is exactly what
+// happened the first time a comment was added there.
+const stripComments = (t) => t.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^[ \t]*\/\/.*$/gm, '');
+
 // --- 1. The registry is intact -----------------------------------------------
 
 check('feature registry exists', Boolean(registry) && Boolean(keysFile));
 
-const declaredKeys = (keysFile?.text.match(/FEATURE_KEYS = \[([^\]]+)\]/)?.[1] ?? '')
+const declaredKeys = (stripComments(keysFile?.text ?? '').match(/FEATURE_KEYS = \[([^\]]+)\]/)?.[1] ?? '')
   .split(',')
   .map((s) => s.trim().replace(/^['"]|['"]$/g, ''))
   .filter(Boolean);
@@ -57,7 +65,14 @@ check('every key has a registry definition', missingDefs.length === 0, missingDe
 // Every definition must carry the fields the shell reads but TS gives defaults
 // to (optional fields it would happily leave undefined).
 const REQUIRED = ['ui:', 'toOptions:', 'buildPrompt:', 'promptContracts:', 'poolLabel:', 'galleryLabel:'];
-const defBlocks = (registry?.text ?? '').split(/\nconst \w+: FeatureDef</).slice(1);
+// There is deliberately no rule against re-adding the derived `ui.index`. The
+// `ui` type is closed and every definition is a directly-annotated object
+// literal, so tsc rejects it with TS2353 — verified. A lint rule here would
+// duplicate the compiler while being strictly weaker than it: the version that
+// briefly existed matched a hardcoded four-space indent against un-stripped
+// source, so a reformat would have silently switched it off and a comment
+// mentioning the field would have failed the build.
+const defBlocks = stripComments(registry?.text ?? '').split(/\nconst \w+: FeatureDef</).slice(1);
 const incomplete = [];
 for (const b of defBlocks) {
   const key = b.match(/key: '([^']+)'/)?.[1] ?? '?';
@@ -76,12 +91,6 @@ check('every tool has at least one prompt contract', noContracts.length === 0, n
 // providers/shared.ts used to carry the per-face elevation clauses — hundreds of
 // characters of prompt inside the code that posts HTTP requests. It moved onto
 // the registry; this stops it drifting back.
-
-// Comments must be stripped FIRST. Matching quotes across raw source makes an
-// apostrophe in prose ("the user's browser") open a string that closes at the
-// next apostrophe several lines later, so the rule reports garbage and proves
-// nothing. A literal also cannot span a newline.
-const stripComments = (t) => t.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^[ \t]*\/\/.*$/gm, '');
 
 const providerFiles = files.filter((f) => f.rel.startsWith(path.join('src', 'providers')));
 const longStrings = [];
@@ -178,7 +187,21 @@ check(
   unsnapshotted.join(', ') + '  — add it to qa/dumpPrompts.ts, then promptSnapshot.cjs --update',
 );
 
-// --- 7. One request builder ---------------------------------------------------
+// --- 7. A declared accuracy warning must actually reach the screen ------------
+//
+// `accuracyWarning` sat on FeatureDef for two PRs with nothing rendering it. A
+// field that only the registry reads is a promise the UI never keeps, and this
+// one is the promise that a derived plan is part guesswork.
+
+const shell = files.find((f) => f.rel.endsWith('GenerationScreen.tsx'));
+const warned = defBlocks.filter((b) => b.includes('accuracyWarning:')).length;
+check(
+  'a declared accuracy warning is rendered by the shell',
+  warned === 0 || /def\.accuracyWarning/.test(shell?.text ?? ''),
+  `${warned} tool(s) declare one`,
+);
+
+// --- 8. One request builder ---------------------------------------------------
 //
 // There are two callers that run a tool now — the single-tool screen and the
 // batch runner — and the pinned aspect ratio is applied in `buildFeatureRequest`.

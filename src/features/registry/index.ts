@@ -25,9 +25,13 @@ import {
   Map,
   PaintRoller,
   Palette,
+  PenLine,
   PencilRuler,
   Replace,
+  Ruler,
   Sofa,
+  SquareSplitVertical,
+  Undo2,
 } from 'lucide-react';
 import {
   buildAxonometricPrompt,
@@ -37,6 +41,12 @@ import {
   buildRenderPrompt,
 } from '../../lib/prompts';
 import { buildMassingPrompt } from '../../lib/prompt/concept';
+import {
+  buildCadElevationPrompt,
+  buildRenderToPlanPrompt,
+  buildSectionPrompt,
+  buildSketchPlanPrompt,
+} from '../../lib/prompt/drawings';
 import {
   buildDeclutterPrompt,
   buildPlaceObjectPrompt,
@@ -55,8 +65,12 @@ import type {
   TargetedSwapSettings,
   FeatureRun,
   FeatureSettings,
+  CadElevationSettings,
   InteriorSettings,
   MassingSettings,
+  RenderToPlanSettings,
+  SectionSettings,
+  SketchPlanSettings,
   MoodboardSettings,
   RenderSettings,
 } from '../../store/generation';
@@ -122,8 +136,13 @@ export interface FeatureDef<S extends FeatureSettings = FeatureSettings> {
    * tool out of a batch run entirely, and an optional one does not.
    */
   marker?: 'required' | 'optional';
-  /** Output depends on real-world facts the model may get wrong. */
-  accuracyWarning?: string;
+  /**
+   * Shown ON the output: this tool had to infer something the input could not
+   * show. A function of settings, because for several tools it is true only
+   * sometimes — a rear elevation is reconstructed, the three visible faces are
+   * not, and a static string would have to warn about all four or none.
+   */
+  accuracyWarning?: (settings: S) => string | undefined;
 
   defaultSettings: S;
   buildPrompt: (settings: S, ctx: PromptContext) => string;
@@ -142,8 +161,13 @@ export interface FeatureDef<S extends FeatureSettings = FeatureSettings> {
   poolLabel: string;
   /** Gallery filter label. */
   galleryLabel: string;
-  /** Shown on the home dashboard as a numbered pipeline stage. */
-  stage?: { index: string; what: string };
+  /**
+   * Shown on the home dashboard as a numbered pipeline stage. The NUMBER is
+   * derived from position, like the section header's — leaving it hand-written
+   * is what made the pipeline render 01, 03, 02, 04 the moment Plans & Drawings
+   * was reordered.
+   */
+  stage?: { what: string };
 
   /**
    * One label per output image, in order. Omit for the default
@@ -167,7 +191,6 @@ export interface FeatureDef<S extends FeatureSettings = FeatureSettings> {
    * drifting apart, which they already had.
    */
   ui: {
-    index: string;
     eyebrow: string;
     title: string;
     description: string;
@@ -187,6 +210,18 @@ export interface FeatureDef<S extends FeatureSettings = FeatureSettings> {
   toOptions: (settings: S, ctx: RunContext) => GenerateOptions;
   /** How many output skeletons to show while running. */
   plannedCount?: (settings: S, mode: FeatureMode) => number;
+}
+
+/**
+ * The options a tool with no style axis and no reference images sends.
+ *
+ * Five definitions had this exact object literal copy-pasted, and in all five
+ * the `referenceImages` pass-through was dead: they declare `maxReferences: 0`
+ * and no screen supplies any. Naming it makes the reference-less contract
+ * explicit rather than accidental.
+ */
+export function plainOptions(ctx: RunContext): GenerateOptions {
+  return { variations: 1, refine: ctx.refine || undefined };
 }
 
 /** What the shell knows about a run that the settings alone do not. */
@@ -247,7 +282,6 @@ const massing: FeatureDef<MassingSettings> = {
   poolLabel: 'Massing studies',
   galleryLabel: 'Massing',
   ui: {
-    index: '01',
     eyebrow: 'Concept & Form',
     title: 'Brief → Massing Study',
     description:
@@ -260,7 +294,7 @@ const massing: FeatureDef<MassingSettings> = {
     emptyDescription: 'Describe the brief and press Generate — a white study model appears here.',
   },
   blockedReason: (s) => (s.brief.trim() ? null : 'Describe the project to begin.'),
-  toOptions: (_s, ctx) => ({ variations: 1, refine: ctx.refine || undefined, referenceImages: ctx.referenceImages }),
+  toOptions: (_s, ctx) => plainOptions(ctx),
   promptContracts: [
     { name: 'massing prompt refuses materials and glazing', pattern: /no materials, no brick, no timber, no glazing/i },
     { name: 'massing prompt asks for a white study model', pattern: /MASSING model, not a render/i },
@@ -287,9 +321,8 @@ const render: FeatureDef<RenderSettings> = {
   sendTargets: ['elevation', 'axonometric'],
   poolLabel: 'Renders',
   galleryLabel: 'Isometric',
-  stage: { index: '01', what: 'Floor plan → 3D cutaway' },
+  stage: { what: 'Floor plan → 3D cutaway' },
   ui: {
-    index: '01',
     eyebrow: 'Plan to 3D Isometric · 2D Furnished Plan',
     title: 'Floor Plan → 3D Isometric',
     description:
@@ -315,6 +348,178 @@ const render: FeatureDef<RenderSettings> = {
     { name: 'isometric prompt forbids squaring off an irregular plan', pattern: /do NOT simplify an irregular footprint/i },
     { name: 'isometric prompt treats symbols as geometry', pattern: /GEOMETRY, NOT ANNOTATION/i },
     { name: 'isometric prompt strips plan labels', pattern: /no text or numbers anywhere/i },
+  ],
+};
+
+const sketchPlan: FeatureDef<SketchPlanSettings> = {
+  key: 'sketchPlan',
+  category: 'drawings',
+  name: 'Sketch to CAD Plan',
+  blurb: 'Napkin Sketch to Drawing',
+  icon: PenLine,
+  inputMode: 'image',
+  maxReferences: 0,
+  defaultSettings: { annotation: 'none', units: 'metric', furnished: false },
+  buildPrompt: (s) => buildSketchPlanPrompt(s),
+  sceneShow: {},
+  // A drawn-up plan follows the sketch's own proportions — pinning a ratio here
+  // would be the isometric bug in reverse, squeezing a long plan into a square.
+  sendTargets: ['render', 'section'],
+  poolLabel: 'CAD plans',
+  galleryLabel: 'CAD plan',
+  ui: {
+    eyebrow: 'Plans & Drawings',
+    title: 'Hand Sketch → CAD Plan',
+    description:
+      'Draw up a rough sketch as a precise 2D plan — squared corners, poché walls, swing arcs. It draws up what you sketched; it does not redesign it.',
+    inputLabel: 'Input',
+    inputHint: 'A hand-drawn plan — napkin sketch, marker on trace, anything legible',
+    outputCaption: 'The drawn-up plan',
+    emptyIcon: PenLine,
+    emptyTitle: 'No plan drawn up yet',
+    emptyDescription: 'Upload a sketch and press Generate — the CAD plan appears here.',
+    compare: { before: 'Sketch', after: 'Plan' },
+  },
+  blockedReason: (_s, hasInput) => (hasInput ? null : 'Upload a sketch to begin.'),
+  toOptions: (_s, ctx) => plainOptions(ctx),
+  promptContracts: [
+    { name: 'sketch plan keeps the sketch topology, not its literal outline', pattern: /Keep the outline’s topology exactly/ },
+    { name: 'sketch plan straightens without reshaping', pattern: /straightening those lines, NOT reshaping the plan/ },
+    { name: 'sketch plan draws up rather than redesigns', pattern: /not redesigning it/i },
+    { name: 'sketch plan uses CAD conventions', pattern: /quarter-circle swing arc/i },
+    { name: 'sketch plan forbids perspective', pattern: /no vanishing point/i },
+  ],
+};
+
+const cadElevation: FeatureDef<CadElevationSettings> = {
+  key: 'cadElevation',
+  category: 'drawings',
+  name: 'CAD Elevation',
+  blurb: '3D Model to Line Drawing',
+  icon: Ruler,
+  inputMode: 'image',
+  maxReferences: 0,
+  accuracyWarning: (s) =>
+    s.face === 'rear'
+      ? 'The rear face is not in the input image — it is reconstructed from the volume, roof form and materials that are. Treat its openings as a proposal, not a survey.'
+      : undefined,
+  defaultSettings: { face: 'front', annotation: 'none', units: 'metric', hatch: true },
+  buildPrompt: (s) => buildCadElevationPrompt(s),
+  sceneShow: {},
+  // The input is a 3D viewport of any shape; the output is one flat facade.
+  // Inheriting the screenshot's canvas is the pressure that squashed L-shaped
+  // plans into the isometric frame, pointed at an elevation instead.
+  aspectRatio: () => '3:2',
+  sendTargets: ['axonometric'],
+  poolLabel: 'CAD elevations',
+  galleryLabel: 'CAD elevation',
+  ui: {
+    eyebrow: 'Plans & Drawings',
+    title: '3D Model → CAD Elevation',
+    description:
+      'The measured line elevation that goes in the drawing set — not a render. Takes a viewport screenshot and flattens the perspective out of it.',
+    inputLabel: 'Input',
+    inputHint: 'A SketchUp, Revit or Rhino viewport screenshot — or any 3D view',
+    outputCaption: 'The elevation drawing',
+    emptyIcon: Ruler,
+    emptyTitle: 'No elevation drawing yet',
+    emptyDescription: 'Upload a 3D view and press Generate — the flattened elevation appears here.',
+    compare: { before: '3D view', after: 'Elevation' },
+  },
+  blockedReason: (_s, hasInput) => (hasInput ? null : 'Upload a 3D view to begin.'),
+  toOptions: (_s, ctx) => plainOptions(ctx),
+  promptContracts: [
+    { name: 'CAD elevation flattens the perspective', pattern: /UNDO THE PERSPECTIVE/ },
+    { name: 'CAD elevation shows one face only', pattern: /this is one flat face and nothing else/i },
+    { name: 'CAD elevation tests itself for leftover 3D', pattern: /if the roof line slopes when it should be level/i },
+  ],
+};
+
+const section: FeatureDef<SectionSettings> = {
+  key: 'section',
+  category: 'drawings',
+  name: 'Section',
+  blurb: 'Cut Through the Building',
+  icon: SquareSplitVertical,
+  inputMode: 'image',
+  maxReferences: 0,
+  accuracyWarning: (s) =>
+    s.levels.trim()
+      ? undefined
+      : 'Nothing here says how tall the building is — a plan cannot show it and one view rarely can, so the storey heights and roof form are the model’s guess. Fill in "Storeys and levels" to pin them down.',
+  defaultSettings: { axis: 'longitudinal', style: 'line', levels: '', entourage: true, annotation: 'none', units: 'metric' },
+  buildPrompt: (s) => buildSectionPrompt(s),
+  sceneShow: {},
+  // A section is a wide drawing whatever the building — it spans the full length
+  // or width and is only ever a couple of storeys tall.
+  aspectRatio: () => '3:2',
+  sendTargets: [],
+  poolLabel: 'Sections',
+  galleryLabel: 'Section',
+  ui: {
+    eyebrow: 'Plans & Drawings',
+    title: 'Architectural Section',
+    description:
+      'Saw the building in half and look straight into it — floor slabs in poché, the stair, real ceiling heights. The drawing that explains how a scheme actually works.',
+    inputLabel: 'Input',
+    inputHint: 'A 3D view, a render or a floor plan of the building',
+    outputCaption: 'The section drawing',
+    emptyIcon: SquareSplitVertical,
+    emptyTitle: 'No section yet',
+    emptyDescription: 'Upload the building and press Generate — the section appears here.',
+    compare: { before: 'Input', after: 'Section' },
+  },
+  blockedReason: (_s, hasInput) => (hasInput ? null : 'Upload the building to begin.'),
+  toOptions: (_s, ctx) => plainOptions(ctx),
+  promptContracts: [
+    { name: 'section describes the cut physically, not by name', pattern: /sawn straight through/i },
+    { name: 'section says it is not an elevation', pattern: /NOT an elevation/ },
+    { name: 'section fills the cut with poché', pattern: /solid, heavy, filled poch/i },
+    { name: 'section ends on a concrete elevation test', pattern: /you have drawn an elevation/i },
+  ],
+};
+
+const renderToPlan: FeatureDef<RenderToPlanSettings> = {
+  key: 'renderToPlan',
+  category: 'drawings',
+  name: 'Render to Plan',
+  blurb: '3D View Back to Plan',
+  icon: Undo2,
+  inputMode: 'image',
+  maxReferences: 0,
+  // The only tool in this category that must INVENT: one viewpoint cannot show a
+  // whole plan, so part of the output is inference presented as drawing.
+  accuracyWarning: () =>
+    'A plan reverse-engineered from one view is part measurement, part inference. Everything the image could not see is the model’s plainest guess — check it against the real thing before drawing on it.',
+  defaultSettings: { annotation: 'none', units: 'metric', furnished: false },
+  buildPrompt: (s) => buildRenderToPlanPrompt(s),
+  sceneShow: {},
+  // Same reason: a plan derived from a 16:9 render must not be generated into a
+  // 16:9 frame, because the building's footprint has nothing to do with the
+  // camera the render used.
+  aspectRatio: () => '4:3',
+  sendTargets: ['render', 'section'],
+  poolLabel: 'Derived plans',
+  galleryLabel: 'Derived plan',
+  ui: {
+    eyebrow: 'Plans & Drawings',
+    title: '3D View → Floor Plan',
+    description:
+      'Run the pipeline backwards: recover the floor plan implied by a render or a photograph. Useful when the visual exists and the drawing does not.',
+    inputLabel: 'Input',
+    inputHint: 'A render, a 3D view or a photograph of the building or room',
+    outputCaption: 'The derived plan',
+    emptyIcon: Undo2,
+    emptyTitle: 'No derived plan yet',
+    emptyDescription: 'Upload a render and press Generate — the plan it implies appears here.',
+    compare: { before: 'View', after: 'Plan' },
+  },
+  blockedReason: (_s, hasInput) => (hasInput ? null : 'Upload a render or photo to begin.'),
+  toOptions: (_s, ctx) => plainOptions(ctx),
+  promptContracts: [
+    { name: 'render-to-plan undoes the perspective', pattern: /UNDO THE PERSPECTIVE/ },
+    { name: 'render-to-plan is honest about what it cannot see', pattern: /BE HONEST ABOUT WHAT YOU CANNOT SEE/ },
+    { name: 'render-to-plan keeps its guesses plain', pattern: /A plain guess is correct here; an interesting one is not/ },
   ],
 };
 
@@ -350,7 +555,7 @@ const elevation: FeatureDef<ElevationSettings> = {
   sendTargets: ['axonometric'],
   poolLabel: 'Elevations',
   galleryLabel: 'Elevation',
-  stage: { index: '02', what: 'Sketch → styled elevation' },
+  stage: { what: 'Sketch → styled elevation' },
   labelsFor: (req, pretty) => {
     const faces = req.options.viewpoints?.length ? req.options.viewpoints : [undefined];
     const styleLabel = pretty(req.options.style, 'Rendered');
@@ -369,7 +574,6 @@ const elevation: FeatureDef<ElevationSettings> = {
     return [{ label: labels[0], prompt: base }];
   },
   ui: {
-    index: '02',
     eyebrow: 'Facade design',
     title: 'Sketch / Model → Elevation',
     description:
@@ -412,7 +616,7 @@ const axonometric: FeatureDef<AxonSettings> = {
   sendTargets: [],
   poolLabel: 'Axonometrics',
   galleryLabel: 'Axonometric',
-  stage: { index: '03', what: 'Elevation → 3D view' },
+  stage: { what: 'Elevation → 3D view' },
   labelsFor: (req) => {
     const viewpoints = req.options.viewpoints?.length ? req.options.viewpoints : ['NE'];
     return viewpoints.map((vp) => `${vp} axonometric${req.options.section ? ' — section' : ''}`);
@@ -425,7 +629,6 @@ const axonometric: FeatureDef<AxonSettings> = {
     }));
   },
   ui: {
-    index: '03',
     eyebrow: 'Drawing conversion',
     title: 'Elevation → Axonometric',
     description:
@@ -481,10 +684,9 @@ const interior: FeatureDef<InteriorSettings> = {
   sendTargets: [],
   poolLabel: 'Interiors',
   galleryLabel: 'Interior',
-  stage: { index: '04', what: 'Room photo → redesign' },
+  stage: { what: 'Room photo → redesign' },
   labelsFor: (req, pretty) => [pretty(req.options.style, 'Interior')],
   ui: {
-    index: '04',
     eyebrow: 'Interior Design',
     title: 'Room Photo → Interior Design',
     description:
@@ -528,7 +730,6 @@ const declutter: FeatureDef<DeclutterSettings> = {
   poolLabel: 'Cleared rooms',
   galleryLabel: 'Declutter',
   ui: {
-    index: '05',
     eyebrow: 'Interior Design',
     title: 'Messy Room → Empty Shell',
     description:
@@ -571,7 +772,6 @@ const placeObject: FeatureDef<PlaceObjectSettings> = {
   poolLabel: 'Placed objects',
   galleryLabel: 'Place object',
   ui: {
-    index: '06',
     eyebrow: 'Interior Design',
     title: 'Product Shot → Placed in the Room',
     description:
@@ -613,7 +813,6 @@ const targetedSwap: FeatureDef<TargetedSwapSettings> = {
   poolLabel: 'Targeted edits',
   galleryLabel: 'Targeted edit',
   ui: {
-    index: '07',
     eyebrow: 'Interior Design',
     title: 'Change One Thing, Leave the Rest',
     description:
@@ -657,7 +856,6 @@ const specSheet: FeatureDef<SpecSheetSettings> = {
   poolLabel: 'Spec sheets',
   galleryLabel: 'Spec sheet',
   ui: {
-    index: '08',
     eyebrow: 'Interior Design',
     title: 'Room → FF&E Spec Sheet',
     description:
@@ -695,7 +893,6 @@ const moodboard: FeatureDef<MoodboardSettings> = {
   poolLabel: 'Material boards',
   galleryLabel: 'Material board',
   ui: {
-    index: '05',
     eyebrow: 'Mood Board',
     title: 'Image → Material & Mood Board',
     description:
@@ -720,7 +917,11 @@ const moodboard: FeatureDef<MoodboardSettings> = {
 export const REGISTRY = {
   massing,
   render,
+  sketchPlan,
   elevation,
+  cadElevation,
+  section,
+  renderToPlan,
   axonometric,
   interior,
   declutter,
@@ -815,6 +1016,20 @@ export function categoryDef(key: CategoryKey): CategoryDef | undefined {
  *  is only in CATEGORIES because a tool put it there. */
 export function categoryOf(feature: FeatureKind): CategoryDef {
   return CATEGORIES.find((c) => c.key === REGISTRY[feature].category) as CategoryDef;
+}
+
+/**
+ * The two-digit number in a tool's section header — its position in its own
+ * category.
+ *
+ * Derived, because the hand-written version had already drifted into nonsense:
+ * across fourteen tools there were two 01s, two 02s, two 04s, two 05s and two
+ * 06s. A number nobody can trust is worse than no number, and this one is now
+ * correct by construction — reordering a category renumbers it.
+ */
+export function displayIndex(feature: FeatureKind): string {
+  const position = categoryOf(feature).features.findIndex((f) => f.key === feature);
+  return String(position + 1).padStart(2, '0');
 }
 
 // --- Running a tool ---------------------------------------------------------

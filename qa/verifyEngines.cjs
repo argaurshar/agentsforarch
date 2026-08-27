@@ -315,9 +315,14 @@ const check = (name, ok, detail = '') => {
   // 12. The navigation shell. The sidebar lists CATEGORIES now — a row per tool
   //     was right at five and wrong at eleven — so reachability is two hops, and
   //     both have to hold or a tool ships invisible.
-  const KEYS = (fs
+  // Strip comments before parsing, or a `//` note inside FEATURE_KEYS is read as
+  // a feature key and this check fails on a tool that does not exist. Same bug
+  // qa/registryLint.cjs has its own guard against — two parsers of one file.
+  const keysSrc = fs
     .readFileSync(path.join(__dirname, '..', 'src', 'features', 'registry', 'keys.ts'), 'utf8')
-    .match(/FEATURE_KEYS = \[([^\]]+)\]/)?.[1] ?? '')
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/^[ \t]*\/\/.*$/gm, '');
+  const KEYS = (keysSrc.match(/FEATURE_KEYS = \[([^\]]+)\]/)?.[1] ?? '')
     .split(',')
     .map((s) => s.trim().replace(/^['"]|['"]$/g, ''))
     .filter(Boolean);
@@ -530,6 +535,84 @@ const check = (name, ok, detail = '') => {
     'the marked run sends different pixels from the unmarked one',
     payload(markedBody).length > 0 && payload(markedBody) !== payload(cleanBody),
     'same bytes means burnMarker never ran',
+  );
+
+  // 16. Plans & Drawings. Every tool here outputs an orthographic drawing, and
+  //     the shared failure is that the model's prior for "building image" is a
+  //     photograph — so each one is checked for its own projection lock plus the
+  //     direction-specific instruction that keeps it from becoming another tool.
+  const DRAWING_TOOLS = [
+    // Deliberately NOT /outer wall silhouette/: reusing the isometric's footprint
+    // lock here demanded an outline identical to a freehand sketch, which
+    // contradicted this tool's whole job of straightening it.
+    ['sketchPlan', [/Keep the outline’s topology exactly/, /NOT reshaping the plan/, /quarter-circle swing arc/]],
+    ['cadElevation', [/UNDO THE PERSPECTIVE/, /this is one flat face and nothing else/]],
+    ['section', [/sawn straight through/, /NOT an elevation/, /you have drawn an elevation/]],
+    ['renderToPlan', [/BE HONEST ABOUT WHAT YOU CANNOT SEE/, /A plain guess is correct here/]],
+  ];
+  for (const [key, patterns] of DRAWING_TOOLS) {
+    await navTo(key);
+    const box = page.locator(`#${key}-prompt`);
+    check(`${key} is reachable and has its prompt box`, (await box.count()) === 1);
+    const text = (await box.count()) ? await box.inputValue() : '';
+    check(`${key} locks the projection`, /no vanishing point/i.test(text));
+    for (const re of patterns) check(`${key} prompt carries ${re.source.slice(0, 42)}`, re.test(text));
+  }
+
+  // Annotation is the axis every drawing tool shares. Text on a generated
+  // drawing is a liability, so "No text" must really mean no text, and units
+  // must not leak into a drawing that carries no dimensions.
+  await navTo('sketchPlan');
+  const planPrompt = page.locator('#sketchPlan-prompt');
+  await page.getByRole('button', { name: /^No text$/ }).click();
+  await page.waitForTimeout(300);
+  const plain = await planPrompt.inputValue();
+  check('no-text mode carries the no-text guard', /watermark, signature, caption or stray text/.test(plain));
+  check('no-text mode asks for no labels', !/Label each room/.test(plain));
+  check('no-text mode names no units', !/millimetres|feet and inches/.test(plain));
+
+  await page.getByRole('button', { name: 'Labels + dimensions' }).click();
+  await page.waitForTimeout(300);
+  const dimensioned = await planPrompt.inputValue();
+  check('dimensioned mode asks for dimension lines', /add a dimension line along each outer face/i.test(dimensioned));
+  check('dimensioned mode names the units', /millimetres/.test(dimensioned));
+  await page.getByRole('button', { name: 'Imperial (ft/in)' }).click();
+  await page.waitForTimeout(300);
+  check('switching units switches the clause', /feet and inches/.test(await planPrompt.inputValue()));
+
+  // A tool that must infer says so ON the output, where scepticism is useful —
+  // which means NOT before there is an output to be sceptical about.
+  await navTo('renderToPlan');
+  const mainText = () => page.locator('main').innerText();
+  check(
+    'the accuracy warning is absent before there is any output',
+    !/part measurement, part inference/i.test(await mainText()),
+  );
+  await page.setInputFiles('input[type=file]', PLAN);
+  await page.waitForTimeout(400);
+  await page.getByRole('button', { name: /^Generate$/ }).click();
+  await page.waitForTimeout(2500);
+  check(
+    'a tool that infers shows its accuracy warning once it has one',
+    /part measurement, part inference/i.test(await mainText()),
+  );
+
+  // The warning varies with settings: only the rear face of a CAD elevation is
+  // reconstructed, so only that face carries one.
+  await navTo('cadElevation');
+  await page.setInputFiles('input[type=file]', PLAN);
+  await page.waitForTimeout(400);
+  await page.getByRole('button', { name: /^Generate$/ }).click();
+  await page.waitForTimeout(2500);
+  check('a face that IS in the input carries no warning', !/reconstructed from the volume/i.test(await mainText()));
+  await page.getByRole('button', { name: /^Rear$/ }).click();
+  await page.waitForTimeout(400);
+  check('the reconstructed rear face does carry one', /reconstructed from the volume/i.test(await mainText()));
+
+  // Outputs must be labelled with the tool, never the fall-through 'Render'.
+  check(
+    'a drawing tool labels its outputs with its own name, not "Render"',
+    !/Render — variation/.test(await mainText()),
   );
 
   check('no page crashes', perr.length === 0, perr.slice(0, 2).join(' | '));

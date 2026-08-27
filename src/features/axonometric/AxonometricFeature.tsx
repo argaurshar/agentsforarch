@@ -1,6 +1,6 @@
 import { GenerationScreen } from '../../components/Generation/GenerationScreen';
 import { Select } from '../../components/ui/Select';
-import { Switch } from '../../components/ui/Switch';
+import { SwitchRow } from '../../components/ui/SwitchRow';
 
 // Everything this screen used to hand-roll — header, examples, dropzone, refine
 // panel, prompt box, action row, output column, compare slider — now comes from
@@ -70,16 +70,12 @@ export function AxonometricFeature() {
             </div>
 
             <div className="p-5">
-              <Switch
+              <SwitchRow
                 checked={settings.section}
                 onChange={(next) => patch({ section: next })}
                 label="Section axonometric"
-              >
-                <span className="flex flex-col text-left">
-                  <span className="section-heading">Section axonometric</span>
-                  <span className="mt-1 text-caption text-mist">Adds a cut plane and labels views “— section”.</span>
-                </span>
-              </Switch>
+                hint="Adds a cut plane and labels views “— section”."
+              />
             </div>
           </>
         );

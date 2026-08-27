@@ -12,7 +12,7 @@ import { EmptyState } from '../ui/EmptyState';
 import { ErrorBanner } from '../ui/ErrorBanner';
 import { Notice } from '../ui/Notice';
 import { SectionHeader } from '../ui/SectionHeader';
-import { buildFeatureRequest, categoryOf, featureDef } from '../../features/registry';
+import { buildFeatureRequest, categoryOf, displayIndex, featureDef } from '../../features/registry';
 import type { FeatureKind, RunContext, SettingsFor } from '../../features/registry';
 import { useGenerate } from '../../features/hooks';
 import { burnMarker } from '../../lib/images';
@@ -166,6 +166,7 @@ export function GenerationScreen<K extends FeatureKind>({
     void send();
   };
 
+  const inferenceWarning = def.accuracyWarning?.(settings);
   const promptId = `${feature}-prompt`;
   const plannedCount = def.plannedCount?.(settings, mode) ?? 1;
 
@@ -186,7 +187,7 @@ export function GenerationScreen<K extends FeatureKind>({
         {category.label}
       </button>
 
-      <SectionHeader index={def.ui.index} eyebrow={def.ui.eyebrow} title={def.ui.title} description={def.ui.description} />
+      <SectionHeader index={displayIndex(feature)} eyebrow={def.ui.eyebrow} title={def.ui.title} description={def.ui.description} />
 
       {/* Worked examples — open until this tab has produced something. */}
       <ExampleShowcase feature={feature} defaultOpen={outputs.length === 0} />
@@ -340,6 +341,14 @@ export function GenerationScreen<K extends FeatureKind>({
           </div>
           {error ? <ErrorBanner message={error} onRetry={handleGenerate} /> : null}
           {warning ? <Notice tone="warning" message={warning} /> : null}
+          {/* Some tools have to infer what the input could not show, and saying
+              so ON THE OUTPUT is the point — a caveat read before there is
+              anything to be sceptical about is not read at all. So it renders
+              WITH the outputs, not above the empty state, and not in refine mode
+              where the tool is not deriving anything. */}
+          {inferenceWarning && mode !== 'refine' && outputs.length > 0 ? (
+            <Notice tone="warning" message={inferenceWarning} />
+          ) : null}
           {loading || outputs.length > 0 ? (
             <OutputGrid
               outputs={outputs}
