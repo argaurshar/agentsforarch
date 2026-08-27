@@ -102,7 +102,18 @@ export interface InteriorSettings {
   moodboard: string | null; // dataURL of an uploaded mood-board reference image
   scene: SceneOptions;
 }
+/**
+ * What the axonometric is being built FROM.
+ *
+ * Not cosmetic. From an elevation the front-to-back depth is absent and must be
+ * invented; from a modelled viewport it is present and inventing one means
+ * ignoring the input. The two branches of the prompt share almost no text, and
+ * only the elevation branch earns an accuracy warning.
+ */
+export type AxonSource = 'elevation' | 'model';
+
 export interface AxonSettings {
+  source: AxonSource;
   viewpoints: string[]; // NE/NW/SE/SW
   style: AxonStyleKey;
   section: boolean;

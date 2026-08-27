@@ -32,7 +32,25 @@ Then open the printed local URL.
 npm run build      # type-check (strict) + production build
 npm run typecheck  # type-check only
 npm run preview    # preview the production build
+npm run qa         # static gates — no browser, no API calls, no cost
+npm run qa:e2e     # browser suite against `npm run preview`, network mocked
 ```
+
+`npm run qa` is what CI runs, and it exists because **TypeScript cannot see a
+changed prompt string**. Five gates, each catching something the others cannot:
+
+| Gate | Catches |
+|---|---|
+| `designLint` | design-system drift — raw hex, ad-hoc spacing, unlisted radii |
+| `registryLint` | a tool that is incomplete, unreachable, or missing from a derived table |
+| `verifyContracts` | a tool whose own default prompt no longer satisfies the contract it declares |
+| `promptSnapshot` | any prompt whose wording changed, across every enumerated variant |
+| `promptContradictions` | a prompt that asks for a thing and forbids it in the same breath |
+
+The last one is the least obvious and the most valuable. The two worst bugs this
+app has shipped were both self-contradictory prompts, not missing ones — a
+prompt can satisfy every contract and pass the snapshot while instructing the
+model to do and not do the same thing.
 
 ## The tools
 
@@ -69,7 +87,7 @@ section header shows. It is derived from position, so it can never disagree.
 | 01 | Hand Sketch → CAD Plan | A napkin sketch or marker-on-trace plan | A precise 2D plan: straightened walls with poché, door swing arcs, window breaks, optional fixtures. It **draws up** the sketch rather than redesigning it — the same footprint contract that fixed the squared-off isometric |
 | 02 | Floor Plan → 3D Isometric | 2D floor plan | **3D isometric "dollhouse" cutaway** or a **fully furnished top-down 2D marketing plan** — plus **Compare styles** (one plan × up to 4 design languages in one batch) and a before/after compare |
 | 03 | Sketch / Model → Elevation | Sketch or SketchUp screenshot | Rendered elevation, styled by a **design theme** (Contemporary / Modern / Traditional / Boho chic) **or an uploaded mood board** |
-| 04 | Elevation → Axonometric | Elevation image | True 3D axonometric + section-axonometric views in **realistic / line-art / black-&-white**, one per viewpoint |
+| 04 | Elevation **or 3D Model** → Axonometric | An elevation image, **or** a SketchUp / Revit / Rhino viewport screenshot | True 3D axonometric + section-axonometric views in **realistic / line-art / black-&-white**, one per viewpoint. Say which input you gave it: from an elevation the depth behind the face is **inferred** (and the output says so), from a model it is **read off the image** and flattening the perspective is the whole job |
 | 05 | 3D Model → CAD Elevation | A SketchUp / Revit / Rhino viewport screenshot | The **measured line elevation** for the drawing set — perspective flattened out, level lines, optional material hatching and dimension chains. Distinct from 03, which renders an elevation for a client |
 | 06 | Architectural Section | A 3D view, render or plan | A **vertical cut** through the building: floor slabs and cut walls in solid poché, room interiors and the stair beyond, real ceiling heights, optional figures for scale |
 | 07 | 3D View → Floor Plan | A render, 3D view or photograph | The **floor plan the image implies** — the pipeline run backwards. Carries a visible accuracy warning: one viewpoint cannot show a whole plan, so part of it is inference |

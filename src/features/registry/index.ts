@@ -701,12 +701,19 @@ const axonometric: FeatureDef<AxonSettings> = {
   key: 'axonometric',
   category: 'drawings',
   name: 'Axonometric',
-  blurb: 'Elevation to Axonometric',
+  blurb: 'Elevation or 3D to Axonometric',
   icon: Box,
   inputMode: 'image',
   maxReferences: 1,
-  defaultSettings: { viewpoints: ['NE'], style: 'realistic', section: false, scene: defaultScene() },
-  buildPrompt: (s) => buildAxonometricPrompt({ section: s.section, style: s.style }),
+  defaultSettings: { source: 'elevation', viewpoints: ['NE'], style: 'realistic', section: false, scene: defaultScene() },
+  buildPrompt: (s) => buildAxonometricPrompt({ section: s.section, style: s.style, source: s.source }),
+  // Only the elevation branch is guessing. A modelled viewport carries the depth
+  // the drawing needs, so warning about it there would be a warning the user
+  // learns to ignore — which is how a real warning stops working.
+  accuracyWarning: (s) =>
+    s.source === 'elevation'
+      ? 'An elevation cannot show depth, so the returning walls and roof form are inferred. Check them against the design.'
+      : undefined,
   // Deliberately none: this is a pure conversion of an already-rendered image,
   // so it must preserve the input's materials rather than restyle them.
   sceneShow: {},
@@ -727,20 +734,20 @@ const axonometric: FeatureDef<AxonSettings> = {
   },
   ui: {
     eyebrow: 'Drawing conversion',
-    title: 'Elevation → Axonometric',
+    title: 'Elevation or 3D Model → Axonometric',
     description:
-      'Generate axonometric and section-axonometric views from an elevation. Upload an elevation directly — running feature 02 first is never required.',
+      'Axonometric and section-axonometric views from either an elevation or a 3D viewport screenshot. Say which — from an elevation the depth is inferred, from a model it is read off the image, and the two are different jobs.',
     inputLabel: 'Input',
-    inputHint: 'Elevation drawing or render',
+    inputHint: 'An elevation, or a SketchUp / Revit / Rhino screenshot',
     outputCaption: 'One image per viewpoint',
     emptyIcon: Box,
     emptyTitle: 'No axonometric views yet',
     emptyDescription:
-      'Upload an elevation, pick the corners you want and press Generate — one view appears here per viewpoint.',
-    compare: { before: 'Elevation', after: 'Axonometric' },
+      'Upload an elevation or a 3D view, pick the corners you want and press Generate — one view appears here per viewpoint.',
+    compare: { before: 'Input', after: 'Axonometric' },
   },
   blockedReason: (s, hasInput, mode) => {
-    if (!hasInput) return 'Upload an elevation to begin.';
+    if (!hasInput) return 'Upload an elevation or a 3D view to begin.';
     if (mode !== 'refine' && s.viewpoints.length === 0) return 'Select at least one viewpoint.';
     return null;
   },
@@ -749,7 +756,11 @@ const axonometric: FeatureDef<AxonSettings> = {
       ? { style: s.style, section: s.section, refine: true }
       : { viewpoints: s.viewpoints, style: s.style, section: s.section },
   plannedCount: (s, mode) => (mode === 'refine' ? 1 : Math.max(1, s.viewpoints.length)),
-  promptContracts: [{ name: 'axonometric prompt forbids a flat front-on result', pattern: /do NOT reproduce a flat, front-on elevation/i }],
+  promptContracts: [
+    { name: 'axonometric prompt forbids a flat front-on result', pattern: /do NOT reproduce a flat, front-on elevation/i },
+    { name: 'axonometric prompt holds parallel projection', pattern: /no perspective distortion and no vanishing point/ },
+    { name: 'from an elevation it infers only the depth', pattern: /INFER THE DEPTH, AND ONLY THE DEPTH/ },
+  ],
 };
 
 const watercolour: FeatureDef<WatercolourSettings> = {

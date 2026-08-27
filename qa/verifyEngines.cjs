@@ -728,6 +728,23 @@ const check = (name, ok, detail = '') => {
     !(await page.getByRole('button', { name: /^Generate$/ }).isEnabled()),
   );
 
+  // 19. The axonometric now reads its input two ways, and the two branches share
+  //     almost no prompt text. From an elevation the depth is absent and must be
+  //     invented; from a modelled viewport it is present, and inventing one means
+  //     instructing the model to ignore its own input. Assert the switch really
+  //     swaps the branch rather than appending a sentence to it.
+  await navTo('axonometric');
+  const axonBox = page.locator('#axonometric-prompt');
+  const fromElevation = await axonBox.inputValue();
+  check('from an elevation the axonometric infers a depth', /INFER THE DEPTH, AND ONLY THE DEPTH/.test(fromElevation));
+  check('and does not claim to read one off the image', !/read them off the image/.test(fromElevation));
+  await page.getByRole('button', { name: 'A 3D model' }).click();
+  await page.waitForTimeout(300);
+  const fromModel = await axonBox.inputValue();
+  check('from a model it reads the depth off the image', /read them off the image and reproduce them/.test(fromModel));
+  check('and stops inventing one', !/INFER THE DEPTH/.test(fromModel));
+  check('both branches still forbid a flat elevation', /do NOT reproduce a flat, front-on elevation/.test(fromModel));
+
   check('no page crashes', perr.length === 0, perr.slice(0, 2).join(' | '));
   await browser.close();
   const failed = results.filter((r) => !r.ok).length;

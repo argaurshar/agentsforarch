@@ -49,8 +49,13 @@ for (const mode of ['restyle','stage','renovate'] as const)
   for (const room of ['living','bedroom','kitchen','bathroom','dining','office'] as const)
     for (const theme of ['none','contemporary','modern','traditional','boho','minimalist','japandi','industrial','luxury'] as const)
       add(`int:${mode}:${room}:${theme}`, buildInteriorPrompt({ mode, roomType: room, theme, mood: sc.mood }));
-for (const style of ['realistic','lineart','bw'] as const)
-  for (const sec of [false,true]) add(`axon:${style}:${sec}`, buildAxonometricPrompt({ section: sec, style }));
+// The axonometric's two sources share almost no prompt text, and the whole risk
+// is one branch leaking into the other — an inferred depth instructed over an
+// image that already shows the depth.
+for (const source of ['elevation','model'] as const)
+  for (const style of ['realistic','lineart','bw'] as const)
+    for (const sec of [false,true])
+      add(`axon:${source}:${style}:${sec}`, buildAxonometricPrompt({ section: sec, style, source }));
 for (const keep of [true, false]) add(`declutter:builtins${keep}`, buildDeclutterPrompt({ keepBuiltIns: keep }));
 for (const kind of ['furniture','lighting','artwork'] as const)
   for (const placement of ['replace','add'] as const)

@@ -1,4 +1,5 @@
 import { GenerationScreen } from '../../components/Generation/GenerationScreen';
+import { ChipGroup } from '../../components/ui/ChipGroup';
 import { Select } from '../../components/ui/Select';
 import { SwitchRow } from '../../components/ui/SwitchRow';
 
@@ -8,6 +9,14 @@ import { SwitchRow } from '../../components/ui/SwitchRow';
 // that is genuinely specific to an axonometric: style, corners, section.
 
 const VIEWPOINTS = ['NE', 'NW', 'SE', 'SW'] as const;
+
+// The first control on the screen, because it decides which of two prompts runs
+// — and whether the output carries an accuracy warning. From an elevation the
+// depth is invented; from a model it is read off the image.
+const SOURCE_OPTIONS = [
+  { value: 'elevation', label: 'An elevation' },
+  { value: 'model', label: 'A 3D model' },
+] as const;
 
 const STYLE_OPTIONS = [
   { value: 'realistic', label: 'Realistic render' },
@@ -30,6 +39,19 @@ export function AxonometricFeature() {
 
         return (
           <>
+            <div className="flex flex-col gap-2 p-5">
+              <ChipGroup
+                label="Built from"
+                value={settings.source}
+                options={SOURCE_OPTIONS}
+                onChange={(v) => patch({ source: v })}
+              />
+              <p className="text-caption text-mist">
+                {settings.source === 'elevation'
+                  ? 'An elevation shows one face, so the depth and roof behind it are inferred — the output says so.'
+                  : 'A viewport screenshot already carries the depth. This flattens the perspective instead of guessing.'}
+              </p>
+            </div>
             <div className="p-5">
               <Select
                 label="Axonometric style"
