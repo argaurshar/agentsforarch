@@ -135,12 +135,43 @@ const badIds = files
 check('prompt textarea ids match their feature key', badIds.length === 0, badIds.join('\n      '));
 
 // --- 5. Every tool the registry claims is reachable in the nav ---------------
+//
+// Reachability is two hops now that the sidebar lists categories rather than
+// tools: sidebar → category, category screen → its tools. BOTH have to stay
+// derived. If either one is ever hand-listed, a tool can exist, build, deploy
+// and be unreachable — which is the exact failure this whole refactor exists to
+// make impossible.
 
 const sidebar = files.find((f) => f.rel.endsWith('Sidebar.tsx'));
 check(
   'the sidebar derives its rows from the registry',
-  /ALL_FEATURES\.map/.test(sidebar?.text ?? ''),
+  /CATEGORIES\.map/.test(sidebar?.text ?? ''),
   'a hand-written NAV_ITEMS list is how a feature ships unreachable',
+);
+
+const categoryScreen = files.find((f) => f.rel.endsWith('CategoryScreen.tsx'));
+check(
+  'the tool rail derives its cards from the category',
+  /def\.features\.map/.test(categoryScreen?.text ?? ''),
+  'the second hop: a category that hand-lists its tools hides the next one added',
+);
+
+// --- 6. One request builder ---------------------------------------------------
+//
+// There are two callers that run a tool now — the single-tool screen and the
+// batch runner — and the pinned aspect ratio is applied in `buildFeatureRequest`.
+// A second call site assembling `options` by hand would silently drop it, and
+// the isometric would start squaring off L-shaped plans in batch mode only:
+// invisible to tsc, invisible to the prompt snapshot.
+
+const toOptionsCallers = files
+  .filter((f) => !f.rel.includes(path.join('features', 'registry')))
+  .filter((f) => /\.toOptions\(/.test(f.text))
+  .map((f) => f.rel);
+check(
+  'nothing builds a request by calling toOptions directly',
+  toOptionsCallers.length === 0,
+  toOptionsCallers.join('\n      ') + '  — use buildFeatureRequest()',
 );
 
 const failed = results.filter((r) => !r.ok).length;

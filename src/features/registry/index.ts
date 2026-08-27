@@ -11,7 +11,24 @@
 // stray key is a build error, and every derived table maps over it.
 
 import type { LucideIcon } from 'lucide-react';
-import { Armchair, Box, Boxes, Building2, ClipboardList, Eraser, Palette, PencilRuler, Replace, Sofa } from 'lucide-react';
+import {
+  Armchair,
+  Box,
+  Boxes,
+  Building2,
+  Camera,
+  ClipboardList,
+  DraftingCompass,
+  Eraser,
+  LayoutGrid,
+  Lightbulb,
+  Map,
+  PaintRoller,
+  Palette,
+  PencilRuler,
+  Replace,
+  Sofa,
+} from 'lucide-react';
 import {
   buildAxonometricPrompt,
   buildElevationPrompt,
@@ -43,8 +60,8 @@ import type {
 } from '../../store/generation';
 import { baseRun } from '../../store/generation';
 import type { FeatureMode } from '../../store/generation';
-import type { CategoryKey, FeatureKind } from './keys';
-import { FEATURE_KEYS } from './keys';
+import type { CategoryKey, CategoryTab, FeatureKind } from './keys';
+import { CATEGORY_BLURB, CATEGORY_KEYS, CATEGORY_LABEL, FEATURE_KEYS, categoryTab } from './keys';
 
 export * from './keys';
 
@@ -381,7 +398,7 @@ const interior: FeatureDef<InteriorSettings> = {
   category: 'interiors',
   name: 'Interior',
   blurb: 'Room Photo to Design',
-  icon: Sofa,
+  icon: PaintRoller,
   inputMode: 'image',
   maxReferences: 1,
   needsMarker: false,
@@ -685,4 +702,99 @@ export function initialGeneration(): GenerationState {
     out[key] = baseRun(settings, def.buildPrompt(settings, ctx));
   }
   return out as GenerationState;
+}
+
+// --- Categories -------------------------------------------------------------
+//
+// The sidebar used to be one row per tool. That was right at five and wrong at
+// eleven — a flat list stops being scannable somewhere around a dozen rows, and
+// this app is heading for ~54. Categories give the nav a fixed height: six rows
+// forever, no matter how many tools land underneath them.
+//
+// Which categories EXIST is derived, not declared. A category with no tools does
+// not appear at all, so "Site & Urban" arrives the day its first tool does
+// rather than sitting in the nav as an empty promise — the same rule that makes
+// a tool reachable by existing rather than by being remembered.
+
+const CATEGORY_ICON: Record<CategoryKey, LucideIcon> = {
+  concept: Lightbulb,
+  drawings: DraftingCompass,
+  site: Map,
+  visualization: Camera,
+  interiors: Sofa,
+  boards: LayoutGrid,
+};
+
+export interface CategoryDef {
+  key: CategoryKey;
+  /** `cat:<key>` — this category's tab/route identity. */
+  tab: CategoryTab;
+  label: string;
+  blurb: string;
+  icon: LucideIcon;
+  /** The tools in it, in registry order. Never empty. */
+  features: FeatureDef<FeatureSettings>[];
+}
+
+/** Every category that currently holds at least one tool, in nav order. */
+export const CATEGORIES: CategoryDef[] = CATEGORY_KEYS.map((key) => ({
+  key,
+  tab: categoryTab(key),
+  label: CATEGORY_LABEL[key],
+  blurb: CATEGORY_BLURB[key],
+  icon: CATEGORY_ICON[key],
+  features: ALL_FEATURES.filter((f) => f.category === key),
+})).filter((c) => c.features.length > 0);
+
+export function categoryDef(key: CategoryKey): CategoryDef | undefined {
+  return CATEGORIES.find((c) => c.key === key);
+}
+
+/** The category a tool lives in. Total: every tool declares one, and a category
+ *  is only in CATEGORIES because a tool put it there. */
+export function categoryOf(feature: FeatureKind): CategoryDef {
+  return CATEGORIES.find((c) => c.key === REGISTRY[feature].category) as CategoryDef;
+}
+
+// --- Running a tool ---------------------------------------------------------
+
+/**
+ * The provider request for one tool run.
+ *
+ * Extracted because there are now TWO callers — the single-tool screen and the
+ * batch runner — and the pinned aspect ratio lives here. A batch that built its
+ * own request would quietly drop `aspectRatio`, and the isometric would start
+ * squaring off L-shaped plans again in batch mode only: a regression no type
+ * and no snapshot could see.
+ */
+export function buildFeatureRequest(
+  feature: FeatureKind,
+  settings: FeatureSettings,
+  args: { inputImages: string[]; prompt?: string; ctx: RunContext },
+): GenerateRequest {
+  const def = featureDef(feature);
+  return {
+    feature,
+    inputImages: args.inputImages,
+    prompt: args.prompt?.trim() || undefined,
+    options: { ...def.toOptions(settings, args.ctx), aspectRatio: def.aspectRatio?.(settings) },
+  };
+}
+
+/**
+ * Why this tool cannot take part in a batch run, or null when it can.
+ *
+ * Two different reasons, and they are not interchangeable. A tool needing a
+ * second image (`inputMode: 'images'`) or a marked region can NEVER run from the
+ * shared dropzone — that is structural, and the card says "open the tool". A
+ * tool whose own settings are incomplete (Targeted Edit with nothing named) is
+ * merely not ready yet, and its own `blockedReason` already says so in the
+ * user's language.
+ */
+export function batchBlockedReason(feature: FeatureKind, settings: FeatureSettings): string | null {
+  const def = featureDef(feature);
+  if (def.inputMode === 'images') return 'Needs a second image of its own — open the tool.';
+  if (def.needsMarker) return 'Needs a region marked on the input — open the tool.';
+  if (def.inputMode === 'text') return 'Takes no image — open the tool.';
+  return def.blockedReason?.(settings, true, 'compose') ?? null;
 }

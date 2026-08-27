@@ -59,10 +59,13 @@ check('no all-caps letterspaced mono labels in app chrome', shouty.length === 0,
 
 // 2. Interactive surfaces carry a radius. Catch bordered panels/buttons that
 //    never got rounded during the modernization sweep. A `rounded-*` anywhere in
-//    the same class list satisfies the rule (order within the list is arbitrary).
+//    the same class list satisfies the rule (order within the list is arbitrary),
+//    and so do the `card` / `pill` component classes, which set the radius
+//    themselves in index.css — flagging those was the rule reporting on where the
+//    radius is written rather than on whether there is one.
 const squarePanels = findAll(
   /className=["'`][^"'`]*\bborder border-(?:hairline|ochre) bg-(?:paper|drafting|ochre)\b[^"'`]*["'`]/,
-).filter((hit) => !/\brounded-/.test(hit));
+).filter((hit) => !/\brounded-|\b(?:card|pill)\b/.test(hit));
 check('bordered panels are rounded', squarePanels.length === 0, show(squarePanels));
 
 // 3. The accent must be legible: ochre backgrounds pair with white text, never

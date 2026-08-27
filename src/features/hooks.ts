@@ -32,66 +32,85 @@ function partialWarning(result: GenerateResult, aborted: boolean): string | null
   return `${failures.length} image${failures.length === 1 ? '' : 's'} couldn't be generated (${list}). Kept the ${kept} that succeeded.`;
 }
 
+/** How one run ended. The batch runner needs this; a single screen reads the
+ *  store instead, which is why `useGenerate` still returns void. */
+export type RunOutcome = 'done' | 'error' | 'cancelled' | 'superseded';
+
 /**
- * The shared generate flow, store-backed per feature. Generation state
- * (status/outputs/input) lives in the Zustand store, so an in-flight run
- * survives a tab switch (App.tsx remounts the routed feature) and the outputs
- * are still there when the user returns. `run` threads an AbortSignal to the
- * provider (Cancel + resetProject use it), and a `runId` guard makes sure a
- * stale completion never clobbers a newer run.
+ * Run one tool. The whole generate flow, with no React in it.
+ *
+ * This is a plain function rather than hook-internal because the batch runner
+ * has to drive N tools from one click, and hooks cannot be called in a loop over
+ * a changing selection. Everything it touches — the store actions, the abort
+ * registry, the provider — is reachable outside React already, so the extraction
+ * is a move, not a rewrite: `useGenerate` below is now a thin wrapper over it,
+ * and single and batch runs cannot drift apart.
+ *
+ * Generation state lives in the store, so an in-flight run survives a tab switch
+ * (App.tsx remounts the routed feature) and the outputs are still there when the
+ * user returns. The AbortSignal is threaded to the provider (Cancel, batch
+ * cancel and resetProject all use it), and a `runId` guard makes sure a stale
+ * completion never clobbers a newer run.
  */
+export async function runFeature(req: GenerateRequest): Promise<RunOutcome> {
+  const feature = req.feature;
+  const { patchFeatureRun: patch, addAsset } = useProjectStore.getState();
+  const provider = getActiveProvider();
+  if (!provider) {
+    patch(feature, { status: 'error', error: 'Add your Gemini API key in Settings (top-right) to generate images.' });
+    return 'error';
+  }
+  const myRunId = useProjectStore.getState().generation[feature].runId + 1;
+  patch(feature, { runId: myRunId, status: 'loading', error: null, warning: null });
+  const controller = startRun(feature);
+  const current = () => useProjectStore.getState().generation[feature].runId;
+  try {
+    const result = await provider.generate(req, controller.signal);
+    if (current() !== myRunId) return 'superseded'; // a newer run took over
+    if (result.images.length > 0) {
+      const asset = addAsset({
+        feature: req.feature,
+        inputImage: req.inputImages[0] ?? null,
+        outputs: result.images,
+        prompt: req.prompt,
+      });
+      patch(feature, {
+        outputs: result.images,
+        inputUsed: req.inputImages[0] ?? null,
+        status: 'done',
+        warning: partialWarning(result, controller.signal.aborted),
+        lastAssetId: asset.id,
+      });
+      return 'done';
+    }
+    if (controller.signal.aborted) {
+      patch(feature, { status: 'idle' });
+      return 'cancelled';
+    }
+    patch(feature, { status: 'error', error: result.failures?.[0]?.error ?? 'Generation failed. Please try again.' });
+    return 'error';
+  } catch (e) {
+    if (current() !== myRunId) return 'superseded';
+    if (controller.signal.aborted) {
+      patch(feature, { status: 'idle' });
+      return 'cancelled';
+    }
+    patch(feature, { status: 'error', error: e instanceof Error ? e.message : 'Generation failed. Please try again.' });
+    return 'error';
+  } finally {
+    clearController(feature, controller);
+  }
+}
+
+/** The single-tool screen's view of `runFeature`, plus this feature's live state. */
 export function useGenerate(feature: FeatureKind): UseGenerateResult {
   const runState = useProjectStore((s) => s.generation[feature]);
   const engineReady = useProjectStore((s) => s.engineReady);
-  const addAsset = useProjectStore((s) => s.addAsset);
   const patch = useProjectStore((s) => s.patchFeatureRun);
 
-  const run = useCallback(
-    async (req: GenerateRequest) => {
-      const provider = getActiveProvider();
-      if (!provider) {
-        patch(feature, { status: 'error', error: 'Add your Gemini API key in Settings (top-right) to generate images.' });
-        return;
-      }
-      const myRunId = useProjectStore.getState().generation[feature].runId + 1;
-      patch(feature, { runId: myRunId, status: 'loading', error: null, warning: null });
-      const controller = startRun(feature);
-      const current = () => useProjectStore.getState().generation[feature].runId;
-      try {
-        const result = await provider.generate(req, controller.signal);
-        if (current() !== myRunId) return; // superseded by a newer run
-        if (result.images.length > 0) {
-          const asset = addAsset({
-            feature: req.feature,
-            inputImage: req.inputImages[0] ?? null,
-            outputs: result.images,
-            prompt: req.prompt,
-          });
-          patch(feature, {
-            outputs: result.images,
-            inputUsed: req.inputImages[0] ?? null,
-            status: 'done',
-            warning: partialWarning(result, controller.signal.aborted),
-            lastAssetId: asset.id,
-          });
-        } else if (controller.signal.aborted) {
-          patch(feature, { status: 'idle' });
-        } else {
-          patch(feature, { status: 'error', error: result.failures?.[0]?.error ?? 'Generation failed. Please try again.' });
-        }
-      } catch (e) {
-        if (current() !== myRunId) return;
-        if (controller.signal.aborted) {
-          patch(feature, { status: 'idle' });
-          return;
-        }
-        patch(feature, { status: 'error', error: e instanceof Error ? e.message : 'Generation failed. Please try again.' });
-      } finally {
-        clearController(feature, controller);
-      }
-    },
-    [feature, addAsset, patch],
-  );
+  const run = useCallback(async (req: GenerateRequest) => {
+    await runFeature(req);
+  }, []);
 
   const cancel = useCallback(() => {
     abortFeature(feature);

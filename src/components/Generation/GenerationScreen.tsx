@@ -1,4 +1,4 @@
-import { RotateCcw, Sparkles, X } from 'lucide-react';
+import { ChevronLeft, RotateCcw, Sparkles, X } from 'lucide-react';
 import { useEffect, useMemo } from 'react';
 import type { ReactNode } from 'react';
 import { ExampleShowcase } from '../Examples/ExampleShowcase';
@@ -11,7 +11,7 @@ import { EmptyState } from '../ui/EmptyState';
 import { ErrorBanner } from '../ui/ErrorBanner';
 import { Notice } from '../ui/Notice';
 import { SectionHeader } from '../ui/SectionHeader';
-import { featureDef } from '../../features/registry';
+import { buildFeatureRequest, categoryOf, featureDef } from '../../features/registry';
 import type { FeatureKind, RunContext, SettingsFor } from '../../features/registry';
 import { useGenerate } from '../../features/hooks';
 import { buildRefinePrompt } from '../../lib/prompts';
@@ -107,6 +107,7 @@ export function GenerationScreen<K extends FeatureKind>({
   const exitRefine = useProjectStore((s) => s.exitRefine);
   const removeImage = useProjectStore((s) => s.removeImage);
   const sendToFeature = useProjectStore((s) => s.sendToFeature);
+  const setTab = useProjectStore((s) => s.setTab);
 
   const typedSettings = settings as SettingsFor<K>;
   const refs = runExtras?.referenceImages;
@@ -139,19 +140,29 @@ export function GenerationScreen<K extends FeatureKind>({
       referenceImages: refs,
       styleVariants: runExtras?.styleVariants,
     };
-    void run({
-      feature,
-      inputImages: [input],
-      prompt: prompt.trim() || undefined,
-      options: { ...def.toOptions(settings, ctx), aspectRatio: def.aspectRatio?.(settings) },
-    });
+    void run(buildFeatureRequest(feature, settings, { inputImages: [input], prompt, ctx }));
   };
 
   const promptId = `${feature}-prompt`;
   const plannedCount = def.plannedCount?.(settings, mode) ?? 1;
 
+  const category = categoryOf(feature);
+
   return (
     <div>
+      {/* The sidebar lists categories now, so a tool screen has no row of its
+          own to be "at". Without this you can open a tool from the rail and have
+          nothing on the page that leads back to its siblings. */}
+      <button
+        type="button"
+        data-back-to-category={category.key}
+        onClick={() => setTab(category.tab)}
+        className="mb-4 -ml-1 inline-flex items-center gap-1.5 rounded-field px-1.5 py-1 text-caption text-mist transition-colors hover:bg-drafting hover:text-graphite"
+      >
+        <ChevronLeft size={14} strokeWidth={1.75} />
+        {category.label}
+      </button>
+
       <SectionHeader index={def.ui.index} eyebrow={def.ui.eyebrow} title={def.ui.title} description={def.ui.description} />
 
       {/* Worked examples — open until this tab has produced something. */}
