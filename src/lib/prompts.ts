@@ -48,13 +48,6 @@ const LINE_PROMPT =
   'Clean consistent line weights, crisp hidden-line-removed linework, pure white background, ' +
   'no shading and no colour, technical hand-drafted ink presentation aesthetic.';
 
-const WATERCOLOUR_PROMPT =
-  'Render this architectural sketch as an elegant architectural watercolour illustration. ' +
-  'Preserve the geometry and composition. ' +
-  'Soft translucent washes, loose confident edges, warm muted palette, subtle paper texture, ' +
-  'gently graded skies, hand-painted presentation illustration, light and airy. ' +
-  NO_TEXT;
-
 // Style unions live with the settings that carry them (store/generation.ts).
 // This file used to declare its own copy, which had already drifted: it was
 // missing 'plan2d', a style the builder below actually handles.
@@ -135,7 +128,6 @@ export function buildRenderPrompt(a: { style: string; useStyleRef?: boolean } & 
 function renderBase(a: { style: string } & SceneOptions): string {
   if (a.style === 'clay') return CLAY_PROMPT;
   if (a.style === 'line') return LINE_PROMPT;
-  if (a.style === 'watercolour') return WATERCOLOUR_PROMPT;
   if (a.style === 'isometric') return buildIsometricPrompt(a);
   if (a.style === 'plan2d') return buildFurnishedPlanPrompt(a);
 

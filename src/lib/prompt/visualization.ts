@@ -448,3 +448,58 @@ export function buildUpscalePrompt(a: { sharpen: boolean }): string {
     NO_TEXT,
   ].join(' ');
 }
+
+// --- Watercolour ------------------------------------------------------------
+
+export type WatercolourPalette = 'warm' | 'cool' | 'muted' | 'monochrome';
+
+const PALETTE_CLAUSE: Record<WatercolourPalette, string> = {
+  warm: 'a warm palette — ochres, siennas, soft terracotta and warm greys, with a low warm sun in the washes',
+  cool: 'a cool palette — soft blues, blue-greys and pale greens, with a high even northern light',
+  muted: 'a muted palette — desaturated earth tones and greys, a single quiet accent colour and nothing louder',
+  monochrome: 'a monochrome palette — a single ink colour in graded washes from pale tint to deep shadow, no other hue',
+};
+
+/**
+ * Any drawing or render → the same thing painted in watercolour.
+ *
+ * The tension this prompt exists to resolve: a watercolour is *loose*, and this
+ * category's whole discipline is that nothing about the building may move. Told
+ * to be loose, a model loosens the architecture — walls drift, a window blurs
+ * into two, a roofline softens into a different pitch. So looseness is assigned
+ * explicitly to the paint and explicitly denied to the geometry, and the drawing
+ * underneath is described as drafted first and painted second, which is how the
+ * medium actually works.
+ */
+export function buildWatercolourPrompt(a: {
+  palette: WatercolourPalette;
+  loose: boolean;
+  keepLines: boolean;
+}): string {
+  const only = onlyChange('the medium it is painted in');
+  return [
+    'Repaint the architectural image in the input as an original architectural watercolour illustration.',
+    only.read,
+    only.lock,
+    'STEP 3 — ONLY THEN CHANGE THE MEDIUM. Paint it the way an architect paints: the drawing is drafted accurately ' +
+      'first and the paint is laid over it, so the geometry is precise underneath and only the paint is free.',
+    `Palette: ${PALETTE_CLAUSE[a.palette]}.`,
+    a.loose
+      ? 'Work loosely: broad confident washes, edges allowed to bleed and break, visible brush marks, pigment pooling ' +
+          'and granulating, generous untouched paper left as highlight.'
+      : 'Work in controlled washes: even graded tones, edges kept crisp where an edge is architectural, restrained ' +
+          'blooming, a small number of deliberate layers.',
+    a.keepLines
+      ? 'Keep an ink line over the paint: fine confident pen work on the architectural edges, drawn slightly loose and ' +
+          'not perfectly registered to the wash.'
+      : 'No ink outline — the form is described by the washes and their edges alone.',
+    'Real watercolour behaviour throughout: visible cold-press paper texture and tooth, soft graded sky, reflected ' +
+      'colour in the shadows, a few dry-brush passages. It must read as paint on paper, not as a photograph with a ' +
+      'filter over it.',
+    'CRITICAL — looseness is a property of the paint, not of the building. However freely the washes are handled, ' +
+      'every wall, roofline, window and opening stays exactly where the input puts it, at exactly the size the input ' +
+      'gives it. Do not let a soft edge become a different edge.',
+    only.check,
+    NO_TEXT,
+  ].join(' ');
+}
