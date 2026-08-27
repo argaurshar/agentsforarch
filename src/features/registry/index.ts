@@ -15,6 +15,8 @@ import {
   Armchair,
   Box,
   Boxes,
+  Brush,
+  Building,
   Building2,
   Camera,
   ClipboardList,
@@ -22,6 +24,7 @@ import {
   DraftingCompass,
   Eraser,
   Layers,
+  Layers3,
   LayoutGrid,
   LayoutPanelTop,
   Lightbulb,
@@ -30,8 +33,12 @@ import {
   PaintRoller,
   Palette,
   PenLine,
+  PenTool,
   PencilRuler,
+  Plane,
   Replace,
+  Route,
+  Rows3,
   Ruler,
   Users,
   Sofa,
@@ -39,6 +46,7 @@ import {
   SquareSplitVertical,
   Sun,
   Undo2,
+  Wand2,
 } from 'lucide-react';
 import {
   buildAxonometricPrompt,
@@ -47,7 +55,17 @@ import {
   buildMoodboardPrompt,
   buildRenderPrompt,
 } from '../../lib/prompts';
-import { buildMassingPrompt } from '../../lib/prompt/concept';
+import { buildMassingPrompt, buildSketchRenderPrompt } from '../../lib/prompt/concept';
+import {
+  buildAnnotationPrompt,
+  buildExplodedAxonPrompt,
+  buildProgramDiagramPrompt,
+} from '../../lib/prompt/boards';
+import {
+  buildBirdsEyePrompt,
+  buildFloorAnalysisPrompt,
+  buildUrbanContextPrompt,
+} from '../../lib/prompt/site';
 import {
   buildAtmospherePrompt,
   buildFacadeMaterialPrompt,
@@ -56,6 +74,7 @@ import {
   buildReflectionPrompt,
   buildRenderRefinePrompt,
   buildUpscalePrompt,
+  buildWatercolourPrompt,
   buildWireframeRenderPrompt,
 } from '../../lib/prompt/visualization';
 import {
@@ -74,8 +93,16 @@ import { defaultScene } from '../../lib/scene';
 import type { AspectRatio } from '../../providers/options';
 import type { GenerateOptions, GenerateRequest } from '../../providers/types';
 import type {
+  AnnotationSettings,
   AxonSettings,
+  BirdsEyeSettings,
   DeclutterSettings,
+  ExplodedAxonSettings,
+  FloorAnalysisSettings,
+  ProgramDiagramSettings,
+  SketchRenderSettings,
+  UrbanContextSettings,
+  WatercolourSettings,
   ElevationSettings,
   PlaceObjectSettings,
   SpecSheetSettings,
@@ -324,6 +351,51 @@ const massing: FeatureDef<MassingSettings> = {
     { name: 'massing prompt refuses materials and glazing', pattern: /no materials, no brick, no timber, no glazing/i },
     { name: 'massing prompt asks for a white study model', pattern: /MASSING model, not a render/i },
     { name: 'massing prompt shows neighbouring context for scale', pattern: /lower-contrast grey blocks/i },
+  ],
+};
+
+const sketchRender: FeatureDef<SketchRenderSettings> = {
+  key: 'sketchRender',
+  category: 'concept',
+  name: 'Sketch to Render',
+  blurb: 'Hand Sketch to Finished Image',
+  icon: Wand2,
+  inputMode: 'image',
+  maxReferences: 1,
+  defaultSettings: { medium: 'illustration', subject: '', scene: defaultScene() },
+  buildPrompt: (s) => buildSketchRenderPrompt({ ...s.scene, medium: s.medium, subject: s.subject }),
+  sceneShow: { archStyle: true, materials: true, lighting: true, context: true, entourage: true },
+  // Deliberately unpinned. The sketch's own crop IS the composition the
+  // architect drew, and the prompt locks the viewpoint to it — pinning a ratio
+  // here would fight the instruction three sentences later.
+  sendTargets: ['render', 'moodboard'],
+  poolLabel: 'Sketch renders',
+  galleryLabel: 'Sketch render',
+  ui: {
+    eyebrow: 'Concept & Form',
+    title: 'Hand Sketch → Finished Image',
+    description:
+      'The napkin drawing, made presentable. Same viewpoint, same masses, same idea — resolved into an illustration or a render, with nothing invented that you did not draw.',
+    inputLabel: 'Input',
+    inputHint: 'A photo or scan of the sketch',
+    outputCaption: 'The resolved sketch',
+    emptyIcon: Wand2,
+    emptyTitle: 'Nothing resolved yet',
+    emptyDescription: 'Upload a sketch and press Generate — the finished image appears here.',
+    compare: { before: 'Sketch', after: 'Resolved' },
+  },
+  blockedReason: (_s, hasInput) => (hasInput ? null : 'Upload a sketch to begin.'),
+  toOptions: (s, ctx) => ({
+    style: s.medium,
+    variations: 1,
+    refine: ctx.refine || undefined,
+    referenceImages: ctx.referenceImages,
+  }),
+  promptContracts: [
+    { name: 'sketch-render locks the drawing', pattern: /LOCK THE DRAWING/ },
+    { name: 'sketch-render forbids invented geometry', pattern: /no extra wing, tower, canopy, balcony, storey or second building/ },
+    { name: 'sketch-render refuses to improve the massing', pattern: /do not rebalance the massing/ },
+    { name: 'sketch-render resolves ambiguity downward', pattern: /the simplest way rather than the most impressive one/ },
   ],
 };
 
@@ -629,12 +701,19 @@ const axonometric: FeatureDef<AxonSettings> = {
   key: 'axonometric',
   category: 'drawings',
   name: 'Axonometric',
-  blurb: 'Elevation to Axonometric',
+  blurb: 'Elevation or 3D to Axonometric',
   icon: Box,
   inputMode: 'image',
   maxReferences: 1,
-  defaultSettings: { viewpoints: ['NE'], style: 'realistic', section: false, scene: defaultScene() },
-  buildPrompt: (s) => buildAxonometricPrompt({ section: s.section, style: s.style }),
+  defaultSettings: { source: 'elevation', viewpoints: ['NE'], style: 'realistic', section: false, scene: defaultScene() },
+  buildPrompt: (s) => buildAxonometricPrompt({ section: s.section, style: s.style, source: s.source }),
+  // Only the elevation branch is guessing. A modelled viewport carries the depth
+  // the drawing needs, so warning about it there would be a warning the user
+  // learns to ignore — which is how a real warning stops working.
+  accuracyWarning: (s) =>
+    s.source === 'elevation'
+      ? 'An elevation cannot show depth, so the returning walls and roof form are inferred. Check them against the design.'
+      : undefined,
   // Deliberately none: this is a pure conversion of an already-rendered image,
   // so it must preserve the input's materials rather than restyle them.
   sceneShow: {},
@@ -655,20 +734,20 @@ const axonometric: FeatureDef<AxonSettings> = {
   },
   ui: {
     eyebrow: 'Drawing conversion',
-    title: 'Elevation → Axonometric',
+    title: 'Elevation or 3D Model → Axonometric',
     description:
-      'Generate axonometric and section-axonometric views from an elevation. Upload an elevation directly — running feature 02 first is never required.',
+      'Axonometric and section-axonometric views from either an elevation or a 3D viewport screenshot. Say which — from an elevation the depth is inferred, from a model it is read off the image, and the two are different jobs.',
     inputLabel: 'Input',
-    inputHint: 'Elevation drawing or render',
+    inputHint: 'An elevation, or a SketchUp / Revit / Rhino screenshot',
     outputCaption: 'One image per viewpoint',
     emptyIcon: Box,
     emptyTitle: 'No axonometric views yet',
     emptyDescription:
-      'Upload an elevation, pick the corners you want and press Generate — one view appears here per viewpoint.',
-    compare: { before: 'Elevation', after: 'Axonometric' },
+      'Upload an elevation or a 3D view, pick the corners you want and press Generate — one view appears here per viewpoint.',
+    compare: { before: 'Input', after: 'Axonometric' },
   },
   blockedReason: (s, hasInput, mode) => {
-    if (!hasInput) return 'Upload an elevation to begin.';
+    if (!hasInput) return 'Upload an elevation or a 3D view to begin.';
     if (mode !== 'refine' && s.viewpoints.length === 0) return 'Select at least one viewpoint.';
     return null;
   },
@@ -677,7 +756,52 @@ const axonometric: FeatureDef<AxonSettings> = {
       ? { style: s.style, section: s.section, refine: true }
       : { viewpoints: s.viewpoints, style: s.style, section: s.section },
   plannedCount: (s, mode) => (mode === 'refine' ? 1 : Math.max(1, s.viewpoints.length)),
-  promptContracts: [{ name: 'axonometric prompt forbids a flat front-on result', pattern: /do NOT reproduce a flat, front-on elevation/i }],
+  promptContracts: [
+    { name: 'axonometric prompt forbids a flat front-on result', pattern: /do NOT reproduce a flat, front-on elevation/i },
+    { name: 'axonometric prompt holds parallel projection', pattern: /no perspective distortion and no vanishing point/ },
+    { name: 'from an elevation it infers only the depth', pattern: /INFER THE DEPTH, AND ONLY THE DEPTH/ },
+  ],
+};
+
+const watercolour: FeatureDef<WatercolourSettings> = {
+  key: 'watercolour',
+  category: 'visualization',
+  name: 'Watercolour Sketch',
+  blurb: 'Render to Painted Illustration',
+  icon: Brush,
+  inputMode: 'image',
+  maxReferences: 1,
+  defaultSettings: { palette: 'warm', loose: true, keepLines: true },
+  buildPrompt: (s) => buildWatercolourPrompt(s),
+  sceneShow: {},
+  sendTargets: ['moodboard'],
+  poolLabel: 'Watercolours',
+  galleryLabel: 'Watercolour',
+  ui: {
+    eyebrow: 'Visualization',
+    title: 'Render → Watercolour',
+    description:
+      'The same building, painted. Useful precisely because it looks unfinished — a watercolour invites comment on the idea, where a photoreal render invites argument about the brick.',
+    inputLabel: 'Input',
+    inputHint: 'A render, elevation or photograph',
+    outputCaption: 'The painting',
+    emptyIcon: Brush,
+    emptyTitle: 'Nothing painted yet',
+    emptyDescription: 'Upload an image and press Generate — the watercolour appears here.',
+    compare: { before: 'Render', after: 'Watercolour' },
+  },
+  blockedReason: (_s, hasInput) => (hasInput ? null : 'Upload an image to begin.'),
+  toOptions: (s, ctx) => ({
+    style: s.palette,
+    variations: 1,
+    refine: ctx.refine || undefined,
+    referenceImages: ctx.referenceImages,
+  }),
+  promptContracts: [
+    { name: 'watercolour changes only the medium', pattern: /LOCK EVERYTHING EXCEPT the medium it is painted in/ },
+    { name: 'watercolour keeps looseness off the geometry', pattern: /looseness is a property of the paint, not of the building/ },
+    { name: 'watercolour refuses a filter', pattern: /paint on paper, not as a photograph with a filter over it/ },
+  ],
 };
 
 const interior: FeatureDef<InteriorSettings> = {
@@ -903,6 +1027,107 @@ const specSheet: FeatureDef<SpecSheetSettings> = {
 };
 
 // --- Visualization ----------------------------------------------------------
+
+// --- Site & Urban -----------------------------------------------------------
+//
+// The category that arrives with its first tool. Both of these take an image the
+// app did not make — a Maps screenshot, a render on white — which is why they
+// are the only two tools carrying a free-text "where is this" field: the input
+// genuinely cannot say.
+
+const birdsEye: FeatureDef<BirdsEyeSettings> = {
+  key: 'birdsEye',
+  category: 'site',
+  name: "Bird's Eye View",
+  blurb: 'Satellite to Aerial Photo',
+  icon: Plane,
+  inputMode: 'image',
+  maxReferences: 1,
+  defaultSettings: { light: 'golden', context: '' },
+  buildPrompt: (s) => buildBirdsEyePrompt(s),
+  sceneShow: {},
+  // A drone shot is a landscape composition whatever shape the screenshot was
+  // cropped to, and the input crop carries no compositional intent — it is
+  // wherever the user happened to stop dragging.
+  aspectRatio: () => '16:9',
+  // Everything the input could not show — building heights, roof pitches, the
+  // state of the vegetation — is inferred from a flat orthographic image.
+  accuracyWarning: () =>
+    'Heights, roof forms and planting are inferred — a satellite image cannot show them. Treat this as a study, not a survey.',
+  sendTargets: ['moodboard'],
+  poolLabel: 'Aerial views',
+  galleryLabel: "Bird's eye",
+  ui: {
+    eyebrow: 'Site & Urban',
+    title: 'Satellite Screenshot → Aerial Photograph',
+    description:
+      'Drop a Google Earth or Maps screenshot and get a cinematic drone shot of the same place — same streets, same blocks, same water, with real elevation and real light.',
+    inputLabel: 'Input',
+    inputHint: 'A top-down satellite or Maps screenshot',
+    outputCaption: 'The aerial view',
+    emptyIcon: Plane,
+    emptyTitle: 'No aerial view yet',
+    emptyDescription: 'Upload a satellite screenshot and press Generate — the drone shot appears here.',
+    compare: { before: 'Satellite', after: 'Aerial' },
+  },
+  blockedReason: (_s, hasInput) => (hasInput ? null : 'Upload a satellite or map screenshot to begin.'),
+  toOptions: (s, ctx) => ({
+    style: s.light,
+    variations: 1,
+    refine: ctx.refine || undefined,
+    referenceImages: ctx.referenceImages,
+  }),
+  promptContracts: [
+    { name: "bird's-eye strips the map interface", pattern: /map pins, the search bar, zoom controls/ },
+    { name: "bird's-eye refuses a flat ground plane", pattern: /The ground must never look flat/ },
+    { name: "bird's-eye keeps the real geography", pattern: /changing the camera and the light, not the geography/ },
+  ],
+};
+
+const urbanContext: FeatureDef<UrbanContextSettings> = {
+  key: 'urbanContext',
+  category: 'site',
+  name: 'Urban Context',
+  blurb: 'Isolated Building into a Street',
+  icon: Building,
+  inputMode: 'image',
+  maxReferences: 1,
+  defaultSettings: { density: 'mid', city: '', entourage: true },
+  buildPrompt: (s) => buildUrbanContextPrompt(s),
+  sceneShow: {},
+  // Unpinned on purpose: the prompt's second instruction is that the camera does
+  // not move, and a pinned ratio is a re-crop, which is a camera move.
+  accuracyWarning: () =>
+    'The neighbours are invented, not surveyed. This shows scale and character, not what is actually next door.',
+  sendTargets: ['humanScale', 'atmosphere', 'moodboard'],
+  poolLabel: 'Contextual views',
+  galleryLabel: 'Urban context',
+  ui: {
+    eyebrow: 'Site & Urban',
+    title: 'Isolated Building → Real Street',
+    description:
+      'A render on white tells a planning committee nothing about scale. Put the same building — untouched — into a street of the right density and the right city.',
+    inputLabel: 'Input',
+    inputHint: 'A render or photo of the building alone',
+    outputCaption: 'The building in context',
+    emptyIcon: Building,
+    emptyTitle: 'No context yet',
+    emptyDescription: 'Upload a render of the building and press Generate — the street appears around it.',
+    compare: { before: 'Isolated', after: 'In context' },
+  },
+  blockedReason: (_s, hasInput) => (hasInput ? null : 'Upload a render of the building to begin.'),
+  toOptions: (s, ctx) => ({
+    style: s.density,
+    variations: 1,
+    refine: ctx.refine || undefined,
+    referenceImages: ctx.referenceImages,
+  }),
+  promptContracts: [
+    { name: 'urban context locks the building first', pattern: /LOCK THE BUILDING/ },
+    { name: 'urban context builds the street only after', pattern: /ONLY THEN BUILD THE CONTEXT/ },
+    { name: 'urban context refuses to restyle the subject', pattern: /the context serves the building, not the other way round/ },
+  ],
+};
 
 const wireframeRender: FeatureDef<WireframeRenderSettings> = {
   key: 'wireframeRender',
@@ -1202,6 +1427,165 @@ const upscale: FeatureDef<UpscaleSettings> = {
   ],
 };
 
+// --- Diagrams & Boards ------------------------------------------------------
+//
+// This category inverts the app's usual rule about text. Everywhere else a
+// label is a liability, because models misspell and a misspelled drawing is
+// unusable; here the label IS the output, so each of these tools asks for
+// correct spelling rather than for silence, and the switch defaults ON.
+
+const floorAnalysis: FeatureDef<FloorAnalysisSettings> = {
+  key: 'floorAnalysis',
+  category: 'boards',
+  name: 'Floor Analysis',
+  blurb: 'Plan to Analysis Diagram',
+  icon: Route,
+  inputMode: 'image',
+  maxReferences: 0,
+  defaultSettings: { layer: 'circulation', labels: true },
+  buildPrompt: (s) => buildFloorAnalysisPrompt(s),
+  sceneShow: {},
+  sendTargets: [],
+  poolLabel: 'Analysis diagrams',
+  galleryLabel: 'Floor analysis',
+  ui: {
+    eyebrow: 'Diagrams & Boards',
+    title: 'Floor Plan → Analysis Diagram',
+    description:
+      'One layer at a time, on purpose. Circulation, zoning, daylight or structure over the same plan — run it four times and you have a series that reads as a set.',
+    inputLabel: 'Input',
+    inputHint: 'A floor plan',
+    outputCaption: 'The analysis',
+    emptyIcon: Route,
+    emptyTitle: 'No analysis yet',
+    emptyDescription: 'Upload a floor plan, pick a layer and press Generate.',
+    compare: { before: 'Plan', after: 'Analysis' },
+  },
+  blockedReason: (_s, hasInput) => (hasInput ? null : 'Upload a floor plan to begin.'),
+  toOptions: (s, ctx) => ({ style: s.layer, variations: 1, refine: ctx.refine || undefined }),
+  promptContracts: [
+    { name: 'floor analysis keeps the plan underneath', pattern: /KEEP THE PLAN UNDERNEATH/ },
+    { name: 'floor analysis draws exactly one layer', pattern: /Overlay exactly one analysis/ },
+    { name: 'floor analysis refuses to combine layers', pattern: /says one thing clearly beats one that says four things faintly/ },
+  ],
+};
+
+const programDiagram: FeatureDef<ProgramDiagramSettings> = {
+  key: 'programDiagram',
+  category: 'boards',
+  name: 'Program Diagram',
+  blurb: 'Building to Labelled Floors',
+  icon: Rows3,
+  inputMode: 'image',
+  maxReferences: 0,
+  defaultSettings: { levels: '', orientation: 'vertical' },
+  buildPrompt: (s) => buildProgramDiagramPrompt(s),
+  sceneShow: {},
+  // A separated stack is tall whichever way you cut it; an isometric explosion
+  // spreads sideways as well, so it gets a squarer frame.
+  aspectRatio: (s) => (s.orientation === 'vertical' ? '4:5' : '4:3'),
+  sendTargets: [],
+  poolLabel: 'Program diagrams',
+  galleryLabel: 'Program diagram',
+  ui: {
+    eyebrow: 'Diagrams & Boards',
+    title: 'Building → Program Breakdown',
+    description:
+      'The floors pulled apart and named — retail, then apartments, then the roof terrace. The slabs stay recognisably this building, which is the whole difficulty.',
+    inputLabel: 'Input',
+    inputHint: 'A render, elevation or photo of the whole building',
+    outputCaption: 'The program breakdown',
+    emptyIcon: Rows3,
+    emptyTitle: 'No breakdown yet',
+    emptyDescription: 'Upload the building and press Generate — the floors separate and label themselves.',
+    compare: { before: 'Building', after: 'Program' },
+  },
+  blockedReason: (_s, hasInput) => (hasInput ? null : 'Upload the building to begin.'),
+  toOptions: (s, ctx) => ({ style: s.orientation, variations: 1, refine: ctx.refine || undefined }),
+  promptContracts: [
+    { name: 'program diagram names the output', pattern: /PROGRAM BREAKDOWN/ },
+    { name: 'program diagram separates without redesigning', pattern: /SEPARATE, DO NOT REDESIGN/ },
+    { name: 'program diagram refuses generic slabs', pattern: /A stack of generic slabs that merely share a style is a failure of this task/ },
+  ],
+};
+
+const explodedAxon: FeatureDef<ExplodedAxonSettings> = {
+  key: 'explodedAxon',
+  category: 'boards',
+  name: 'Exploded Axonometric',
+  blurb: 'Building to Assembly Diagram',
+  icon: Layers3,
+  inputMode: 'image',
+  maxReferences: 0,
+  defaultSettings: { axis: 'vertical', labels: true },
+  buildPrompt: (s) => buildExplodedAxonPrompt(s),
+  sceneShow: {},
+  aspectRatio: (s) => (s.axis === 'vertical' ? '4:5' : '4:3'),
+  sendTargets: [],
+  poolLabel: 'Exploded views',
+  galleryLabel: 'Exploded axon',
+  ui: {
+    eyebrow: 'Diagrams & Boards',
+    title: 'Building → Exploded Axonometric',
+    description:
+      'Roof, frame, floor plates, envelope, ground — separated along one axis so the assembly reads. Distinct from the program diagram: that one names floors, this one shows how it goes together.',
+    inputLabel: 'Input',
+    inputHint: 'A render, model view or photo of the building',
+    outputCaption: 'The exploded view',
+    emptyIcon: Layers3,
+    emptyTitle: 'Nothing exploded yet',
+    emptyDescription: 'Upload the building and press Generate — the layers pull apart here.',
+    compare: { before: 'Building', after: 'Exploded' },
+  },
+  blockedReason: (_s, hasInput) => (hasInput ? null : 'Upload the building to begin.'),
+  toOptions: (s, ctx) => ({ style: s.axis, variations: 1, refine: ctx.refine || undefined }),
+  promptContracts: [
+    { name: 'exploded axon names the output', pattern: /EXPLODED AXONOMETRIC/ },
+    { name: 'exploded axon holds true axonometric projection', pattern: /parallel lines stay parallel, no vanishing point/ },
+    { name: 'exploded axon keeps every layer on the same building', pattern: /Every separated layer belongs to THIS building/ },
+  ],
+};
+
+const annotation: FeatureDef<AnnotationSettings> = {
+  key: 'annotation',
+  category: 'boards',
+  name: 'Annotation Sketch',
+  blurb: 'Image to Explained Diagram',
+  icon: PenTool,
+  inputMode: 'image',
+  maxReferences: 0,
+  defaultSettings: { subject: 'circulation', custom: '', labels: true },
+  buildPrompt: (s) => buildAnnotationPrompt(s),
+  sceneShow: {},
+  sendTargets: [],
+  poolLabel: 'Annotated diagrams',
+  galleryLabel: 'Annotation',
+  ui: {
+    eyebrow: 'Diagrams & Boards',
+    title: 'Image → Annotated Diagram',
+    description:
+      'Arrows, flow lines and labels drawn over your own render or drawing — the sheet that explains why the building is the way it is. The image underneath is not redrawn.',
+    inputLabel: 'Input',
+    inputHint: 'A render, section, plan or photograph',
+    outputCaption: 'The annotated diagram',
+    emptyIcon: PenTool,
+    emptyTitle: 'Nothing annotated yet',
+    emptyDescription: 'Upload an image, choose what to explain and press Generate.',
+    compare: { before: 'Image', after: 'Annotated' },
+  },
+  blockedReason: (s, hasInput) => {
+    if (!hasInput) return 'Upload an image to begin.';
+    if (s.subject === 'custom' && !s.custom.trim()) return 'Describe what the diagram should explain.';
+    return null;
+  },
+  toOptions: (s, ctx) => ({ style: s.subject, variations: 1, refine: ctx.refine || undefined }),
+  promptContracts: [
+    { name: 'annotation locks the base image', pattern: /LOCK THE BASE IMAGE/ },
+    { name: 'annotation draws over rather than redraws', pattern: /You are drawing ON it, not redrawing it/ },
+    { name: 'annotation keeps the overlay economical', pattern: /six clear marks explains more than one with thirty/ },
+  ],
+};
+
 const moodboard: FeatureDef<MoodboardSettings> = {
   key: 'moodboard',
   category: 'boards',
@@ -1241,12 +1625,15 @@ const moodboard: FeatureDef<MoodboardSettings> = {
  */
 export const REGISTRY = {
   massing,
+  sketchRender,
   render,
   sketchPlan,
   elevation,
   cadElevation,
   section,
   renderToPlan,
+  birdsEye,
+  urbanContext,
   wireframeRender,
   renderRefine,
   atmosphere,
@@ -1255,12 +1642,17 @@ export const REGISTRY = {
   multiView,
   reflection,
   upscale,
+  watercolour,
   axonometric,
   interior,
   declutter,
   placeObject,
   targetedSwap,
   specSheet,
+  floorAnalysis,
+  programDiagram,
+  explodedAxon,
+  annotation,
   moodboard,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
 } satisfies Record<FeatureKind, FeatureDef<any>>;

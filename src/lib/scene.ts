@@ -72,6 +72,16 @@ export const ARCH_STYLES = {
     clause:
       'minimalist architecture — pure clean volumes, a white and neutral palette, frameless glazing, hidden fixings and uncluttered restrained detailing with generous negative space',
   },
+  biophilic: {
+    label: 'Biophilic',
+    clause:
+      'biophilic architecture — planting integrated into the building itself with green terraces, living walls and mature trees on structure, generous daylight, natural timber and stone, water present, and openings sized for cross-ventilation rather than for looks',
+  },
+  futuristic: {
+    label: 'Futuristic',
+    clause:
+      'futuristic architecture — fluid parametric geometry, continuous double-curved surfaces, seamless composite and glass cladding with no visible fixings, integrated linear lighting along the form, and cantilevers that read as structurally improbable',
+  },
   mediterranean: {
     label: 'Mediterranean',
     clause:

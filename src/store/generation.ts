@@ -30,6 +30,8 @@ export type ArchStyleKey =
   | 'indian'
   | 'brutalist'
   | 'minimalist'
+  | 'biophilic'
+  | 'futuristic'
   | 'mediterranean'
   | 'scandinavian'
   | 'japanese'
@@ -54,7 +56,11 @@ export interface SceneOptions {
 // these are the last thing standing between a typo and a silently wrong run —
 // `updateFeatureSettings('axonometric', { style: 'realistc' })` used to compile.
 // The old inline comments here had already drifted from what the UI offers.
-export type RenderStyleKey = 'photoreal' | 'isometric' | 'plan2d' | 'clay' | 'line' | 'watercolour';
+// 'watercolour' used to sit here. It was unreachable — the Isometric screen
+// offers isometric and plan2d only — and it now has a tool of its own with a
+// real geometry lock, so keeping a second, weaker watercolour prompt behind a
+// dead key was two sources of truth for one output.
+export type RenderStyleKey = 'photoreal' | 'isometric' | 'plan2d' | 'clay' | 'line';
 export type ElevationStyleKey = 'line' | 'rendered' | 'shaded';
 export type AxonStyleKey = 'realistic' | 'lineart' | 'bw';
 
@@ -96,7 +102,18 @@ export interface InteriorSettings {
   moodboard: string | null; // dataURL of an uploaded mood-board reference image
   scene: SceneOptions;
 }
+/**
+ * What the axonometric is being built FROM.
+ *
+ * Not cosmetic. From an elevation the front-to-back depth is absent and must be
+ * invented; from a modelled viewport it is present and inventing one means
+ * ignoring the input. The two branches of the prompt share almost no text, and
+ * only the elevation branch earns an accuracy warning.
+ */
+export type AxonSource = 'elevation' | 'model';
+
 export interface AxonSettings {
+  source: AxonSource;
   viewpoints: string[]; // NE/NW/SE/SW
   style: AxonStyleKey;
   section: boolean;
@@ -199,6 +216,15 @@ export interface UpscaleSettings {
   sharpen: boolean;
 }
 
+export type WatercolourPalette = 'warm' | 'cool' | 'muted' | 'monochrome';
+
+export interface WatercolourSettings {
+  palette: WatercolourPalette;
+  /** Loose washes vs controlled ones. Applies to the paint, never the plan. */
+  loose: boolean;
+  keepLines: boolean;
+}
+
 // --- Plans & Drawings -------------------------------------------------------
 //
 // Every tool here outputs an orthographic line drawing, so they share two axes:
@@ -257,6 +283,79 @@ export interface MassingSettings {
   context: string;
 }
 
+/** How resolved a sketch comes back — three drawings, not a quality ladder. */
+export type SketchMedium = 'illustration' | 'photoreal' | 'hybrid';
+
+export interface SketchRenderSettings {
+  medium: SketchMedium;
+  /** What the sketch shows, when the sketch is too rough to say so itself. */
+  subject: string;
+  scene: SceneOptions;
+}
+
+// --- Site & Urban -----------------------------------------------------------
+//
+// Both tools here take an image the app did not produce — a Maps screenshot, a
+// render on white — so their settings carry the one thing the image cannot
+// state: where on earth this is. That free text is what stops the model
+// inventing a generic anywhere.
+
+export type AerialLight = 'golden' | 'overcast' | 'midday';
+
+export interface BirdsEyeSettings {
+  light: AerialLight;
+  /** Free text: the locality, so the vegetation and roofs belong to it. */
+  context: string;
+}
+
+export type UrbanDensity = 'low' | 'mid' | 'dense';
+
+export interface UrbanContextSettings {
+  density: UrbanDensity;
+  /** Free text: the city whose street character the neighbours should have. */
+  city: string;
+  entourage: boolean;
+}
+
+// --- Diagrams & Boards ------------------------------------------------------
+//
+// The one category where text on the output is the POINT rather than a
+// liability, so each tool carries a labels switch that defaults ON — the
+// opposite of the drawings category, where `annotation: 'none'` is the default.
+
+export type AnnotationSubject = 'circulation' | 'ventilation' | 'sun' | 'program' | 'structure' | 'custom';
+
+export interface AnnotationSettings {
+  subject: AnnotationSubject;
+  /** Used when subject === 'custom'. */
+  custom: string;
+  labels: boolean;
+}
+
+export type ProgramOrientation = 'vertical' | 'isometric';
+
+export interface ProgramDiagramSettings {
+  /** Free text, bottom to top — the program a facade cannot show. */
+  levels: string;
+  orientation: ProgramOrientation;
+}
+
+export type ExplodeAxis = 'vertical' | 'layered';
+
+export interface ExplodedAxonSettings {
+  axis: ExplodeAxis;
+  labels: boolean;
+}
+
+export type AnalysisLayer = 'circulation' | 'zoning' | 'daylight' | 'structure';
+
+export interface FloorAnalysisSettings {
+  /** Exactly one layer per run. Four at once is a colourful mess that says
+   *  nothing; running the tool four times is a series that says four things. */
+  layer: AnalysisLayer;
+  labels: boolean;
+}
+
 // --- Material & mood board (Feature 05: any image → AI board) ---------------
 export type BoardAspectKey = Extract<AspectRatio, '4:5' | '1:1' | '16:9'>;
 export interface MoodboardSettings {
@@ -285,6 +384,14 @@ export type FeatureSettings =
   | ReflectionSettings
   | UpscaleSettings
   | MassingSettings
+  | SketchRenderSettings
+  | BirdsEyeSettings
+  | UrbanContextSettings
+  | WatercolourSettings
+  | AnnotationSettings
+  | ProgramDiagramSettings
+  | ExplodedAxonSettings
+  | FloorAnalysisSettings
   | MoodboardSettings;
 
 /** Quick-action refinement of a specific output (P2). */

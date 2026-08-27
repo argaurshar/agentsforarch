@@ -8,7 +8,9 @@
 // sampled: the bugs that shipped were all in combinations nobody thought to try.
 
 import { buildAxonometricPrompt, buildElevationPrompt, buildInteriorPrompt, buildMoodboardPrompt, buildRefinePrompt, buildRenderPrompt } from '../src/lib/prompts';
-import { buildMassingPrompt } from '../src/lib/prompt/concept';
+import { buildMassingPrompt, buildSketchRenderPrompt } from '../src/lib/prompt/concept';
+import { buildAnnotationPrompt, buildExplodedAxonPrompt, buildProgramDiagramPrompt } from '../src/lib/prompt/boards';
+import { buildBirdsEyePrompt, buildFloorAnalysisPrompt, buildUrbanContextPrompt } from '../src/lib/prompt/site';
 import {
   buildAtmospherePrompt,
   buildFacadeMaterialPrompt,
@@ -17,6 +19,7 @@ import {
   buildReflectionPrompt,
   buildRenderRefinePrompt,
   buildUpscalePrompt,
+  buildWatercolourPrompt,
   buildWireframeRenderPrompt,
 } from '../src/lib/prompt/visualization';
 import {
@@ -35,7 +38,7 @@ import { defaultScene } from '../src/lib/scene';
 const sc = defaultScene();
 const out: string[] = [];
 const add = (k: string, v: string) => out.push(`### ${k}\n${v}`);
-for (const style of ['photoreal','isometric','plan2d','clay','line','watercolour'] as const)
+for (const style of ['photoreal','isometric','plan2d','clay','line'] as const)
   for (const sr of [false, true]) add(`render:${style}:ref${sr}`, buildRenderPrompt({ style, useStyleRef: sr, ...sc }));
 for (const face of [null,'Front','Side','Rear'] as const)
   for (const style of ['line','rendered','shaded'] as const)
@@ -46,8 +49,13 @@ for (const mode of ['restyle','stage','renovate'] as const)
   for (const room of ['living','bedroom','kitchen','bathroom','dining','office'] as const)
     for (const theme of ['none','contemporary','modern','traditional','boho','minimalist','japandi','industrial','luxury'] as const)
       add(`int:${mode}:${room}:${theme}`, buildInteriorPrompt({ mode, roomType: room, theme, mood: sc.mood }));
-for (const style of ['realistic','lineart','bw'] as const)
-  for (const sec of [false,true]) add(`axon:${style}:${sec}`, buildAxonometricPrompt({ section: sec, style }));
+// The axonometric's two sources share almost no prompt text, and the whole risk
+// is one branch leaking into the other — an inferred depth instructed over an
+// image that already shows the depth.
+for (const source of ['elevation','model'] as const)
+  for (const style of ['realistic','lineart','bw'] as const)
+    for (const sec of [false,true])
+      add(`axon:${source}:${style}:${sec}`, buildAxonometricPrompt({ section: sec, style, source }));
 for (const keep of [true, false]) add(`declutter:builtins${keep}`, buildDeclutterPrompt({ keepBuiltIns: keep }));
 for (const kind of ['furniture','lighting','artwork'] as const)
   for (const placement of ['replace','add'] as const)
@@ -63,6 +71,45 @@ for (const density of ['low','medium','high'] as const)
     add(`massing:${density}:${filled ? 'full' : 'bare'}`, buildMassingPrompt(filled
       ? { brief: '40-unit residential block with ground-floor retail', siteSize: '45m x 60m corner plot', density, storeys: '6 storeys stepping to 4', context: 'four-storey terraces on two sides' }
       : { brief: '', siteSize: '', density, storeys: '', context: '' }));
+// Sketch to Render. The scene axes are enumerated alongside the medium because
+// each one appends a clause, and an empty clause has to drop out cleanly rather
+// than leave "Materials: ." in the prompt.
+for (const medium of ['illustration','photoreal','hybrid'] as const)
+  for (const archStyle of ['none','brutalist','biophilic','futuristic'] as const)
+    for (const context of ['none','urban'] as const)
+      for (const entourage of [false,true])
+        for (const subject of ['', 'a two-storey house seen from the garden corner'])
+          add(`sketchrender:${medium}:${archStyle}:${context}:e${entourage}:${subject ? 'named' : 'auto'}`,
+            buildSketchRenderPrompt({ ...sc, archStyle, context, entourage, medium, subject }));
+// Site & Urban. The free-text field is enumerated blank and filled: a tool whose
+// prompt only works once you type something is a tool that fails silently on
+// first use.
+for (const light of ['golden','overcast','midday'] as const)
+  for (const context of ['', 'coastal Goa, monsoon season'])
+    add(`birdseye:${light}:${context ? 'named' : 'auto'}`, buildBirdsEyePrompt({ light, context }));
+for (const density of ['low','mid','dense'] as const)
+  for (const city of ['', 'Ahmedabad'])
+    for (const entourage of [false,true])
+      add(`urban:${density}:${city ? 'named' : 'auto'}:e${entourage}`, buildUrbanContextPrompt({ density, city, entourage }));
+for (const layer of ['circulation','zoning','daylight','structure'] as const)
+  for (const labels of [false,true])
+    add(`flooranalysis:${layer}:l${labels}`, buildFloorAnalysisPrompt({ layer, labels }));
+// Diagrams & Boards. `labels` is enumerated both ways on every tool here for the
+// same reason the drawings category enumerates units: the no-text branch and the
+// labelled branch are different prompts, and only one of them is the default.
+for (const subject of ['circulation','ventilation','sun','program','structure','custom'] as const)
+  for (const labels of [false,true])
+    add(`annotate:${subject}:l${labels}`, buildAnnotationPrompt({ subject, custom: subject === 'custom' ? 'how rainwater is collected and reused' : '', labels }));
+add('annotate:custom:blank', buildAnnotationPrompt({ subject: 'custom', custom: '', labels: true }));
+for (const orientation of ['vertical','isometric'] as const)
+  for (const levels of ['', 'Parking\nRetail\nOffices\nApartments'])
+    add(`program:${orientation}:${levels ? 'given' : 'inferred'}`, buildProgramDiagramPrompt({ levels, orientation }));
+for (const axis of ['vertical','layered'] as const)
+  for (const labels of [false,true])
+    add(`explode:${axis}:l${labels}`, buildExplodedAxonPrompt({ axis, labels }));
+for (const palette of ['warm','cool','muted','monochrome'] as const)
+  for (const loose of [false,true]) for (const keepLines of [false,true])
+    add(`watercolour:${palette}:l${loose}:k${keepLines}`, buildWatercolourPrompt({ palette, loose, keepLines }));
 // Plans & Drawings. Units are enumerated even where annotation is 'none' — a
 // unit clause leaking into an unannotated drawing is exactly the kind of
 // cross-axis surprise full enumeration exists to catch.

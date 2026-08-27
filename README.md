@@ -32,11 +32,29 @@ Then open the printed local URL.
 npm run build      # type-check (strict) + production build
 npm run typecheck  # type-check only
 npm run preview    # preview the production build
+npm run qa         # static gates — no browser, no API calls, no cost
+npm run qa:e2e     # browser suite against `npm run preview`, network mocked
 ```
+
+`npm run qa` is what CI runs, and it exists because **TypeScript cannot see a
+changed prompt string**. Five gates, each catching something the others cannot:
+
+| Gate | Catches |
+|---|---|
+| `designLint` | design-system drift — raw hex, ad-hoc spacing, unlisted radii |
+| `registryLint` | a tool that is incomplete, unreachable, or missing from a derived table |
+| `verifyContracts` | a tool whose own default prompt no longer satisfies the contract it declares |
+| `promptSnapshot` | any prompt whose wording changed, across every enumerated variant |
+| `promptContradictions` | a prompt that asks for a thing and forbids it in the same breath |
+
+The last one is the least obvious and the most valuable. The two worst bugs this
+app has shipped were both self-contradictory prompts, not missing ones — a
+prompt can satisfy every contract and pass the snapshot while instructing the
+model to do and not do the same thing.
 
 ## The tools
 
-Twenty-two generation tools, grouped by the stage of the job they belong to. Pick a
+Thirty generation tools, grouped by the stage of the job they belong to. Pick a
 category in the sidebar and you get its **tool rail**: tick as many tools as you
 want, drop **one** image, and press **Synthesize** — they all run on it, one at a
 time, each with its own settings. Nothing is ever locked, disabled or gated
@@ -47,11 +65,12 @@ its controls live and where it can be run on its own.
 
 | Category | Tools |
 |---|---|
-| **Concept & Form** | Massing Study |
-| **Plans & Drawings** | Sketch to CAD Plan · Isometric · Axonometric · Elevation · CAD Elevation · Section · Render to Plan |
-| **Visualization** | Wireframe to Render · Render Refinement · Atmosphere & Light · Facade Material Study · Add Human Scale · Multi-View Sheet · Reflection Control · Upscale for Print |
+| **Concept & Form** | Massing Study · Sketch to Render |
+| **Plans & Drawings** | Sketch to CAD Plan · Isometric · Elevation · Axonometric · CAD Elevation · Section · Render to Plan |
+| **Site & Urban** | Bird's Eye View · Urban Context |
+| **Visualization** | Wireframe to Render · Render Refinement · Atmosphere & Light · Facade Material Study · Add Human Scale · Multi-View Sheet · Reflection Control · Upscale for Print · Watercolour Sketch |
 | **Interiors** | Interior Design · Declutter · Place Object · Targeted Edit · FF&E Spec Sheet |
-| **Diagrams & Boards** | Material & Mood Board |
+| **Diagrams & Boards** | Floor Analysis · Program Diagram · Exploded Axonometric · Annotation Sketch · Material & Mood Board |
 
 Plus two fixed destinations: **Home** (project dashboard — pipeline map with
 live counts and thumbnails, recent outputs, getting-started steps and a bundled
@@ -64,13 +83,16 @@ section header shows. It is derived from position, so it can never disagree.
 | # | Tool | Input | Output |
 |---|------|-------|--------|
 | 01 | Brief → Massing Study | **No image at all** — a typed brief, plot size, density and context | A white study **massing model**, photographed three-quarter aerial. Deliberately no materials, glazing or entourage: a massing study earns its keep by refusing to answer questions it is too early to ask |
+| 02 | Hand Sketch → Finished Image | A photo or scan of a rough sketch | The same drawing resolved — as an illustration, a photoreal render, or a hybrid that keeps your linework over the colour. Its whole discipline is refusal: same viewpoint, same masses, **no wing, tower or storey you did not draw** |
 | 01 | Hand Sketch → CAD Plan | A napkin sketch or marker-on-trace plan | A precise 2D plan: straightened walls with poché, door swing arcs, window breaks, optional fixtures. It **draws up** the sketch rather than redesigning it — the same footprint contract that fixed the squared-off isometric |
 | 02 | Floor Plan → 3D Isometric | 2D floor plan | **3D isometric "dollhouse" cutaway** or a **fully furnished top-down 2D marketing plan** — plus **Compare styles** (one plan × up to 4 design languages in one batch) and a before/after compare |
-| 04 | Sketch / Model → Elevation | Sketch or SketchUp screenshot | Rendered elevation, styled by a **design theme** (Contemporary / Modern / Traditional / Boho chic) **or an uploaded mood board** |
-| 03 | Elevation → Axonometric | Elevation image | True 3D axonometric + section-axonometric views in **realistic / line-art / black-&-white**, one per viewpoint |
+| 03 | Sketch / Model → Elevation | Sketch or SketchUp screenshot | Rendered elevation, styled by a **design theme** (Contemporary / Modern / Traditional / Boho chic) **or an uploaded mood board** |
+| 04 | Elevation **or 3D Model** → Axonometric | An elevation image, **or** a SketchUp / Revit / Rhino viewport screenshot | True 3D axonometric + section-axonometric views in **realistic / line-art / black-&-white**, one per viewpoint. Say which input you gave it: from an elevation the depth behind the face is **inferred** (and the output says so), from a model it is **read off the image** and flattening the perspective is the whole job |
 | 05 | 3D Model → CAD Elevation | A SketchUp / Revit / Rhino viewport screenshot | The **measured line elevation** for the drawing set — perspective flattened out, level lines, optional material hatching and dimension chains. Distinct from 03, which renders an elevation for a client |
 | 06 | Architectural Section | A 3D view, render or plan | A **vertical cut** through the building: floor slabs and cut walls in solid poché, room interiors and the stair beyond, real ceiling heights, optional figures for scale |
 | 07 | 3D View → Floor Plan | A render, 3D view or photograph | The **floor plan the image implies** — the pipeline run backwards. Carries a visible accuracy warning: one viewpoint cannot show a whole plan, so part of it is inference |
+| 01 | Satellite Screenshot → Aerial Photograph | A Google Earth or Maps screenshot | A cinematic drone shot of the same place. Strips the map interface — pins, search bar, watermarks, road labels — then invents the elevation a top-down image cannot show. Carries an accuracy warning: heights and planting are inferred |
+| 02 | Isolated Building → Real Street | A render or photo of the building alone | The same building, untouched, in a street of the chosen density and city. Carries an accuracy warning — the neighbours are invented, not surveyed |
 | 01 | Wireframe → Photoreal Render | A wireframe, clay or shaded viewport | A finished render with materials, light and setting. The modelled geometry is fixed input — it will not add a window to balance the elevation |
 | 02 | Draft Render → Finished Render | A rough, quick or AI render | The **same image, produced properly**: resolved materials, correct contact shadows, believable glass. Changes nothing about the design, view or light |
 | 03 | Re-light the Render | Any finished render | Golden hour, overcast, dusk, winter — the scene vocabulary pointed at an image that **already exists** rather than a new one |
@@ -79,12 +101,17 @@ section header shows. It is derived from position, so it can never disagree.
 | 06 | Multi-View Presentation Sheet | A render or photo of the building | Several views on one sheet. Carries an accuracy warning — the hard part is that every panel must be **the same building**, not four similar ones |
 | 07 | Reflection Control | A render with glazing | Transparent enough to look occupied, or mirrored enough to disappear. Reflections break at every mullion and vary pane by pane |
 | 08 | Upscale for Print | The approved image | A print master that **resolves** detail rather than inventing it. Sends `resolution` on the kie.ai engine; on Gemini the screen says so rather than under-delivering |
+| 09 | Render → Watercolour | Any render, elevation or photograph | The same building painted in watercolour. Useful **because** it looks unfinished — a wash invites comment on the idea where a photoreal render invites argument about the brick. The paint is loose; the geometry is not |
 | 01 | Room Photo → Interior Design | Photo of a room (furnished or empty) | **Restyled / staged / renovated interior** in a chosen design theme, or from an uploaded mood board, with interior-specific refine chips |
 | 02 | Messy Room → Empty Shell | Photo of a cluttered room | The **bare architectural shell**, ready to re-stage — everything movable removed and the surfaces behind it repaired, with fitted joinery optionally kept |
 | 03 | Place Object | Room photo **+ a product shot** | That **exact** product placed in the room — furniture (contact shadow), a light fitting (switched on, lighting the room) or artwork (mounted flat to the wall) |
 | 04 | Targeted Edit | Any interior photo | **One named thing changed** and nothing else — no mask, the target is described in words |
 | 05 | FF&E Spec Sheet | A finished interior | A **knolled flat-lay component inventory** of that room on white, each item captioned with its material or finish |
-| 01 | Material & Mood Board | Any image (render, sketch or photo) — or up to 9 outputs in Collage mode | **AI board** (default): a flat-lay material & mood board **extracted from the image** — labelled samples, furniture suggestions, colour dots, a 5-swatch palette strip and a vibe line. **Collage**: the branded canvas grid board |
+| 01 | Floor Plan → Analysis Diagram | A floor plan | The plan in light grey with **exactly one** analysis over it — circulation, zoning, daylight or structure. One layer at a time on purpose: four at once is a colourful mess, four runs is a series |
+| 02 | Building → Program Breakdown | A render, elevation or photo of the whole building | The floors separated and labelled with what each one is for. The hard part is that each slab must stay recognisably **this** building rather than a generic stack that shares a colour scheme |
+| 03 | Building → Exploded Axonometric | A render, model view or photo | Roof, frame, floor plates, envelope and ground pulled apart along one axis, in true axonometric projection. Distinct from 02: that one names floors, this one shows how it assembles |
+| 04 | Image → Annotated Diagram | Any render, section, plan or photograph | Arrows, flow lines and labels drawn **on** your image — circulation, ventilation, sun path, program, structure or your own subject. The base image is locked so the comparison still holds |
+| 05 | Material & Mood Board | Any image (render, sketch or photo) — or up to 9 outputs in Collage mode | **AI board** (default): a flat-lay material & mood board **extracted from the image** — labelled samples, furniture suggestions, colour dots, a 5-swatch palette strip and a vibe line. **Collage**: the branded canvas grid board |
 
 Every tool accepts its input by direct upload, independent of anything else in
 the session — Axonometric works from a directly uploaded elevation without
@@ -151,8 +178,9 @@ unless you've edited it.
   and people** assemble the prompt automatically (`src/components/Scene/SceneControls.tsx`).
   Change a material or the time of day without touching the prompt.
 - **Architecture styles** — a one-click **Architecture style** picker
-  (Contemporary, Bauhaus, Indian vernacular, Brutalist, Minimalist, Mediterranean,
-  Scandinavian, Japanese, Art Deco, plus a Custom free-text field) reshapes the
+  (Contemporary, Bauhaus, Indian vernacular, Brutalist, Minimalist, Biophilic,
+  Futuristic, Mediterranean, Scandinavian, Japanese, Art Deco, plus a Custom
+  free-text field) reshapes the
   design language of the isometric plan render (`ARCH_STYLES` in `src/lib/scene.ts`).
 - **Feature 01 · Floor Plan → 3D Isometric** — upload a 2D floor plan and it becomes
   a 3D isometric "dollhouse" cutaway (walls extruded, furniture in 3D, strict 45°

@@ -675,6 +675,76 @@ const check = (name, ok, detail = '') => {
   await page.waitForTimeout(2500);
   check('the upscaler still runs on an engine without it', geminiBodies.length > beforeUp);
 
+  // 18. The eight tools from the client mockups. Section 12 already proves each
+  //     one is REACHABLE; this proves each one is the tool it claims to be, by
+  //     reading the instruction it would be useless without out of its own live
+  //     prompt box.
+  const MOCKUP_TOOLS = [
+    ['sketchRender', [/LOCK THE DRAWING/, /do not rebalance the massing/]],
+    ['birdsEye', [/The ground must never look flat/, /map pins, the search bar, zoom controls/]],
+    ['urbanContext', [/LOCK THE BUILDING/, /the context serves the building, not the other way round/]],
+    ['watercolour', [/looseness is a property of the paint, not of the building/]],
+    ['floorAnalysis', [/KEEP THE PLAN UNDERNEATH/, /Overlay exactly one analysis/]],
+    ['programDiagram', [/PROGRAM BREAKDOWN/, /A stack of generic slabs/]],
+    ['explodedAxon', [/EXPLODED AXONOMETRIC/, /parallel lines stay parallel/]],
+    ['annotation', [/You are drawing ON it, not redrawing it/]],
+  ];
+  for (const [key, patterns] of MOCKUP_TOOLS) {
+    await navTo(key);
+    const box = page.locator(`#${key}-prompt`);
+    check(`${key} is reachable and has its prompt box`, (await box.count()) === 1);
+    const text = (await box.count()) ? await box.inputValue() : '';
+    for (const re of patterns) check(`${key} prompt carries ${re.source.slice(0, 42)}`, re.test(text));
+  }
+
+  // Diagrams & Boards is the first category where text on the output is the
+  // point rather than a liability, so its labels switch has to flip the prompt
+  // between two mutually exclusive clauses. Getting this wrong ships a prompt
+  // that demands correct spelling and forbids text at once — the shaded-section
+  // bug in a new costume, which is why the static gate now carries that pair.
+  await navTo('explodedAxon');
+  const axonPrompt = page.locator('#explodedAxon-prompt');
+  check('a boards tool asks for spelling by default', /Spell every word correctly/.test(await axonPrompt.inputValue()));
+  check(
+    'and does not also forbid text',
+    !/Do not add any watermark, signature, caption or stray text/.test(await axonPrompt.inputValue()),
+  );
+  await page.getByRole('switch', { name: 'Label each layer' }).click();
+  await page.waitForTimeout(300);
+  const axonOff = await axonPrompt.inputValue();
+  check('switching labels off swaps in the no-text guard', /Do not add any watermark/.test(axonOff));
+  check('and drops the spelling demand', !/Spell every word correctly/.test(axonOff));
+
+  // A free-text field the prompt depends on must block Generate while it is
+  // empty, or the tool silently runs on a placeholder.
+  await navTo('annotation');
+  await page.setInputFiles('input[type=file]', PLAN);
+  await page.waitForTimeout(400);
+  check('annotation runs on a named subject', await page.getByRole('button', { name: /^Generate$/ }).isEnabled());
+  await page.getByRole('button', { name: 'Something else' }).click();
+  await page.waitForTimeout(300);
+  check(
+    'but blocks on an undescribed custom subject',
+    !(await page.getByRole('button', { name: /^Generate$/ }).isEnabled()),
+  );
+
+  // 19. The axonometric now reads its input two ways, and the two branches share
+  //     almost no prompt text. From an elevation the depth is absent and must be
+  //     invented; from a modelled viewport it is present, and inventing one means
+  //     instructing the model to ignore its own input. Assert the switch really
+  //     swaps the branch rather than appending a sentence to it.
+  await navTo('axonometric');
+  const axonBox = page.locator('#axonometric-prompt');
+  const fromElevation = await axonBox.inputValue();
+  check('from an elevation the axonometric infers a depth', /INFER THE DEPTH, AND ONLY THE DEPTH/.test(fromElevation));
+  check('and does not claim to read one off the image', !/read them off the image/.test(fromElevation));
+  await page.getByRole('button', { name: 'A 3D model' }).click();
+  await page.waitForTimeout(300);
+  const fromModel = await axonBox.inputValue();
+  check('from a model it reads the depth off the image', /read them off the image and reproduce them/.test(fromModel));
+  check('and stops inventing one', !/INFER THE DEPTH/.test(fromModel));
+  check('both branches still forbid a flat elevation', /do NOT reproduce a flat, front-on elevation/.test(fromModel));
+
   check('no page crashes', perr.length === 0, perr.slice(0, 2).join(' | '));
   await browser.close();
   const failed = results.filter((r) => !r.ok).length;

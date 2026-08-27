@@ -93,6 +93,25 @@ const PAIRS = [
     'Fix the materials specifically',
     'the refiner is told to fix materials and to leave materials alone',
   ],
+  // Diagrams & Boards is the first category where labels default ON, which puts
+  // it one careless `.join()` away from the shaded-section bug in a new costume:
+  // a mode's clause cancelled by a blanket clause appended after it. There the
+  // blanket clause was "no shading"; here it is the no-text guard every other
+  // category ends with.
+  [
+    'Spell every word correctly',
+    'Do not add any watermark, signature, caption or stray text',
+    'a prompt cannot demand correct spelling and forbid text in the same breath',
+  ],
+  // The axonometric is one tool reading its input two ways: from an elevation
+  // the depth is absent and must be invented, from a modelled viewport it is
+  // present and inventing one means ignoring the image. The branches share
+  // almost no text, so the failure mode is a leak between them.
+  [
+    'INFER THE DEPTH, AND ONLY THE DEPTH',
+    'read them off the image and reproduce them',
+    'a depth cannot be both invented and read off the input',
+  ],
 ];
 
 /**

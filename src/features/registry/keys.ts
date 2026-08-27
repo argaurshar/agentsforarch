@@ -11,6 +11,7 @@
 
 export const FEATURE_KEYS = [
   'massing',
+  'sketchRender',
   // Plans & Drawings, in the order the work happens: draw the plan, take it to
   // 3D, draw the elevation, take THAT to 3D, then the remaining flat drawings,
   // then the one tool that runs backwards. This order also drives the home
@@ -22,6 +23,9 @@ export const FEATURE_KEYS = [
   'cadElevation',
   'section',
   'renderToPlan',
+  // Site & Urban: read the place, then put the building in it.
+  'birdsEye',
+  'urbanContext',
   // Visualization, in the order a render matures: build it, resolve it, light
   // it, study it, populate it, sheet it, tune the glass, print it.
   'wireframeRender',
@@ -32,11 +36,19 @@ export const FEATURE_KEYS = [
   'multiView',
   'reflection',
   'upscale',
+  'watercolour',
   'interior',
   'declutter',
   'placeObject',
   'targetedSwap',
   'specSheet',
+  // Diagrams & Boards, in the order a project gets explained: analyse the plan,
+  // break down what happens on each floor, take the building apart, draw over
+  // the picture, then the material board.
+  'floorAnalysis',
+  'programDiagram',
+  'explodedAxon',
+  'annotation',
   'moodboard',
 ] as const;
 

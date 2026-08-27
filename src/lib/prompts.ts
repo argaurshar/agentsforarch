@@ -48,17 +48,11 @@ const LINE_PROMPT =
   'Clean consistent line weights, crisp hidden-line-removed linework, pure white background, ' +
   'no shading and no colour, technical hand-drafted ink presentation aesthetic.';
 
-const WATERCOLOUR_PROMPT =
-  'Render this architectural sketch as an elegant architectural watercolour illustration. ' +
-  'Preserve the geometry and composition. ' +
-  'Soft translucent washes, loose confident edges, warm muted palette, subtle paper texture, ' +
-  'gently graded skies, hand-painted presentation illustration, light and airy. ' +
-  NO_TEXT;
-
 // Style unions live with the settings that carry them (store/generation.ts).
 // This file used to declare its own copy, which had already drifted: it was
 // missing 'plan2d', a style the builder below actually handles.
 export type { RenderStyleKey } from '../store/generation';
+import type { AxonSource } from '../store/generation';
 
 /**
  * 2D plan → 3D isometric cutaway. Staged deliberately: read the plan, lock the
@@ -135,7 +129,6 @@ export function buildRenderPrompt(a: { style: string; useStyleRef?: boolean } & 
 function renderBase(a: { style: string } & SceneOptions): string {
   if (a.style === 'clay') return CLAY_PROMPT;
   if (a.style === 'line') return LINE_PROMPT;
-  if (a.style === 'watercolour') return WATERCOLOUR_PROMPT;
   if (a.style === 'isometric') return buildIsometricPrompt(a);
   if (a.style === 'plan2d') return buildFurnishedPlanPrompt(a);
 
@@ -358,21 +351,53 @@ export function buildMoodboardPrompt(): string {
 export type { AxonStyleKey } from '../store/generation';
 
 /**
- * The critical move: a flat elevation must be REBUILT as a 3D volume and rotated
- * to a corner view, not reproduced front-on. Without this the model just returns
- * the input elevation lightly cleaned up (the reported bug). The viewpoint
- * (NE/NW/SE/SW) is appended per-image by the provider and reinforces the corner.
+ * An elevation OR a 3D model → an axonometric drawing.
  *
- * This is a pure conversion of an already-rendered image, so it never introduces
- * or restyles materials — the realistic style preserves the input's materials,
- * colours and textures exactly.
+ * These are two different jobs wearing one name, and the difference is the
+ * whole prompt. From an elevation the depth is NOT in the image, so it has to
+ * be invented and the tool is partly guessing. From a modelled viewport the
+ * depth IS in the image, and inventing one is the failure — the job there is a
+ * change of projection, not a reconstruction.
+ *
+ * Which is why `source` branches the read and the lock rather than adding a
+ * sentence. Telling a model to "infer a sensible depth" when the input already
+ * shows the depth is an instruction to ignore its own input.
  */
-export function buildAxonometricPrompt(a: { section: boolean; style: string }): string {
-  const parts: string[] = [
-    'Rebuild the building shown in this elevation as a three-dimensional massing model and present it as an architectural axonometric view.',
-    'Rotate to a three-quarter corner viewpoint seen from slightly above, so the front face, the returning side wall and the roof are all clearly visible and the building reads with genuine depth and volume — do NOT reproduce a flat, front-on elevation.',
-    'Use parallel (axonometric / isometric) projection at roughly a 30–45 degree angle with no perspective distortion. Infer a sensible building depth and roof form from the elevation, and keep the façade details, openings and proportions consistent with it.',
-  ];
+export function buildAxonometricPrompt(a: { section: boolean; style: string; source: AxonSource }): string {
+  const parts: string[] =
+    a.source === 'model'
+      ? [
+          'Convert the three-dimensional model shown in the input — a SketchUp, Revit, Rhino or other viewport ' +
+            'screenshot, or a 3D render — into an architectural axonometric drawing.',
+          'STEP 1 — READ THE MODEL FIRST. The depth, the roof form and the returning walls are all present in this ' +
+            'image. Trace the footprint and note the depth front-to-back, every set-back, overhang and change of ' +
+            'plane, the roof form and pitch, and the position, size and proportion of every opening on every visible ' +
+            'face.',
+          'STEP 2 — LOCK THE GEOMETRY. The model is the design. Do not invent a depth, a roof pitch, a set-back, a ' +
+            'storey or an opening: read them off the image and reproduce them. Nothing is added to balance an ' +
+            'elevation, and nothing modelled is left out.',
+          'STEP 3 — CHANGE THE PROJECTION, NOT THE BUILDING. If the viewport is in perspective, flatten it: edges that ' +
+            'converge become parallel and distant parts stop shrinking. Keep a three-quarter corner viewpoint from ' +
+            'slightly above, so the front face, the returning side wall and the roof all read — do NOT reproduce a ' +
+            'flat, front-on elevation.',
+        ]
+      : [
+          'Rebuild the building shown in this elevation as a three-dimensional massing model and present it as an ' +
+            'architectural axonometric view.',
+          'STEP 1 — READ THE ELEVATION FIRST. Note the outline of the face, the roof profile, the storey lines, and ' +
+            'the position, size and proportion of every opening. An elevation shows one face only: the depth ' +
+            'front-to-back is not in the image.',
+          'STEP 2 — INFER THE DEPTH, AND ONLY THE DEPTH. Choose a plausible depth and roof form for the building type ' +
+            'and build the returning walls from it. The face you were given is not yours to change: same outline, ' +
+            'same openings, same proportions, same materials. Everything you invent sits behind it.',
+          'STEP 3 — ROTATE. Present it from a three-quarter corner viewpoint seen from slightly above, so the front ' +
+            'face, the returning side wall and the roof are all clearly visible and the building reads with genuine ' +
+            'depth and volume — do NOT reproduce a flat, front-on elevation.',
+        ];
+  parts.push(
+    'Use parallel (axonometric / isometric) projection at roughly a 30–45 degree angle, with no perspective ' +
+      'distortion and no vanishing point.',
+  );
   if (a.style === 'lineart') {
     parts.push(
       'Draw it as a clean colour line-art axonometric illustration: crisp confident outlines with light flat colour fills and minimal shading, centred on a plain white background.',
