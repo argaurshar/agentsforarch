@@ -542,7 +542,10 @@ const check = (name, ok, detail = '') => {
   //     photograph — so each one is checked for its own projection lock plus the
   //     direction-specific instruction that keeps it from becoming another tool.
   const DRAWING_TOOLS = [
-    ['sketchPlan', [/outer wall silhouette/, /not redesigning it/, /quarter-circle swing arc/]],
+    // Deliberately NOT /outer wall silhouette/: reusing the isometric's footprint
+    // lock here demanded an outline identical to a freehand sketch, which
+    // contradicted this tool's whole job of straightening it.
+    ['sketchPlan', [/Keep the outline’s topology exactly/, /NOT reshaping the plan/, /quarter-circle swing arc/]],
     ['cadElevation', [/UNDO THE PERSPECTIVE/, /this is one flat face and nothing else/]],
     ['section', [/sawn straight through/, /NOT an elevation/, /you have drawn an elevation/]],
     ['renderToPlan', [/BE HONEST ABOUT WHAT YOU CANNOT SEE/, /A plain guess is correct here/]],
@@ -561,9 +564,7 @@ const check = (name, ok, detail = '') => {
   // must not leak into a drawing that carries no dimensions.
   await navTo('sketchPlan');
   const planPrompt = page.locator('#sketchPlan-prompt');
-  await page.getByRole('button', { name: '^No text$' }).click().catch(async () => {
-    await page.getByRole('button', { name: 'No text' }).click();
-  });
+  await page.getByRole('button', { name: /^No text$/ }).click();
   await page.waitForTimeout(300);
   const plain = await planPrompt.inputValue();
   check('no-text mode carries the no-text guard', /watermark, signature, caption or stray text/.test(plain));
@@ -579,11 +580,39 @@ const check = (name, ok, detail = '') => {
   await page.waitForTimeout(300);
   check('switching units switches the clause', /feet and inches/.test(await planPrompt.inputValue()));
 
-  // A tool that must infer says so ON the output, where scepticism is useful.
+  // A tool that must infer says so ON the output, where scepticism is useful —
+  // which means NOT before there is an output to be sceptical about.
   await navTo('renderToPlan');
+  const mainText = () => page.locator('main').innerText();
   check(
-    'a tool that infers shows its accuracy warning on the output',
-    /part measurement, part inference/i.test(await page.locator('main').innerText()),
+    'the accuracy warning is absent before there is any output',
+    !/part measurement, part inference/i.test(await mainText()),
+  );
+  await page.setInputFiles('input[type=file]', PLAN);
+  await page.waitForTimeout(400);
+  await page.getByRole('button', { name: /^Generate$/ }).click();
+  await page.waitForTimeout(2500);
+  check(
+    'a tool that infers shows its accuracy warning once it has one',
+    /part measurement, part inference/i.test(await mainText()),
+  );
+
+  // The warning varies with settings: only the rear face of a CAD elevation is
+  // reconstructed, so only that face carries one.
+  await navTo('cadElevation');
+  await page.setInputFiles('input[type=file]', PLAN);
+  await page.waitForTimeout(400);
+  await page.getByRole('button', { name: /^Generate$/ }).click();
+  await page.waitForTimeout(2500);
+  check('a face that IS in the input carries no warning', !/reconstructed from the volume/i.test(await mainText()));
+  await page.getByRole('button', { name: /^Rear$/ }).click();
+  await page.waitForTimeout(400);
+  check('the reconstructed rear face does carry one', /reconstructed from the volume/i.test(await mainText()));
+
+  // Outputs must be labelled with the tool, never the fall-through 'Render'.
+  check(
+    'a drawing tool labels its outputs with its own name, not "Render"',
+    !/Render — variation/.test(await mainText()),
   );
 
   check('no page crashes', perr.length === 0, perr.slice(0, 2).join(' | '));

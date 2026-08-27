@@ -1,5 +1,4 @@
 import { ChipGroup } from '../../components/ui/ChipGroup';
-import { Switch } from '../../components/ui/Switch';
 import type { AnnotationMode, DrawingUnits } from '../../store/generation';
 
 /**
@@ -53,30 +52,6 @@ export function DrawingAnnotation({
       {annotation === 'dimensioned' ? (
         <ChipGroup label="Units" value={units} options={UNIT_OPTIONS} onChange={onUnits} />
       ) : null}
-    </div>
-  );
-}
-
-/** A labelled on/off row, matching the house Switch idiom. */
-export function DrawingToggle({
-  checked,
-  onChange,
-  label,
-  hint,
-}: {
-  checked: boolean;
-  onChange: (v: boolean) => void;
-  label: string;
-  hint: string;
-}) {
-  return (
-    <div className="p-5">
-      <Switch checked={checked} onChange={onChange} label={label}>
-        <span className="flex flex-col text-left">
-          <span className="section-heading">{label}</span>
-          <span className="mt-1 text-caption text-mist">{hint}</span>
-        </span>
-      </Switch>
     </div>
   );
 }

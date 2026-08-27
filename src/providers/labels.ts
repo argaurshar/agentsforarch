@@ -39,9 +39,16 @@ export function outputLabels(req: GenerateRequest): string[] {
   // Per-feature labelling lives on the tool's registry entry. The old if-chain
   // here fell THROUGH for any feature it didn't name, silently labelling a new
   // tool's outputs "Render — variation 1".
-  const custom = featureDef(req.feature).labelsFor?.(req, prettyStyle);
+  const def = featureDef(req.feature);
+  const custom = def.labelsFor?.(req, prettyStyle);
   if (custom) return custom;
   const variations = Math.max(1, req.options.variations ?? 1);
-  const styleLabel = prettyStyle(req.options.style, 'Render');
-  return Array.from({ length: variations }, (_, i) => `${styleLabel} — variation ${i + 1}`);
+  // The fallback is the TOOL's own name, not the literal 'Render'. A tool that
+  // sends no `style` — every text-only and drawing tool does — was labelling its
+  // outputs "Render — variation 1" in the grid and the gallery: the same
+  // fall-through this comment block was written about, just moved one level down
+  // from the if-chain into the default. Deriving it means a new tool is labelled
+  // correctly by existing, and `labelsFor` stays an override rather than a duty.
+  const styleLabel = prettyStyle(req.options.style, def.galleryLabel);
+  return variations === 1 ? [styleLabel] : Array.from({ length: variations }, (_, i) => `${styleLabel} — variation ${i + 1}`);
 }

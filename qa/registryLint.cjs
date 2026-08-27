@@ -65,17 +65,18 @@ check('every key has a registry definition', missingDefs.length === 0, missingDe
 // Every definition must carry the fields the shell reads but TS gives defaults
 // to (optional fields it would happily leave undefined).
 const REQUIRED = ['ui:', 'toOptions:', 'buildPrompt:', 'promptContracts:', 'poolLabel:', 'galleryLabel:'];
-// Deleted fields, not just missing ones. `ui.index` was hand-written and had
-// drifted to two 01s, two 02s, two 04s, two 05s and two 06s across fourteen
-// tools; it is derived from category position now, and re-adding it by hand
-// would put the drift straight back.
-const BANNED = ['index:'];
-const defBlocks = (registry?.text ?? '').split(/\nconst \w+: FeatureDef</).slice(1);
+// There is deliberately no rule against re-adding the derived `ui.index`. The
+// `ui` type is closed and every definition is a directly-annotated object
+// literal, so tsc rejects it with TS2353 — verified. A lint rule here would
+// duplicate the compiler while being strictly weaker than it: the version that
+// briefly existed matched a hardcoded four-space indent against un-stripped
+// source, so a reformat would have silently switched it off and a comment
+// mentioning the field would have failed the build.
+const defBlocks = stripComments(registry?.text ?? '').split(/\nconst \w+: FeatureDef</).slice(1);
 const incomplete = [];
 for (const b of defBlocks) {
   const key = b.match(/key: '([^']+)'/)?.[1] ?? '?';
   for (const field of REQUIRED) if (!b.includes(field)) incomplete.push(`${key} missing ${field}`);
-  for (const field of BANNED) if (b.includes(`    ${field}`)) incomplete.push(`${key} re-declares ${field} (it is derived)`);
 }
 check('every definition carries the required fields', incomplete.length === 0, incomplete.join('; '));
 

@@ -5,7 +5,7 @@ import { SceneControls } from '../../components/Scene/SceneControls';
 import { StyleRefPicker } from '../../components/Scene/StyleRefPicker';
 import { Button } from '../../components/ui/Button';
 import { ChipGroup } from '../../components/ui/ChipGroup';
-import { Switch } from '../../components/ui/Switch';
+import { SwitchRow } from '../../components/ui/SwitchRow';
 import { PlanTips } from '../../components/Upload/PlanTips';
 import { loadDemoPlan } from '../../lib/demoPlan';
 import { ARCH_STYLES } from '../../lib/scene';
@@ -105,12 +105,7 @@ export function RenderFeature() {
 
           {/* Compare styles — one plan × several design languages in one batch. */}
           <div className="flex flex-col gap-4 p-5">
-            <Switch checked={compare} onChange={setCompare} label="Compare styles">
-              <span className="flex flex-col text-left">
-                <span className="section-heading">Compare styles</span>
-                <span className="mt-1 text-caption text-mist">One image per style</span>
-              </span>
-            </Switch>
+            <SwitchRow checked={compare} onChange={setCompare} label="Compare styles" hint="One image per style" />
             {compare ? (
               <>
                 <div className="flex flex-wrap gap-2">

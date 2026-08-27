@@ -1,6 +1,7 @@
 import { GenerationScreen } from '../../components/Generation/GenerationScreen';
 import { ChipGroup } from '../../components/ui/ChipGroup';
-import { DrawingAnnotation, DrawingToggle } from './DrawingControls';
+import { SwitchRow } from '../../components/ui/SwitchRow';
+import { DrawingAnnotation } from './DrawingControls';
 import type { SectionAxis, SectionStyle } from '../../store/generation';
 
 const AXIS_OPTIONS: { value: SectionAxis; label: string }[] = [
@@ -39,12 +40,15 @@ export function SectionFeature() {
               Optional, but a plan or a single view often cannot show how tall the building is — this is where you say.
             </p>
           </div>
-          <DrawingToggle
+          <div className="p-5">
+    <SwitchRow
             checked={settings.entourage}
             onChange={(v) => patch({ entourage: v })}
             label="People and furniture"
             hint="Light outlines inside the rooms, so ceiling heights read at a glance."
           />
+
+          </div>
           <DrawingAnnotation
             annotation={settings.annotation}
             units={settings.units}

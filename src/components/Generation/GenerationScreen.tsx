@@ -166,6 +166,7 @@ export function GenerationScreen<K extends FeatureKind>({
     void send();
   };
 
+  const inferenceWarning = def.accuracyWarning?.(settings);
   const promptId = `${feature}-prompt`;
   const plannedCount = def.plannedCount?.(settings, mode) ?? 1;
 
@@ -338,12 +339,16 @@ export function GenerationScreen<K extends FeatureKind>({
             <p className="section-heading">Output</p>
             <p className="mt-1 text-caption text-mist">{def.ui.outputCaption}</p>
           </div>
-          {/* Some tools have to infer what the input could not show. Saying so
-              ON THE OUTPUT is the point — a caveat in the description is read
-              once, before there is anything to be sceptical about. */}
-          {def.accuracyWarning ? <Notice tone="warning" message={def.accuracyWarning} /> : null}
           {error ? <ErrorBanner message={error} onRetry={handleGenerate} /> : null}
           {warning ? <Notice tone="warning" message={warning} /> : null}
+          {/* Some tools have to infer what the input could not show, and saying
+              so ON THE OUTPUT is the point — a caveat read before there is
+              anything to be sceptical about is not read at all. So it renders
+              WITH the outputs, not above the empty state, and not in refine mode
+              where the tool is not deriving anything. */}
+          {inferenceWarning && mode !== 'refine' && outputs.length > 0 ? (
+            <Notice tone="warning" message={inferenceWarning} />
+          ) : null}
           {loading || outputs.length > 0 ? (
             <OutputGrid
               outputs={outputs}

@@ -136,8 +136,13 @@ export interface FeatureDef<S extends FeatureSettings = FeatureSettings> {
    * tool out of a batch run entirely, and an optional one does not.
    */
   marker?: 'required' | 'optional';
-  /** Output depends on real-world facts the model may get wrong. */
-  accuracyWarning?: string;
+  /**
+   * Shown ON the output: this tool had to infer something the input could not
+   * show. A function of settings, because for several tools it is true only
+   * sometimes — a rear elevation is reconstructed, the three visible faces are
+   * not, and a static string would have to warn about all four or none.
+   */
+  accuracyWarning?: (settings: S) => string | undefined;
 
   defaultSettings: S;
   buildPrompt: (settings: S, ctx: PromptContext) => string;
@@ -156,8 +161,13 @@ export interface FeatureDef<S extends FeatureSettings = FeatureSettings> {
   poolLabel: string;
   /** Gallery filter label. */
   galleryLabel: string;
-  /** Shown on the home dashboard as a numbered pipeline stage. */
-  stage?: { index: string; what: string };
+  /**
+   * Shown on the home dashboard as a numbered pipeline stage. The NUMBER is
+   * derived from position, like the section header's — leaving it hand-written
+   * is what made the pipeline render 01, 03, 02, 04 the moment Plans & Drawings
+   * was reordered.
+   */
+  stage?: { what: string };
 
   /**
    * One label per output image, in order. Omit for the default
@@ -200,6 +210,18 @@ export interface FeatureDef<S extends FeatureSettings = FeatureSettings> {
   toOptions: (settings: S, ctx: RunContext) => GenerateOptions;
   /** How many output skeletons to show while running. */
   plannedCount?: (settings: S, mode: FeatureMode) => number;
+}
+
+/**
+ * The options a tool with no style axis and no reference images sends.
+ *
+ * Five definitions had this exact object literal copy-pasted, and in all five
+ * the `referenceImages` pass-through was dead: they declare `maxReferences: 0`
+ * and no screen supplies any. Naming it makes the reference-less contract
+ * explicit rather than accidental.
+ */
+export function plainOptions(ctx: RunContext): GenerateOptions {
+  return { variations: 1, refine: ctx.refine || undefined };
 }
 
 /** What the shell knows about a run that the settings alone do not. */
@@ -272,7 +294,7 @@ const massing: FeatureDef<MassingSettings> = {
     emptyDescription: 'Describe the brief and press Generate — a white study model appears here.',
   },
   blockedReason: (s) => (s.brief.trim() ? null : 'Describe the project to begin.'),
-  toOptions: (_s, ctx) => ({ variations: 1, refine: ctx.refine || undefined, referenceImages: ctx.referenceImages }),
+  toOptions: (_s, ctx) => plainOptions(ctx),
   promptContracts: [
     { name: 'massing prompt refuses materials and glazing', pattern: /no materials, no brick, no timber, no glazing/i },
     { name: 'massing prompt asks for a white study model', pattern: /MASSING model, not a render/i },
@@ -299,7 +321,7 @@ const render: FeatureDef<RenderSettings> = {
   sendTargets: ['elevation', 'axonometric'],
   poolLabel: 'Renders',
   galleryLabel: 'Isometric',
-  stage: { index: '01', what: 'Floor plan → 3D cutaway' },
+  stage: { what: 'Floor plan → 3D cutaway' },
   ui: {
     eyebrow: 'Plan to 3D Isometric · 2D Furnished Plan',
     title: 'Floor Plan → 3D Isometric',
@@ -337,7 +359,7 @@ const sketchPlan: FeatureDef<SketchPlanSettings> = {
   icon: PenLine,
   inputMode: 'image',
   maxReferences: 0,
-  defaultSettings: { annotation: 'labels', units: 'metric', furnished: false },
+  defaultSettings: { annotation: 'none', units: 'metric', furnished: false },
   buildPrompt: (s) => buildSketchPlanPrompt(s),
   sceneShow: {},
   // A drawn-up plan follows the sketch's own proportions — pinning a ratio here
@@ -359,9 +381,10 @@ const sketchPlan: FeatureDef<SketchPlanSettings> = {
     compare: { before: 'Sketch', after: 'Plan' },
   },
   blockedReason: (_s, hasInput) => (hasInput ? null : 'Upload a sketch to begin.'),
-  toOptions: (_s, ctx) => ({ variations: 1, refine: ctx.refine || undefined, referenceImages: ctx.referenceImages }),
+  toOptions: (_s, ctx) => plainOptions(ctx),
   promptContracts: [
-    { name: 'sketch plan keeps the sketched footprint', pattern: /outer wall silhouette/i },
+    { name: 'sketch plan keeps the sketch topology, not its literal outline', pattern: /Keep the outline’s topology exactly/ },
+    { name: 'sketch plan straightens without reshaping', pattern: /straightening those lines, NOT reshaping the plan/ },
     { name: 'sketch plan draws up rather than redesigns', pattern: /not redesigning it/i },
     { name: 'sketch plan uses CAD conventions', pattern: /quarter-circle swing arc/i },
     { name: 'sketch plan forbids perspective', pattern: /no vanishing point/i },
@@ -376,9 +399,17 @@ const cadElevation: FeatureDef<CadElevationSettings> = {
   icon: Ruler,
   inputMode: 'image',
   maxReferences: 0,
-  defaultSettings: { face: 'front', annotation: 'labels', units: 'metric', hatch: true },
+  accuracyWarning: (s) =>
+    s.face === 'rear'
+      ? 'The rear face is not in the input image — it is reconstructed from the volume, roof form and materials that are. Treat its openings as a proposal, not a survey.'
+      : undefined,
+  defaultSettings: { face: 'front', annotation: 'none', units: 'metric', hatch: true },
   buildPrompt: (s) => buildCadElevationPrompt(s),
   sceneShow: {},
+  // The input is a 3D viewport of any shape; the output is one flat facade.
+  // Inheriting the screenshot's canvas is the pressure that squashed L-shaped
+  // plans into the isometric frame, pointed at an elevation instead.
+  aspectRatio: () => '3:2',
   sendTargets: ['axonometric'],
   poolLabel: 'CAD elevations',
   galleryLabel: 'CAD elevation',
@@ -396,7 +427,7 @@ const cadElevation: FeatureDef<CadElevationSettings> = {
     compare: { before: '3D view', after: 'Elevation' },
   },
   blockedReason: (_s, hasInput) => (hasInput ? null : 'Upload a 3D view to begin.'),
-  toOptions: (_s, ctx) => ({ variations: 1, refine: ctx.refine || undefined, referenceImages: ctx.referenceImages }),
+  toOptions: (_s, ctx) => plainOptions(ctx),
   promptContracts: [
     { name: 'CAD elevation flattens the perspective', pattern: /UNDO THE PERSPECTIVE/ },
     { name: 'CAD elevation shows one face only', pattern: /this is one flat face and nothing else/i },
@@ -412,7 +443,11 @@ const section: FeatureDef<SectionSettings> = {
   icon: SquareSplitVertical,
   inputMode: 'image',
   maxReferences: 0,
-  defaultSettings: { axis: 'longitudinal', style: 'line', levels: '', entourage: true, annotation: 'labels', units: 'metric' },
+  accuracyWarning: (s) =>
+    s.levels.trim()
+      ? undefined
+      : 'Nothing here says how tall the building is — a plan cannot show it and one view rarely can, so the storey heights and roof form are the model’s guess. Fill in "Storeys and levels" to pin them down.',
+  defaultSettings: { axis: 'longitudinal', style: 'line', levels: '', entourage: true, annotation: 'none', units: 'metric' },
   buildPrompt: (s) => buildSectionPrompt(s),
   sceneShow: {},
   // A section is a wide drawing whatever the building — it spans the full length
@@ -435,7 +470,7 @@ const section: FeatureDef<SectionSettings> = {
     compare: { before: 'Input', after: 'Section' },
   },
   blockedReason: (_s, hasInput) => (hasInput ? null : 'Upload the building to begin.'),
-  toOptions: (_s, ctx) => ({ variations: 1, refine: ctx.refine || undefined, referenceImages: ctx.referenceImages }),
+  toOptions: (_s, ctx) => plainOptions(ctx),
   promptContracts: [
     { name: 'section describes the cut physically, not by name', pattern: /sawn straight through/i },
     { name: 'section says it is not an elevation', pattern: /NOT an elevation/ },
@@ -454,11 +489,15 @@ const renderToPlan: FeatureDef<RenderToPlanSettings> = {
   maxReferences: 0,
   // The only tool in this category that must INVENT: one viewpoint cannot show a
   // whole plan, so part of the output is inference presented as drawing.
-  accuracyWarning:
+  accuracyWarning: () =>
     'A plan reverse-engineered from one view is part measurement, part inference. Everything the image could not see is the model’s plainest guess — check it against the real thing before drawing on it.',
-  defaultSettings: { annotation: 'labels', units: 'metric', furnished: false },
+  defaultSettings: { annotation: 'none', units: 'metric', furnished: false },
   buildPrompt: (s) => buildRenderToPlanPrompt(s),
   sceneShow: {},
+  // Same reason: a plan derived from a 16:9 render must not be generated into a
+  // 16:9 frame, because the building's footprint has nothing to do with the
+  // camera the render used.
+  aspectRatio: () => '4:3',
   sendTargets: ['render', 'section'],
   poolLabel: 'Derived plans',
   galleryLabel: 'Derived plan',
@@ -476,7 +515,7 @@ const renderToPlan: FeatureDef<RenderToPlanSettings> = {
     compare: { before: 'View', after: 'Plan' },
   },
   blockedReason: (_s, hasInput) => (hasInput ? null : 'Upload a render or photo to begin.'),
-  toOptions: (_s, ctx) => ({ variations: 1, refine: ctx.refine || undefined, referenceImages: ctx.referenceImages }),
+  toOptions: (_s, ctx) => plainOptions(ctx),
   promptContracts: [
     { name: 'render-to-plan undoes the perspective', pattern: /UNDO THE PERSPECTIVE/ },
     { name: 'render-to-plan is honest about what it cannot see', pattern: /BE HONEST ABOUT WHAT YOU CANNOT SEE/ },
@@ -516,7 +555,7 @@ const elevation: FeatureDef<ElevationSettings> = {
   sendTargets: ['axonometric'],
   poolLabel: 'Elevations',
   galleryLabel: 'Elevation',
-  stage: { index: '02', what: 'Sketch → styled elevation' },
+  stage: { what: 'Sketch → styled elevation' },
   labelsFor: (req, pretty) => {
     const faces = req.options.viewpoints?.length ? req.options.viewpoints : [undefined];
     const styleLabel = pretty(req.options.style, 'Rendered');
@@ -577,7 +616,7 @@ const axonometric: FeatureDef<AxonSettings> = {
   sendTargets: [],
   poolLabel: 'Axonometrics',
   galleryLabel: 'Axonometric',
-  stage: { index: '03', what: 'Elevation → 3D view' },
+  stage: { what: 'Elevation → 3D view' },
   labelsFor: (req) => {
     const viewpoints = req.options.viewpoints?.length ? req.options.viewpoints : ['NE'];
     return viewpoints.map((vp) => `${vp} axonometric${req.options.section ? ' — section' : ''}`);
@@ -645,7 +684,7 @@ const interior: FeatureDef<InteriorSettings> = {
   sendTargets: [],
   poolLabel: 'Interiors',
   galleryLabel: 'Interior',
-  stage: { index: '04', what: 'Room photo → redesign' },
+  stage: { what: 'Room photo → redesign' },
   labelsFor: (req, pretty) => [pretty(req.options.style, 'Interior')],
   ui: {
     eyebrow: 'Interior Design',

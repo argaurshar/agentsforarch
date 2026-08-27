@@ -12,7 +12,20 @@
 // layout, a plan reverse-engineered from a render that invents rooms the image
 // never showed.
 
-import { FOOTPRINT_CHECK, FOOTPRINT_LOCK, FOOTPRINT_READ, NO_TEXT } from './clauses';
+import { FOOTPRINT_READ, NO_TEXT } from './clauses';
+// Imported, not re-declared. src/lib/prompts.ts carries a note about the last
+// time a prompt file kept its own copy of a settings union: it had drifted to
+// omit `plan2d`, a style the builder below it actually handled. Structural
+// typing hides the drift until something far away stops assigning.
+import type {
+  AnnotationMode,
+  DrawingUnits,
+  ElevationFace,
+  SectionAxis,
+  SectionStyle,
+} from '../../store/generation';
+
+export type { AnnotationMode, DrawingUnits, ElevationFace, SectionAxis, SectionStyle };
 
 // --- Shared to this category ------------------------------------------------
 
@@ -28,15 +41,36 @@ export const ORTHOGRAPHIC_LOCK =
   'This is an ORTHOGRAPHIC drawing, not a photograph and not a perspective view. There is no vanishing point and no ' +
   'foreshortening: every set of lines that is parallel on the building is parallel on the page, verticals are dead ' +
   'vertical, and two elements of the same real size are drawn the same size wherever they sit in the drawing. Do not ' +
-  'tilt the view, do not rotate it, and do not add depth of field.';
+  'add perspective, convergence or depth of field.';
+// It used to end "Do not tilt the view, do not rotate it" — written for the one
+// tool here whose input and output share a viewpoint. Three of the four do NOT:
+// a left-face elevation and a plan derived from a render are both, physically, a
+// rotation, so the clause forbade the tool's whole purpose and the model was
+// left to arbitrate. Where a viewpoint really must be held, the builder says so
+// itself.
 
-/** How the line work should look. Line-weight hierarchy is what separates a
- *  drawing from a traced outline. */
-export const DRAWING_CRAFT =
-  'Draw it the way an architectural office would: crisp, even, confident lines on a clean white background, with a ' +
-  'clear line-weight hierarchy — heaviest where material is cut, medium for edges seen in elevation, lightest for ' +
-  'surface lines, hatching and setting-out. No shading, no gradients, no photographic texture, no sky, no sun, no cast ' +
-  'shadows and no colour except where explicitly asked for.';
+
+/**
+ * How the line work should look. Line-weight hierarchy is what separates a
+ * drawing from a traced outline.
+ *
+ * `allowTone` exists because this clause used to end with a flat "no shading",
+ * appended AFTER the section builder's own "add restrained tonal shading" — so
+ * the Shaded control produced an identical drawing to Line, silently. The
+ * prohibition has to know whether tone was asked for; a blanket one is a
+ * contradiction wearing a carve-out.
+ */
+export function drawingCraft(allowTone = false): string {
+  return (
+    'Draw it the way an architectural office would: crisp, even, confident lines on a clean white background, with a ' +
+    'clear line-weight hierarchy — heaviest where material is cut, medium for edges seen in elevation, lightest for ' +
+    'surface lines, hatching and setting-out. ' +
+    (allowTone
+      ? 'Keep the tone described above restrained and flat — it is a drawing with tone, not a render: no photographic ' +
+        'texture, no sky, no sun and no cast shadows.'
+      : 'No shading, no gradients, no photographic texture, no sky, no sun, no cast shadows and no colour.')
+  );
+}
 
 /** The closing check every builder here ends on. */
 const projectionCheck = (what: string): string =>
@@ -44,27 +78,46 @@ const projectionCheck = (what: string): string =>
   `if the drawing reads as a photograph rather than as a ${what}, redraw it. Getting the projection right matters more ` +
   `than any styling instruction above.`;
 
-/** Text on a drawing is a liability — models spell it wrong. Only allow it where
- *  the user asked, and then insist on it being correct. */
-const annotationClause = (mode: AnnotationMode, subject: string): string => {
-  if (mode === 'none') return NO_TEXT;
+// The furniture a generated drawing must never grow on its own. A scale bar is
+// the worst of them: an AI drawing has no scale, so a scale bar is fake
+// precision that looks authoritative.
+const NO_DRAWING_FURNITURE = 'no title block, no north arrow, no scale bar, no watermark, no signature';
+
+/**
+ * Text on a drawing is a liability — models spell it wrong — so `none` is the
+ * default and anything else is opt-in.
+ *
+ * Two things this got wrong before. `none` emitted only the no-text guard, which
+ * says nothing about room names or a north arrow, while `labels` forbade both —
+ * so choosing the stricter mode RELAXED the prompt. And the dimension wording
+ * was plan-shaped ("across the full width and full depth") but shared with the
+ * elevation and section builders, which then appended a second, conflicting
+ * scheme of their own. Each tool now supplies its own.
+ */
+const annotationClause = (mode: AnnotationMode, subject: string, dimensions: string): string => {
+  if (mode === 'none') {
+    return (
+      `${NO_TEXT} The drawing carries no text at all: no ${subject} names, no dimensions, no notes, ` +
+      `${NO_DRAWING_FURNITURE}.`
+    );
+  }
   if (mode === 'labels') {
     return (
       `Label each ${subject} with a small, plain, correctly spelled name in a simple architectural sans-serif — nothing ` +
-      'else. No dimension strings, no title block, no north arrow, no scale bar, no watermark, no signature. Spell ' +
-      'every word correctly.'
+      `else. No dimension strings, ${NO_DRAWING_FURNITURE}. Spell every word correctly.`
     );
   }
   return (
-    `Label each ${subject} with a small, plain, correctly spelled name, and add a dimension line along each outer face ` +
-    'with a plausible figure, plus an overall dimension across the full width and full depth. Dimension lines are thin ' +
-    'with neat tick marks. No title block, no north arrow, no watermark, no signature. Spell every word correctly and ' +
-    'keep every number legible.'
+    `Label each ${subject} with a small, plain, correctly spelled name. ${dimensions} Dimension lines are thin with ` +
+    `neat tick marks and plausible figures. ${NO_DRAWING_FURNITURE.charAt(0).toUpperCase()}${NO_DRAWING_FURNITURE.slice(1)}. ` +
+    'Spell every word correctly and keep every number legible.'
   );
 };
 
-export type AnnotationMode = 'none' | 'labels' | 'dimensioned';
-export type DrawingUnits = 'metric' | 'imperial';
+/** The dimension scheme a flat plan wants. */
+const PLAN_DIMENSIONS =
+  'Add a dimension line along each outer face, plus an overall dimension across the full width and the full depth.';
+
 
 const unitsClause = (units: DrawingUnits): string =>
   units === 'metric'
@@ -72,6 +125,35 @@ const unitsClause = (units: DrawingUnits): string =>
     : 'All dimensions are imperial, in feet and inches, in the US convention.';
 
 // --- Sketch → CAD plan ------------------------------------------------------
+
+/**
+ * The footprint contract, restated for a HAND sketch.
+ *
+ * The isometric's FOOTPRINT_LOCK demands an outline "identical in shape" to the
+ * input and its FOOTPRINT_CHECK declares that demand outranks everything else.
+ * That is right when input and output are both measured drawings. Reused here it
+ * was a straight contradiction: this tool's entire job is to straighten a wobbly
+ * freehand line, which by definition changes the outline, and the clause that
+ * explicitly wins is the one forbidding it.
+ *
+ * So the lock is on TOPOLOGY and PROPORTION rather than literal shape: same
+ * corners, same sequence of turns, same relative sizes — drawn true.
+ */
+const SKETCH_LOCK =
+  'STEP 2 — LOCK THE LAYOUT. A hand sketch is drawn freehand: its lines wobble and its corners are not true. You are ' +
+  'straightening those lines, NOT reshaping the plan. Keep the outline’s topology exactly: the same number of corners ' +
+  'and set-backs, turning the same way, in the same order, at the same relative proportions. If the sketch is L-shaped, ' +
+  'T-shaped, U-shaped, stepped or chamfered, your drawing is too — do NOT simplify an irregular footprint into a ' +
+  'rectangle or a plain box. Keep the same number of rooms, in the same relative positions, at the same relative sizes, ' +
+  'and keep every internal wall, door opening and window opening where the sketch puts it. Do not rotate or mirror the ' +
+  'plan, and do not add or remove a room, a wall or an opening.';
+
+const SKETCH_CHECK =
+  'Before you finish, compare your outline against the sketch’s: the same number of corners, the same sequence of turns, ' +
+  'the same relative proportions, the same rooms in the same places. A straightened, squared-up version of the sketch’s ' +
+  'own outline is right; a different outline is not. If the shape has changed, rebuild it — matching the sketch’s layout ' +
+  'matters more than any styling instruction above.';
+
 
 /**
  * A napkin sketch → the drawn-up plan.
@@ -92,7 +174,7 @@ export function buildSketchPlanPrompt(a: {
       'plan. You are DRAWING UP the sketch, not redesigning it: the layout has already been decided and your job is ' +
       'to render it properly.',
     FOOTPRINT_READ,
-    FOOTPRINT_LOCK,
+    SKETCH_LOCK,
     'STEP 3 — ONLY THEN DRAW IT UP. Straighten every wobbly line into a true straight line, square up every corner ' +
       'that was meant to be square, and give the drawing real CAD conventions: walls as double lines with solid poché ' +
       'between them, door openings as a gap in the wall with a quarter-circle swing arc, windows as a thinner break in ' +
@@ -104,18 +186,16 @@ export function buildSketchPlanPrompt(a: {
       : 'Draw the shell only — walls, doors, windows and the stair. No furniture, no fixtures, no floor patterns.',
     ORTHOGRAPHIC_LOCK,
     'Viewed from directly overhead, dead flat, with no thickness or 3D to the walls.',
-    DRAWING_CRAFT,
-    annotationClause(a.annotation, 'room'),
+    drawingCraft(),
+    annotationClause(a.annotation, 'room', PLAN_DIMENSIONS),
   ];
   if (a.annotation === 'dimensioned') parts.push(unitsClause(a.units));
-  parts.push(FOOTPRINT_CHECK, projectionCheck('flat 2D plan'));
+  parts.push(SKETCH_CHECK, projectionCheck('flat 2D plan'));
   return parts.join(' ');
 }
 
 // --- Architectural section --------------------------------------------------
 
-export type SectionAxis = 'longitudinal' | 'cross';
-export type SectionStyle = 'line' | 'shaded';
 
 /**
  * A model or a plan → a vertical cut through the building.
@@ -165,12 +245,15 @@ export function buildSectionPrompt(a: {
         'hatching in the poché, and a suggestion of daylight falling through the openings. Keep it a drawing, not a render.'
       : 'Pure line drawing — black line on white, tone only in the solid poché of the cut.',
     ORTHOGRAPHIC_LOCK,
-    DRAWING_CRAFT,
-    annotationClause(a.annotation, 'floor level and room'),
+    drawingCraft(a.style === 'shaded'),
+    annotationClause(
+      a.annotation,
+      'floor level and room',
+      'Add a vertical dimension chain up one side showing floor-to-floor heights and the overall height, and a ' +
+        'horizontal dimension along the base showing the span the cut crosses.',
+    ),
   ];
-  if (a.annotation === 'dimensioned') {
-    parts.push(unitsClause(a.units), 'Add a vertical dimension chain up one side showing floor-to-floor heights.');
-  }
+  if (a.annotation === 'dimensioned') parts.push(unitsClause(a.units));
   // The concrete failure test. "Draw a section, not an elevation" is an
   // instruction; this is something the model can actually check its output against.
   parts.push(
@@ -223,8 +306,8 @@ export function buildRenderToPlanPrompt(a: {
     'Walls as double lines with solid poché, doors as a gap with a swing arc, windows as a thinner break with sill lines.',
     ORTHOGRAPHIC_LOCK,
     'Viewed from directly overhead, dead flat.',
-    DRAWING_CRAFT,
-    annotationClause(a.annotation, 'room'),
+    drawingCraft(),
+    annotationClause(a.annotation, 'room', PLAN_DIMENSIONS),
   ];
   if (a.annotation === 'dimensioned') parts.push(unitsClause(a.units));
   parts.push(projectionCheck('flat 2D plan'));
@@ -233,7 +316,6 @@ export function buildRenderToPlanPrompt(a: {
 
 // --- 3D model → CAD elevation -----------------------------------------------
 
-export type ElevationFace = 'front' | 'left' | 'right' | 'rear';
 
 const FACE_PHRASE: Record<ElevationFace, string> = {
   front: 'the face turned towards the camera in the input',
@@ -279,12 +361,16 @@ export function buildCadElevationPrompt(a: {
         'cladding, glazing — applied flat with no shading or gradient.'
       : 'Leave the surfaces blank white: outline and openings only, no material indication.',
     ORTHOGRAPHIC_LOCK,
-    DRAWING_CRAFT,
-    annotationClause(a.annotation, 'floor level'),
+    drawingCraft(),
+    annotationClause(
+      a.annotation,
+      'floor level',
+      'Add a vertical dimension chain up one side giving floor-to-floor heights and the overall height, and a ' +
+        'horizontal dimension along the base giving the width of this face. This face has a width and a height and ' +
+        'nothing else — do not dimension a depth.',
+    ),
   ];
-  if (a.annotation === 'dimensioned') {
-    parts.push(unitsClause(a.units), 'Add a vertical dimension chain up one side and a horizontal one along the base.');
-  }
+  if (a.annotation === 'dimensioned') parts.push(unitsClause(a.units));
   parts.push(
     'Before you finish, check for perspective: if the roof line slopes when it should be level, if the two ends of the ' +
       'building are different heights, or if you can see any part of a side wall or the roof plane, you have drawn the ' +

@@ -57,23 +57,25 @@ live counts and thumbnails, recent outputs, getting-started steps and a bundled
 **sample floor plan**) and **Gallery** (every generated and uploaded image, with
 reuse / download / delete, and whole-project export/import as a single file —
 the no-backend persistence answer).
+The `#` is the tool's number **within its category**, which is what the app's
+section header shows. It is derived from position, so it can never disagree.
 
 | # | Tool | Input | Output |
 |---|------|-------|--------|
 | 01 | Brief → Massing Study | **No image at all** — a typed brief, plot size, density and context | A white study **massing model**, photographed three-quarter aerial. Deliberately no materials, glazing or entourage: a massing study earns its keep by refusing to answer questions it is too early to ask |
-| 02 | Hand Sketch → CAD Plan | A napkin sketch or marker-on-trace plan | A precise 2D plan: straightened walls with poché, door swing arcs, window breaks, optional fixtures. It **draws up** the sketch rather than redesigning it — the same footprint contract that fixed the squared-off isometric |
-| 03 | Floor Plan → 3D Isometric | 2D floor plan | **3D isometric "dollhouse" cutaway** or a **fully furnished top-down 2D marketing plan** — plus **Compare styles** (one plan × up to 4 design languages in one batch) and a before/after compare |
-| 04 | Elevation → Axonometric | Elevation image | True 3D axonometric + section-axonometric views in **realistic / line-art / black-&-white**, one per viewpoint |
-| 05 | Sketch / Model → Elevation | Sketch or SketchUp screenshot | Rendered elevation, styled by a **design theme** (Contemporary / Modern / Traditional / Boho chic) **or an uploaded mood board** |
-| 06 | 3D Model → CAD Elevation | A SketchUp / Revit / Rhino viewport screenshot | The **measured line elevation** for the drawing set — perspective flattened out, level lines, optional material hatching and dimension chains. Distinct from 05, which renders an elevation for a client |
-| 07 | Architectural Section | A 3D view, render or plan | A **vertical cut** through the building: floor slabs and cut walls in solid poché, room interiors and the stair beyond, real ceiling heights, optional figures for scale |
-| 08 | 3D View → Floor Plan | A render, 3D view or photograph | The **floor plan the image implies** — the pipeline run backwards. Carries a visible accuracy warning: one viewpoint cannot show a whole plan, so part of it is inference |
-| 09 | Room Photo → Interior Design | Photo of a room (furnished or empty) | **Restyled / staged / renovated interior** in a chosen design theme, or from an uploaded mood board, with interior-specific refine chips |
-| 10 | Messy Room → Empty Shell | Photo of a cluttered room | The **bare architectural shell**, ready to re-stage — everything movable removed and the surfaces behind it repaired, with fitted joinery optionally kept |
-| 11 | Place Object | Room photo **+ a product shot** | That **exact** product placed in the room — furniture (contact shadow), a light fitting (switched on, lighting the room) or artwork (mounted flat to the wall) |
-| 12 | Targeted Edit | Any interior photo | **One named thing changed** and nothing else — no mask, the target is described in words |
-| 13 | FF&E Spec Sheet | A finished interior | A **knolled flat-lay component inventory** of that room on white, each item captioned with its material or finish |
-| 14 | Material & Mood Board | Any image (render, sketch or photo) — or up to 9 outputs in Collage mode | **AI board** (default): a flat-lay material & mood board **extracted from the image** — labelled samples, furniture suggestions, colour dots, a 5-swatch palette strip and a vibe line. **Collage**: the branded canvas grid board |
+| 01 | Hand Sketch → CAD Plan | A napkin sketch or marker-on-trace plan | A precise 2D plan: straightened walls with poché, door swing arcs, window breaks, optional fixtures. It **draws up** the sketch rather than redesigning it — the same footprint contract that fixed the squared-off isometric |
+| 02 | Floor Plan → 3D Isometric | 2D floor plan | **3D isometric "dollhouse" cutaway** or a **fully furnished top-down 2D marketing plan** — plus **Compare styles** (one plan × up to 4 design languages in one batch) and a before/after compare |
+| 04 | Sketch / Model → Elevation | Sketch or SketchUp screenshot | Rendered elevation, styled by a **design theme** (Contemporary / Modern / Traditional / Boho chic) **or an uploaded mood board** |
+| 03 | Elevation → Axonometric | Elevation image | True 3D axonometric + section-axonometric views in **realistic / line-art / black-&-white**, one per viewpoint |
+| 05 | 3D Model → CAD Elevation | A SketchUp / Revit / Rhino viewport screenshot | The **measured line elevation** for the drawing set — perspective flattened out, level lines, optional material hatching and dimension chains. Distinct from 03, which renders an elevation for a client |
+| 06 | Architectural Section | A 3D view, render or plan | A **vertical cut** through the building: floor slabs and cut walls in solid poché, room interiors and the stair beyond, real ceiling heights, optional figures for scale |
+| 07 | 3D View → Floor Plan | A render, 3D view or photograph | The **floor plan the image implies** — the pipeline run backwards. Carries a visible accuracy warning: one viewpoint cannot show a whole plan, so part of it is inference |
+| 01 | Room Photo → Interior Design | Photo of a room (furnished or empty) | **Restyled / staged / renovated interior** in a chosen design theme, or from an uploaded mood board, with interior-specific refine chips |
+| 02 | Messy Room → Empty Shell | Photo of a cluttered room | The **bare architectural shell**, ready to re-stage — everything movable removed and the surfaces behind it repaired, with fitted joinery optionally kept |
+| 03 | Place Object | Room photo **+ a product shot** | That **exact** product placed in the room — furniture (contact shadow), a light fitting (switched on, lighting the room) or artwork (mounted flat to the wall) |
+| 04 | Targeted Edit | Any interior photo | **One named thing changed** and nothing else — no mask, the target is described in words |
+| 05 | FF&E Spec Sheet | A finished interior | A **knolled flat-lay component inventory** of that room on white, each item captioned with its material or finish |
+| 01 | Material & Mood Board | Any image (render, sketch or photo) — or up to 9 outputs in Collage mode | **AI board** (default): a flat-lay material & mood board **extracted from the image** — labelled samples, furniture suggestions, colour dots, a 5-swatch palette strip and a vibe line. **Collage**: the branded canvas grid board |
 
 Every tool accepts its input by direct upload, independent of anything else in
 the session — Axonometric works from a directly uploaded elevation without
