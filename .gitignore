@@ -13,3 +13,4 @@ dist-ssr
 .idea
 *.log
 npm-debug.log*
+qa/live-results/
