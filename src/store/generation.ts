@@ -129,6 +129,50 @@ export interface SpecSheetSettings {
   roomLabel: string;
 }
 
+// --- Plans & Drawings -------------------------------------------------------
+//
+// Every tool here outputs an orthographic line drawing, so they share two axes:
+// how much text goes on the drawing, and in which units. Text is a liability on
+// a generated drawing — models misspell — so `none` is the default everywhere
+// and `dimensioned` is opt-in.
+
+export type AnnotationMode = 'none' | 'labels' | 'dimensioned';
+export type DrawingUnits = 'metric' | 'imperial';
+
+export interface SketchPlanSettings {
+  annotation: AnnotationMode;
+  units: DrawingUnits;
+  furnished: boolean;
+}
+
+export type SectionAxis = 'longitudinal' | 'cross';
+export type SectionStyle = 'line' | 'shaded';
+
+export interface SectionSettings {
+  axis: SectionAxis;
+  style: SectionStyle;
+  /** Free text: what the storeys are, when the input cannot show it. */
+  levels: string;
+  entourage: boolean;
+  annotation: AnnotationMode;
+  units: DrawingUnits;
+}
+
+export interface RenderToPlanSettings {
+  annotation: AnnotationMode;
+  units: DrawingUnits;
+  furnished: boolean;
+}
+
+export type ElevationFace = 'front' | 'left' | 'right' | 'rear';
+
+export interface CadElevationSettings {
+  face: ElevationFace;
+  annotation: AnnotationMode;
+  units: DrawingUnits;
+  hatch: boolean;
+}
+
 // --- Concept & Form ---------------------------------------------------------
 
 export type MassingDensity = 'low' | 'medium' | 'high';
@@ -158,6 +202,10 @@ export type FeatureSettings =
   | PlaceObjectSettings
   | TargetedSwapSettings
   | SpecSheetSettings
+  | SketchPlanSettings
+  | SectionSettings
+  | RenderToPlanSettings
+  | CadElevationSettings
   | MassingSettings
   | MoodboardSettings;
 

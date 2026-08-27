@@ -315,9 +315,14 @@ const check = (name, ok, detail = '') => {
   // 12. The navigation shell. The sidebar lists CATEGORIES now — a row per tool
   //     was right at five and wrong at eleven — so reachability is two hops, and
   //     both have to hold or a tool ships invisible.
-  const KEYS = (fs
+  // Strip comments before parsing, or a `//` note inside FEATURE_KEYS is read as
+  // a feature key and this check fails on a tool that does not exist. Same bug
+  // qa/registryLint.cjs has its own guard against — two parsers of one file.
+  const keysSrc = fs
     .readFileSync(path.join(__dirname, '..', 'src', 'features', 'registry', 'keys.ts'), 'utf8')
-    .match(/FEATURE_KEYS = \[([^\]]+)\]/)?.[1] ?? '')
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/^[ \t]*\/\/.*$/gm, '');
+  const KEYS = (keysSrc.match(/FEATURE_KEYS = \[([^\]]+)\]/)?.[1] ?? '')
     .split(',')
     .map((s) => s.trim().replace(/^['"]|['"]$/g, ''))
     .filter(Boolean);
@@ -530,6 +535,55 @@ const check = (name, ok, detail = '') => {
     'the marked run sends different pixels from the unmarked one',
     payload(markedBody).length > 0 && payload(markedBody) !== payload(cleanBody),
     'same bytes means burnMarker never ran',
+  );
+
+  // 16. Plans & Drawings. Every tool here outputs an orthographic drawing, and
+  //     the shared failure is that the model's prior for "building image" is a
+  //     photograph — so each one is checked for its own projection lock plus the
+  //     direction-specific instruction that keeps it from becoming another tool.
+  const DRAWING_TOOLS = [
+    ['sketchPlan', [/outer wall silhouette/, /not redesigning it/, /quarter-circle swing arc/]],
+    ['cadElevation', [/UNDO THE PERSPECTIVE/, /this is one flat face and nothing else/]],
+    ['section', [/sawn straight through/, /NOT an elevation/, /you have drawn an elevation/]],
+    ['renderToPlan', [/BE HONEST ABOUT WHAT YOU CANNOT SEE/, /A plain guess is correct here/]],
+  ];
+  for (const [key, patterns] of DRAWING_TOOLS) {
+    await navTo(key);
+    const box = page.locator(`#${key}-prompt`);
+    check(`${key} is reachable and has its prompt box`, (await box.count()) === 1);
+    const text = (await box.count()) ? await box.inputValue() : '';
+    check(`${key} locks the projection`, /no vanishing point/i.test(text));
+    for (const re of patterns) check(`${key} prompt carries ${re.source.slice(0, 42)}`, re.test(text));
+  }
+
+  // Annotation is the axis every drawing tool shares. Text on a generated
+  // drawing is a liability, so "No text" must really mean no text, and units
+  // must not leak into a drawing that carries no dimensions.
+  await navTo('sketchPlan');
+  const planPrompt = page.locator('#sketchPlan-prompt');
+  await page.getByRole('button', { name: '^No text$' }).click().catch(async () => {
+    await page.getByRole('button', { name: 'No text' }).click();
+  });
+  await page.waitForTimeout(300);
+  const plain = await planPrompt.inputValue();
+  check('no-text mode carries the no-text guard', /watermark, signature, caption or stray text/.test(plain));
+  check('no-text mode asks for no labels', !/Label each room/.test(plain));
+  check('no-text mode names no units', !/millimetres|feet and inches/.test(plain));
+
+  await page.getByRole('button', { name: 'Labels + dimensions' }).click();
+  await page.waitForTimeout(300);
+  const dimensioned = await planPrompt.inputValue();
+  check('dimensioned mode asks for dimension lines', /add a dimension line along each outer face/i.test(dimensioned));
+  check('dimensioned mode names the units', /millimetres/.test(dimensioned));
+  await page.getByRole('button', { name: 'Imperial (ft/in)' }).click();
+  await page.waitForTimeout(300);
+  check('switching units switches the clause', /feet and inches/.test(await planPrompt.inputValue()));
+
+  // A tool that must infer says so ON the output, where scepticism is useful.
+  await navTo('renderToPlan');
+  check(
+    'a tool that infers shows its accuracy warning on the output',
+    /part measurement, part inference/i.test(await page.locator('main').innerText()),
   );
 
   check('no page crashes', perr.length === 0, perr.slice(0, 2).join(' | '));

@@ -12,7 +12,7 @@ import { EmptyState } from '../ui/EmptyState';
 import { ErrorBanner } from '../ui/ErrorBanner';
 import { Notice } from '../ui/Notice';
 import { SectionHeader } from '../ui/SectionHeader';
-import { buildFeatureRequest, categoryOf, featureDef } from '../../features/registry';
+import { buildFeatureRequest, categoryOf, displayIndex, featureDef } from '../../features/registry';
 import type { FeatureKind, RunContext, SettingsFor } from '../../features/registry';
 import { useGenerate } from '../../features/hooks';
 import { burnMarker } from '../../lib/images';
@@ -186,7 +186,7 @@ export function GenerationScreen<K extends FeatureKind>({
         {category.label}
       </button>
 
-      <SectionHeader index={def.ui.index} eyebrow={def.ui.eyebrow} title={def.ui.title} description={def.ui.description} />
+      <SectionHeader index={displayIndex(feature)} eyebrow={def.ui.eyebrow} title={def.ui.title} description={def.ui.description} />
 
       {/* Worked examples — open until this tab has produced something. */}
       <ExampleShowcase feature={feature} defaultOpen={outputs.length === 0} />
@@ -338,6 +338,10 @@ export function GenerationScreen<K extends FeatureKind>({
             <p className="section-heading">Output</p>
             <p className="mt-1 text-caption text-mist">{def.ui.outputCaption}</p>
           </div>
+          {/* Some tools have to infer what the input could not show. Saying so
+              ON THE OUTPUT is the point — a caveat in the description is read
+              once, before there is anything to be sceptical about. */}
+          {def.accuracyWarning ? <Notice tone="warning" message={def.accuracyWarning} /> : null}
           {error ? <ErrorBanner message={error} onRetry={handleGenerate} /> : null}
           {warning ? <Notice tone="warning" message={warning} /> : null}
           {loading || outputs.length > 0 ? (

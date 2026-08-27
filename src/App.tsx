@@ -2,6 +2,10 @@ import { AppShell } from './components/Layout/AppShell';
 import { FeatureErrorBoundary } from './components/ui/FeatureErrorBoundary';
 import { AxonometricFeature } from './features/axonometric/AxonometricFeature';
 import { MassingFeature } from './features/concept/MassingFeature';
+import { CadElevationFeature } from './features/drawings/CadElevationFeature';
+import { RenderToPlanFeature } from './features/drawings/RenderToPlanFeature';
+import { SectionFeature } from './features/drawings/SectionFeature';
+import { SketchPlanFeature } from './features/drawings/SketchPlanFeature';
 import { CategoryScreen } from './features/category/CategoryScreen';
 import { ElevationFeature } from './features/elevation/ElevationFeature';
 import { DashboardFeature } from './features/home/DashboardFeature';
@@ -26,7 +30,11 @@ const FEATURES: Record<FeatureKind | 'home' | 'gallery', ComponentType> = {
   home: DashboardFeature,
   massing: MassingFeature,
   render: RenderFeature,
+  sketchPlan: SketchPlanFeature,
   elevation: ElevationFeature,
+  cadElevation: CadElevationFeature,
+  section: SectionFeature,
+  renderToPlan: RenderToPlanFeature,
   axonometric: AxonometricFeature,
   interior: InteriorFeature,
   declutter: DeclutterFeature,

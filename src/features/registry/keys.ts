@@ -11,9 +11,15 @@
 
 export const FEATURE_KEYS = [
   'massing',
+  // Plans & Drawings, in the order the work happens: draw the plan, take it to
+  // 3D, then the flat drawings, then the one tool that runs backwards.
+  'sketchPlan',
   'render',
-  'elevation',
   'axonometric',
+  'elevation',
+  'cadElevation',
+  'section',
+  'renderToPlan',
   'interior',
   'declutter',
   'placeObject',
