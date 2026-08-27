@@ -63,13 +63,13 @@ export function useGenerate(feature: FeatureKind): UseGenerateResult {
         if (result.images.length > 0) {
           const asset = addAsset({
             feature: req.feature,
-            inputImage: req.inputImage,
+            inputImage: req.inputImages[0] ?? null,
             outputs: result.images,
             prompt: req.prompt,
           });
           patch(feature, {
             outputs: result.images,
-            inputUsed: req.inputImage,
+            inputUsed: req.inputImages[0] ?? null,
             status: 'done',
             warning: partialWarning(result, controller.signal.aborted),
             lastAssetId: asset.id,

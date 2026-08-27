@@ -1,3 +1,4 @@
+import { featureDef } from '../features/registry';
 import type { GenerateRequest } from './types';
 
 // Shared output-label logic so every provider (Nano Banana Pro, Magnific, …)
@@ -35,21 +36,11 @@ export function outputLabels(req: GenerateRequest): string[] {
   if (req.options.styleVariants?.length) {
     return req.options.styleVariants.map((v) => v.label);
   }
-  if (req.feature === 'axonometric') {
-    const viewpoints = req.options.viewpoints?.length ? req.options.viewpoints : ['NE'];
-    return viewpoints.map((vp) => `${vp} axonometric${req.options.section ? ' — section' : ''}`);
-  }
-  if (req.feature === 'elevation') {
-    const faces = req.options.viewpoints?.length ? req.options.viewpoints : [undefined];
-    const styleLabel = prettyStyle(req.options.style, 'Rendered');
-    return faces.map((face) => (face ? `${face} elevation — ${styleLabel}` : `${styleLabel} elevation`));
-  }
-  if (req.feature === 'interior') {
-    return [prettyStyle(req.options.style, 'Interior')];
-  }
-  if (req.feature === 'moodboard') {
-    return ['Material board'];
-  }
+  // Per-feature labelling lives on the tool's registry entry. The old if-chain
+  // here fell THROUGH for any feature it didn't name, silently labelling a new
+  // tool's outputs "Render — variation 1".
+  const custom = featureDef(req.feature).labelsFor?.(req, prettyStyle);
+  if (custom) return custom;
   const variations = Math.max(1, req.options.variations ?? 1);
   const styleLabel = prettyStyle(req.options.style, 'Render');
   return Array.from({ length: variations }, (_, i) => `${styleLabel} — variation ${i + 1}`);

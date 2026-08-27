@@ -10,15 +10,12 @@ import { SectionHeader } from '../../components/ui/SectionHeader';
 import { downloadDataURL, slugify } from '../../lib/images';
 import { downloadProjectFile, parseProjectFile } from '../../lib/projectFile';
 import { useProjectStore } from '../../store/useProjectStore';
+import { ALL_FEATURES } from '../../features/registry';
 import type { FeatureKind, GeneratedImage } from '../../types';
 
-const FEATURE_LABEL: Record<FeatureKind, string> = {
-  render: 'Isometric',
-  elevation: 'Elevation',
-  axonometric: 'Axonometric',
-  interior: 'Interior',
-  moodboard: 'Material board',
-};
+const FEATURE_LABEL: Record<FeatureKind, string> = Object.fromEntries(
+  ALL_FEATURES.map((f) => [f.key, f.galleryLabel]),
+) as Record<FeatureKind, string>;
 
 /** How long the "project imported" confirmation stays on screen. */
 const IMPORTED_NOTICE_MS = 6000;

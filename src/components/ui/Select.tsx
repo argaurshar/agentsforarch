@@ -1,22 +1,29 @@
 import { ChevronDown } from 'lucide-react';
 import { useId } from 'react';
 
-export interface SelectOption {
-  value: string;
+export interface SelectOption<T extends string = string> {
+  value: T;
   label: string;
 }
 
-interface SelectProps {
+interface SelectProps<T extends string> {
   label: string;
-  value: string;
-  options: SelectOption[];
-  onChange: (value: string) => void;
+  value: T;
+  /** `readonly` so a caller can pass an `as const` list and keep its literal union. */
+  options: readonly SelectOption<T>[];
+  onChange: (value: T) => void;
   disabled?: boolean;
   id?: string;
 }
 
-/** A styled native <select> — accessible, rounded, flat hairline field. */
-export function Select({ label, value, options, onChange, disabled, id }: SelectProps) {
+/**
+ * A styled native <select> — accessible, rounded, flat hairline field.
+ *
+ * Generic over its option values, matching ChipGroup. A plain `string` here
+ * meant a settings union widened the moment it passed through the control, so
+ * `onChange` handed back an unchecked string and a typo reached the model.
+ */
+export function Select<T extends string>({ label, value, options, onChange, disabled, id }: SelectProps<T>) {
   const generatedId = useId();
   const selectId = id ?? generatedId;
   return (
@@ -29,7 +36,7 @@ export function Select({ label, value, options, onChange, disabled, id }: Select
           id={selectId}
           value={value}
           disabled={disabled}
-          onChange={(e) => onChange(e.target.value)}
+          onChange={(e) => onChange(e.target.value as T)}
           className="w-full appearance-none rounded-field border border-hairline bg-paper px-3.5 py-2.5 pr-9 text-body text-graphite transition-colors hover:border-mist/40 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {options.map((opt) => (

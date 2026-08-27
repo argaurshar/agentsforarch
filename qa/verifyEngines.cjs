@@ -115,8 +115,12 @@ const check = (name, ok, detail = '') => {
   const enginePill = page.locator('button[title="API keys"], button[title="Connect your API key to generate"]').first();
   check('header pill shows Nano Banana Pro on Gemini', /Nano Banana Pro/i.test(await enginePill.innerText()));
 
+  // Nav rows are addressed by their stable data-nav key, never by position: the
+  // sidebar is derived from the feature registry now, so any new tool shifts
+  // every index. `.first()` because the mobile drawer renders a second Sidebar.
+  const navTo = (key) => page.locator(`nav[aria-label="Features"] [data-nav="${key}"]`).first();
   const nav = page.locator('nav[aria-label="Features"] button');
-  await nav.nth(1).click();
+  await navTo('render').click();
   await page.waitForTimeout(300);
 
   // 3. The Isometric tab now has the editable prompt box.
@@ -151,6 +155,19 @@ const check = (name, ok, detail = '') => {
   check('isometric request pins a 4:3 canvas', /"aspectRatio":"4:3"/.test(gBody));
   check('isometric request carried the footprint lock', /outer wall silhouette/.test(gBody));
 
+  // 5b. The 2D furnished plan pins NOTHING — following the input's own ratio is
+  //     correct for a flat top-down view. This exercises the normalizer's omit
+  //     path, which the isometric run above cannot.
+  await page.getByRole('button', { name: '2D furnished plan' }).click();
+  await page.waitForTimeout(250);
+  await page.getByRole('button', { name: /^Generate$/ }).click();
+  await page.waitForTimeout(1200);
+  const planBody = geminiBodies[geminiBodies.length - 1] || '';
+  check('flat plan request omits imageConfig entirely', !/"imageConfig"/.test(planBody));
+  check('flat plan request is still a real generation', /"inlineData"/.test(planBody));
+  await page.getByRole('button', { name: '3D isometric' }).click();
+  await page.waitForTimeout(250);
+
   // 6. Switch to kie.ai and generate an elevation.
   await enginePill.click();
   await page.waitForSelector('[role="dialog"]');
@@ -161,7 +178,7 @@ const check = (name, ok, detail = '') => {
   await page.waitForTimeout(250);
   check('header pill shows Nano Banana 2 · kie.ai', /Nano Banana 2/i.test(await enginePill.innerText()));
 
-  await nav.nth(2).click(); // Elevation
+  await navTo('elevation').click();
   await page.waitForTimeout(300);
   await page.setInputFiles('input[type=file]', PLAN);
   await page.waitForTimeout(200);
@@ -178,7 +195,7 @@ const check = (name, ok, detail = '') => {
   // 7. Interior: the shell lock. Staging must add furniture only — the old prompt
   //    asked for "curtains" in the same breath as "windows must not change", and
   //    the model settled that by draping blank walls, i.e. inventing windows.
-  await nav.nth(4).click(); // Interior
+  await navTo('interior').click();
   await page.waitForTimeout(300);
   const interiorPrompt = page.locator('#interior-prompt');
   await page.getByRole('button', { name: 'Stage (furnish empty room)' }).click();
@@ -212,6 +229,10 @@ const check = (name, ok, detail = '') => {
   // 8. The Concept Presentation tab is gone — nav, deep link and output cards.
   const navNames = await nav.allInnerTexts();
   check('sidebar has no Presentation destination', !/presentation/i.test(navNames.join(' ')));
+  check(
+    'every nav row carries a stable data-nav handle',
+    (await page.locator('nav[aria-label="Features"] [data-nav]').first().count()) === 1,
+  );
   await page.goto(BASE + '#/presentation', { waitUntil: 'domcontentloaded' });
   await page.waitForTimeout(400);
   check(
@@ -244,6 +265,23 @@ const check = (name, ok, detail = '') => {
   await mob.waitForTimeout(400);
   check('tapping Connect key opens Settings on mobile', (await mob.locator('[role="dialog"]').count()) === 1);
   check('no mobile page crashes', mobErr.length === 0, mobErr.slice(0, 2).join(' | '));
+
+  // 10. The hardened request shape. These pin the wire format so the multi-image
+  //     and text-only tools coming next cannot regress it silently.
+  const gBodies = geminiBodies.join('\n');
+  check(
+    'gemini sends the input as an inlineData part',
+    /"inlineData"/.test(gBodies),
+  );
+  check(
+    'a single-input run sends exactly one image part',
+    (geminiBodies[0].match(/"inlineData"/g) || []).length === 1,
+  );
+  check(
+    'kie omits image_input only when there is nothing to send',
+    kie.createBodies.every((b) => /"image_input":\[/.test(b)),
+  );
+  check('kie sends a resolution', kie.createBodies.every((b) => /"resolution":"/.test(b)));
 
   check('no page crashes', perr.length === 0, perr.slice(0, 2).join(' | '));
   await browser.close();

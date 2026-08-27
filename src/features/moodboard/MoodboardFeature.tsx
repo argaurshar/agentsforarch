@@ -147,7 +147,7 @@ function BoardGenerator() {
     if (!input) return;
     void run({
       feature: 'moodboard',
-      inputImage: input,
+      inputImages: [input],
       prompt: prompt.trim() || undefined,
       options: { aspectRatio: settings.aspect },
     });

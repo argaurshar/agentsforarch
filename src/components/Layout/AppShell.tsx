@@ -1,6 +1,7 @@
 import { FilePlus, KeyRound, Menu, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
+import { FEATURE_KEYS } from '../../features/registry';
 import { useDialog } from '../../lib/useDialog';
 import { useProjectStore } from '../../store/useProjectStore';
 import { SettingsPanel } from '../Settings/SettingsPanel';
@@ -25,10 +26,11 @@ export function AppShell({ children }: AppShellProps) {
     (s) =>
       s.project.assets.length > 0 ||
       s.project.uploads.length > 0 ||
-      s.generation.render.status === 'loading' ||
-      s.generation.elevation.status === 'loading' ||
-      s.generation.axonometric.status === 'loading' ||
-      s.generation.interior.status === 'loading',
+      // Derived. The hand-written version listed four of the five features and
+      // omitted `moodboard`, so an in-flight mood-board run did not warn before
+      // unload — a silent bug nothing enforced. A new tool is covered by
+      // existing, not by being remembered.
+      FEATURE_KEYS.some((k) => s.generation[k].status === 'loading'),
   );
 
   const [draft, setDraft] = useState(projectName);

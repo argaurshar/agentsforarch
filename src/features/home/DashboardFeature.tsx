@@ -1,10 +1,11 @@
-import { ArrowRight, Box, Building2, Check, FileImage, Images, KeyRound, Palette, PencilRuler, Sofa, Sparkles, X } from 'lucide-react';
+import { ArrowRight, Check, FileImage, Images, KeyRound, Palette, Sparkles, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { IconButton } from '../../components/ui/IconButton';
 import { SectionHeader } from '../../components/ui/SectionHeader';
+import { ALL_FEATURES } from '../registry';
 import { loadDemoPlan } from '../../lib/demoPlan';
 import { PIPELINE_PREVIEW } from '../../lib/examples';
 import { useProjectStore } from '../../store/useProjectStore';
@@ -18,12 +19,15 @@ interface StageDef {
   icon: LucideIcon;
 }
 
-const STAGES: StageDef[] = [
-  { key: 'render', index: '01', name: 'Isometric', what: 'Floor plan → 3D cutaway', icon: PencilRuler },
-  { key: 'elevation', index: '02', name: 'Elevation', what: 'Sketch → styled elevation', icon: Building2 },
-  { key: 'axonometric', index: '03', name: 'Axonometric', what: 'Elevation → 3D view', icon: Box },
-  { key: 'interior', index: '04', name: 'Interior', what: 'Room photo → redesign', icon: Sofa },
-];
+// Derived: a tool joins the pipeline map by declaring a `stage`, not by being
+// hand-added here.
+const STAGES: StageDef[] = ALL_FEATURES.filter((f) => f.stage).map((f) => ({
+  key: f.key,
+  index: f.stage!.index,
+  name: f.name,
+  what: f.stage!.what,
+  icon: f.icon,
+}));
 
 interface ShortcutDef {
   key: TabKey;

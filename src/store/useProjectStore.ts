@@ -13,29 +13,9 @@ import {
 import type { EngineKey } from '../providers/runtimeConfig';
 import { storage } from '../storage';
 import type { Asset, Brand, FeatureKind, GeneratedImage, Project, TabKey } from '../types';
-import { initialGeneration } from './generation';
-import type {
-  AxonSettings,
-  ElevationSettings,
-  FeatureRun,
-  FeatureSettings,
-  GenerationState,
-  InteriorSettings,
-  MoodboardSettings,
-  RenderSettings,
-  SceneOptions,
-} from './generation';
-
-/** A settings patch: any feature option, plus a *partial* scene (deep-merged). */
-// `theme` exists on both the elevation and interior settings with different key
-// unions — the intersection would collapse it to their overlap, so it is widened
-// to either union here (each feature file still passes only its own keys).
-type FeatureSettingsPatch = Partial<
-  Omit<RenderSettings & ElevationSettings & AxonSettings & InteriorSettings & MoodboardSettings, 'scene' | 'theme'>
-> & {
-  scene?: Partial<SceneOptions>;
-  theme?: ElevationSettings['theme'] | InteriorSettings['theme'];
-};
+import { FEATURE_KEYS, featureDef, initialGeneration } from '../features/registry';
+import type { GenerationState, SettingsFor } from '../features/registry';
+import type { FeatureRun, FeatureSettings, SceneOptions, SettingsPatch } from './generation';
 
 // All project data access lives here (spec §9 — auth/persistence seam). No
 // component reads or writes the model directly; they go through these actions.
@@ -70,7 +50,7 @@ function createEmptyProject(): Project {
 
 interface AddAssetInput {
   feature: FeatureKind;
-  inputImage: string;
+  inputImage: string | null;
   outputs: GeneratedImage[];
   prompt?: string;
 }
@@ -105,7 +85,7 @@ interface ProjectState {
   generation: GenerationState;
   patchFeatureRun: (feature: FeatureKind, patch: Partial<Omit<FeatureRun<FeatureSettings>, 'settings'>>) => void;
   setFeatureInput: (feature: FeatureKind, dataURL: string | null) => void;
-  updateFeatureSettings: (feature: FeatureKind, patch: FeatureSettingsPatch) => void;
+  updateFeatureSettings: <K extends FeatureKind>(feature: K, patch: SettingsPatch<SettingsFor<K>>) => void;
   setFeaturePrompt: (feature: FeatureKind, prompt: string, edited: boolean) => void;
   beginRefine: (feature: FeatureKind, image: GeneratedImage) => void;
   exitRefine: (feature: FeatureKind) => void;
@@ -193,12 +173,17 @@ export const useProjectStore = create<ProjectState>((set, get) => {
 
     updateFeatureSettings: (feature, patch) => {
       const gen = get().generation;
-      const run = gen[feature];
-      // The moodboard has no scene; every other feature deep-merges a partial one.
-      const existingScene = 'scene' in run.settings ? run.settings.scene : undefined;
-      const scene = patch.scene && existingScene ? { ...existingScene, ...patch.scene } : existingScene;
-      const settings = { ...run.settings, ...patch, ...(scene ? { scene } : {}) } as FeatureSettings;
-      set({ generation: { ...gen, [feature]: { ...run, settings } } });
+      // One cast, contained here: TS cannot prove a write through a generic key
+      // into a mapped type. Every CALL SITE stays fully checked against its own
+      // tool's settings, which is the point of the change.
+      const run = gen[feature] as unknown as FeatureRun<FeatureSettings>;
+      const current = run.settings as unknown as Record<string, unknown>;
+      const p = patch as { scene?: Partial<SceneOptions> } & Record<string, unknown>;
+      // The mood board has no scene; every other tool deep-merges a partial one.
+      const existingScene = 'scene' in current ? (current.scene as SceneOptions) : undefined;
+      const scene = p.scene && existingScene ? { ...existingScene, ...p.scene } : existingScene;
+      const settings = { ...current, ...p, ...(scene ? { scene } : {}) };
+      set({ generation: { ...gen, [feature]: { ...run, settings } } as GenerationState });
     },
 
     setFeaturePrompt: (feature, prompt, edited) => {
@@ -320,15 +305,15 @@ export const useProjectStore = create<ProjectState>((set, get) => {
         if (next.styleRef === imageId) next = { ...next, styleRef: null };
         return next;
       };
-      set({
-        generation: {
-          render: scrub(gen.render),
-          elevation: scrub(gen.elevation),
-          axonometric: scrub(gen.axonometric),
-          interior: scrub(gen.interior),
-          moodboard: scrub(gen.moodboard),
-        },
-      });
+      // Derived: a new tool is scrubbed because it exists, not because someone
+      // remembered to add a line here.
+      // Loose accumulator, narrowed once — see initialGeneration() for why a
+      // direct mapped-type write does not typecheck here.
+      const scrubbed: Record<string, FeatureRun<FeatureSettings>> = {};
+      for (const key of FEATURE_KEYS) {
+        scrubbed[key] = scrub(gen[key] as FeatureRun<FeatureSettings>);
+      }
+      set({ generation: scrubbed as GenerationState });
     },
 
     resetProject: () => {
@@ -374,13 +359,10 @@ export interface PoolImage {
   group: string;
 }
 
-const POOL_GROUPS: { key: FeatureKind; label: string }[] = [
-  { key: 'render', label: 'Renders' },
-  { key: 'elevation', label: 'Elevations' },
-  { key: 'axonometric', label: 'Axonometrics' },
-  { key: 'interior', label: 'Interiors' },
-  { key: 'moodboard', label: 'Material boards' },
-];
+const POOL_GROUPS: { key: FeatureKind; label: string }[] = FEATURE_KEYS.map((key) => ({
+  key,
+  label: featureDef(key).poolLabel,
+}));
 
 /** Every image in the project — generated outputs plus anything added directly. */
 export function poolFromProject(project: Project): PoolImage[] {
