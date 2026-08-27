@@ -158,7 +158,7 @@ export function buildRenderRefinePrompt(a: {
 // --- Atmosphere & light -----------------------------------------------------
 
 /**
- * Re-light a finished render (Notion #10 lighting, #38 seasons).
+ * Re-light a finished render.
  *
  * The scene axes already in the app set light BEFORE generating; this applies
  * the same vocabulary to an image that already exists. Same words, opposite
@@ -265,7 +265,7 @@ const SETTING_CLAUSE: Record<EntourageSetting, string> = {
 };
 
 /**
- * Figures, vehicles and planting for scale (Notion #39).
+ * Figures, vehicles and planting for scale.
  *
  * Two failures, and they need different instructions. Scale: figures sized by
  * eye come out subtly wrong and make the building read as a model, so the prompt
@@ -342,7 +342,7 @@ const VIEW_CLAUSE: Record<SheetView, string> = {
 };
 
 /**
- * One building, several views, one sheet (Notion #11, #26, #35).
+ * One building, several views, one sheet.
  *
  * The hard part is not the layout — it is CONSISTENCY. Asked for four views, an
  * image model will cheerfully produce four different buildings that share a
@@ -389,7 +389,7 @@ const REFLECTION_CLAUSE: Record<ReflectionMode, string> = {
 };
 
 /**
- * What the glass is doing (Notion's reflection workflows).
+ * What the glass is doing.
  *
  * A small tool that solves a specific recurring argument. The instruction that
  * matters is that reflections break at mullions and vary pane by pane — a single

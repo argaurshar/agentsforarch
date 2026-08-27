@@ -19,7 +19,7 @@ export type PlaceObjectKind = 'furniture' | 'lighting' | 'artwork';
 /** Where a piece of furniture sits relative to what is already in the room. */
 export type PlacementMode = 'replace' | 'add';
 
-// --- Declutter to shell (Notion #27) ----------------------------------------
+// --- Declutter to shell -----------------------------------------------------
 
 /**
  * A messy site photo → the empty architectural shell, ready to re-stage.
@@ -57,7 +57,7 @@ export function buildDeclutterPrompt(a: { keepBuiltIns: boolean }): string {
   return parts.join(' ');
 }
 
-// --- Place object (Notion #23 furniture, #24 lighting, #25 artwork) ---------
+// --- Place object -----------------------------------------------------------
 
 const OBJECT_NOUN: Record<PlaceObjectKind, string> = {
   furniture: 'furniture piece',
@@ -68,10 +68,10 @@ const OBJECT_NOUN: Record<PlaceObjectKind, string> = {
 /**
  * A second image → that exact object, placed into the room.
  *
- * One tool rather than three. The Notion guide separates furniture, lighting
- * and artwork, but they are the same transformation with a different noun and a
- * different physical consequence (contact shadow / emitted light / wall
- * mounting). Three near-identical entries in the tool rail would be noise.
+ * One tool rather than three. Furniture, lighting and artwork are the same
+ * transformation with a different noun and a different physical consequence
+ * (contact shadow / emitted light / wall mounting). Three near-identical entries
+ * in the tool rail would be noise.
  *
  * The single hardest instruction here is that the object must be THE object in
  * the second image, not something like it. Models default to "in the style of",
@@ -139,12 +139,12 @@ export function buildPlaceObjectPrompt(a: {
   return parts.join(' ');
 }
 
-// --- Targeted element swap (Notion #36, #45) --------------------------------
+// --- Targeted element swap --------------------------------------------------
 
 /**
  * Change one named thing, leave everything else alone.
  *
- * The guide's generic "precise edit" pattern. There is no mask — the target is
+ * The generic "precise edit" pattern. There is no mask — the target is
  * identified in language — so the instruction that carries the weight is the
  * negative one, and it is stated twice.
  */
@@ -189,7 +189,7 @@ export function buildTargetedSwapPrompt(a: {
   return parts.join(' ');
 }
 
-// --- FF&E spec sheet (Notion #18) -------------------------------------------
+// --- FF&E spec sheet --------------------------------------------------------
 
 /**
  * A finished room → its "kit of parts", laid out and labelled.
