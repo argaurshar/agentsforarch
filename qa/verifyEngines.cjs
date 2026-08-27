@@ -615,6 +615,66 @@ const check = (name, ok, detail = '') => {
     !/Render — variation/.test(await mainText()),
   );
 
+  // 17. Visualization. Every tool here takes a finished image and changes ONE
+  //     property of it, so each is checked for the shared lock naming the right
+  //     exception plus its own load-bearing instruction.
+  const VIZ_TOOLS = [
+    ['wireframeRender', null, [/LOCK THE GEOMETRY/, /look better balanced/]],
+    ['renderRefine', 'the quality of the rendering itself', [/not making a new picture/]],
+    ['atmosphere', 'the light, the sky and the season', [/Recompute everything that follows from that light/]],
+    ['facadeMaterial', 'the material of the facade', [/A new material does not get new openings/]],
+    ['humanScale', 'the people, vehicles and planting', [/shorter than a standard door opening/, /Nobody poses, nobody faces the lens/]],
+    ['multiView', null, [/every panel shows THE SAME BUILDING/, /is a complete failure of this task/]],
+    ['reflection', 'what the glazing is doing', [/Reflections break at every mullion/]],
+    ['upscale', 'the amount of fine detail resolved', [/resolve detail, do not invent it/]],
+  ];
+  for (const [key, exception, patterns] of VIZ_TOOLS) {
+    await navTo(key);
+    const box = page.locator(`#${key}-prompt`);
+    check(`${key} is reachable and has its prompt box`, (await box.count()) === 1);
+    const text = (await box.count()) ? await box.inputValue() : '';
+    if (exception) {
+      check(`${key} locks everything except ${exception.slice(0, 30)}`, text.includes(`LOCK EVERYTHING EXCEPT ${exception}`));
+    }
+    for (const re of patterns) check(`${key} prompt carries ${re.source.slice(0, 42)}`, re.test(text));
+  }
+
+  // The shared lock must not name a thing the tool exists to change. This is the
+  // contradiction that the static gate catches across all 624 variants; here it
+  // is checked once, live, on the two tools most likely to regress.
+  await navTo('facadeMaterial');
+  check(
+    'the material study does not lock the material it changes',
+    !/its materials come through completely unchanged/.test(await page.locator('#facadeMaterial-prompt').inputValue()),
+  );
+  await navTo('atmosphere');
+  check(
+    'but a tool that does not change materials still locks them',
+    /the same brick under a different sun/.test(await page.locator('#atmosphere-prompt').inputValue()),
+  );
+
+  // Toggles must not leak their clause when off.
+  await navTo('humanScale');
+  const scalePrompt = page.locator('#humanScale-prompt');
+  check('an off toggle contributes nothing', !/Add one or two vehicles/.test(await scalePrompt.inputValue()));
+  // SwitchRow renders role="switch", not a plain button.
+  await page.getByRole('switch', { name: 'Vehicles' }).click();
+  await page.waitForTimeout(300);
+  check('and switching it on does', /Add one or two vehicles/.test(await scalePrompt.inputValue()));
+
+  // The one tool that sends `resolution` — and says so when the engine ignores it.
+  await navTo('upscale');
+  check(
+    'the upscaler warns when the active engine takes no resolution',
+    /takes no resolution parameter/i.test(await page.locator('main').innerText()),
+  );
+  await page.setInputFiles('input[type=file]', PLAN);
+  await page.waitForTimeout(400);
+  const beforeUp = geminiBodies.length;
+  await page.getByRole('button', { name: /^Generate$/ }).click();
+  await page.waitForTimeout(2500);
+  check('the upscaler still runs on an engine without it', geminiBodies.length > beforeUp);
+
   check('no page crashes', perr.length === 0, perr.slice(0, 2).join(' | '));
   await browser.close();
   const failed = results.filter((r) => !r.ok).length;

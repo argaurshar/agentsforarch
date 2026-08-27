@@ -10,6 +10,16 @@
 import { buildAxonometricPrompt, buildElevationPrompt, buildInteriorPrompt, buildMoodboardPrompt, buildRefinePrompt, buildRenderPrompt } from '../src/lib/prompts';
 import { buildMassingPrompt } from '../src/lib/prompt/concept';
 import {
+  buildAtmospherePrompt,
+  buildFacadeMaterialPrompt,
+  buildHumanScalePrompt,
+  buildMultiViewPrompt,
+  buildReflectionPrompt,
+  buildRenderRefinePrompt,
+  buildUpscalePrompt,
+  buildWireframeRenderPrompt,
+} from '../src/lib/prompt/visualization';
+import {
   buildCadElevationPrompt,
   buildRenderToPlanPrompt,
   buildSectionPrompt,
@@ -72,6 +82,35 @@ for (const axis of ['longitudinal','cross'] as const)
         for (const levels of ['', 'Ground + 2, 3m floor-to-floor'])
           add(`section:${axis}:${style}:e${entourage}:${annotation}:${units}:${levels ? 'lv' : 'nolv'}`,
             buildSectionPrompt({ axis, style, entourage, annotation, units, levels }));
+// Visualization. These all take a finished image and change ONE property, so
+// the axes worth enumerating are the property itself plus every toggle that
+// could leak a clause into a mode that did not ask for it.
+for (const lighting of ['golden-hour','midday','overcast','dusk','night'] as const)
+  for (const season of ['none','winter'] as const)
+    for (const mood of ['none','dramatic'] as const)
+      for (const keepPeople of [true,false])
+        add(`atmos:${lighting}:${season}:${mood}:p${keepPeople}`, buildAtmospherePrompt({ lighting, season, mood, keepPeople }));
+for (const level of ['polish','finish'] as const)
+  for (const fixPeople of [false,true]) for (const fixMaterials of [false,true])
+    add(`refine:${level}:p${fixPeople}:m${fixMaterials}`, buildRenderRefinePrompt({ level, fixPeople, fixMaterials }));
+for (const materials of ['studio','brick-timber','render-stone','glass-steel','custom'] as const)
+  for (const scope of ['whole','named'] as const)
+    add(`facade:${materials}:${scope}`, buildFacadeMaterialPrompt({ materials, customMaterials: materials === 'custom' ? 'charred larch with black steel reveals' : '', scope, target: scope === 'named' ? 'the ground-floor plinth' : '' }));
+for (const density of ['few','some','busy'] as const)
+  for (const setting of ['residential','commercial','civic'] as const)
+    for (const vehicles of [false,true]) for (const planting of [false,true])
+      add(`scale:${density}:${setting}:v${vehicles}:p${planting}`, buildHumanScalePrompt({ density, setting, vehicles, planting }));
+for (const layout of ['2x2','1x3','2x3'] as const)
+  for (const views of [['front','threequarter','side','aerial'] as const, ['entrance','detail'] as const, [] as const])
+    add(`sheet:${layout}:${views.length || 'default'}`, buildMultiViewPrompt({ layout, views: [...views] }));
+for (const mode of ['transparent','balanced','mirror'] as const)
+  for (const reflect of ['', 'the plane trees opposite'])
+    add(`reflect:${mode}:${reflect ? 'named' : 'auto'}`, buildReflectionPrompt({ mode, reflect }));
+for (const sharpen of [false,true]) add(`upscale:s${sharpen}`, buildUpscalePrompt({ sharpen }));
+for (const materials of ['studio','glass-steel'] as const)
+  for (const lighting of ['golden-hour','overcast'] as const)
+    for (const keepBackground of [false,true]) for (const entourage of [false,true])
+      add(`wire:${materials}:${lighting}:b${keepBackground}:e${entourage}`, buildWireframeRenderPrompt({ ...sc, materials, lighting, entourage, keepBackground }));
 add('moodboard', buildMoodboardPrompt());
 add('refine', buildRefinePrompt({ chips: ['warmer-light','change-curtains'], freeText: 'more plants' }));
 console.log(out.join('\n\n'));

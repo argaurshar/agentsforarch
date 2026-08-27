@@ -18,10 +18,14 @@ import {
   Building2,
   Camera,
   ClipboardList,
+  Gem,
   DraftingCompass,
   Eraser,
+  Layers,
   LayoutGrid,
+  LayoutPanelTop,
   Lightbulb,
+  Maximize2,
   Map,
   PaintRoller,
   Palette,
@@ -29,8 +33,11 @@ import {
   PencilRuler,
   Replace,
   Ruler,
+  Users,
   Sofa,
+  Sparkle,
   SquareSplitVertical,
+  Sun,
   Undo2,
 } from 'lucide-react';
 import {
@@ -41,6 +48,16 @@ import {
   buildRenderPrompt,
 } from '../../lib/prompts';
 import { buildMassingPrompt } from '../../lib/prompt/concept';
+import {
+  buildAtmospherePrompt,
+  buildFacadeMaterialPrompt,
+  buildHumanScalePrompt,
+  buildMultiViewPrompt,
+  buildReflectionPrompt,
+  buildRenderRefinePrompt,
+  buildUpscalePrompt,
+  buildWireframeRenderPrompt,
+} from '../../lib/prompt/visualization';
 import {
   buildCadElevationPrompt,
   buildRenderToPlanPrompt,
@@ -68,9 +85,17 @@ import type {
   CadElevationSettings,
   InteriorSettings,
   MassingSettings,
+  AtmosphereSettings,
+  FacadeMaterialSettings,
+  HumanScaleSettings,
+  MultiViewSettings,
+  ReflectionSettings,
+  RenderRefineSettings,
   RenderToPlanSettings,
   SectionSettings,
   SketchPlanSettings,
+  UpscaleSettings,
+  WireframeRenderSettings,
   MoodboardSettings,
   RenderSettings,
 } from '../../store/generation';
@@ -877,6 +902,306 @@ const specSheet: FeatureDef<SpecSheetSettings> = {
   ],
 };
 
+// --- Visualization ----------------------------------------------------------
+
+const wireframeRender: FeatureDef<WireframeRenderSettings> = {
+  key: 'wireframeRender',
+  category: 'visualization',
+  name: 'Wireframe to Render',
+  blurb: '3D Model to Photoreal',
+  icon: Camera,
+  inputMode: 'image',
+  maxReferences: 1,
+  defaultSettings: { keepBackground: false, scene: defaultScene() },
+  buildPrompt: (s) => buildWireframeRenderPrompt({ ...s.scene, keepBackground: s.keepBackground }),
+  sceneShow: { materials: true, lighting: true, season: true, mood: true, entourage: true },
+  sendTargets: ['atmosphere', 'humanScale', 'upscale'],
+  poolLabel: 'Renders',
+  galleryLabel: 'Render',
+  ui: {
+    eyebrow: 'Visualization',
+    title: '3D Model → Photoreal Render',
+    description:
+      'Give an untextured model materials, light and a setting. The geometry is fixed input — it renders what you modelled, not a better-balanced version of it.',
+    inputLabel: 'Input',
+    inputHint: 'A wireframe, clay or shaded viewport screenshot',
+    outputCaption: 'The finished render',
+    emptyIcon: Camera,
+    emptyTitle: 'No render yet',
+    emptyDescription: 'Upload a model view and press Generate — the render appears here.',
+    compare: { before: 'Model', after: 'Render' },
+  },
+  blockedReason: (_s, hasInput) => (hasInput ? null : 'Upload a 3D model view to begin.'),
+  toOptions: (_s, ctx) => ({ variations: 1, refine: ctx.refine || undefined, referenceImages: ctx.referenceImages }),
+  promptContracts: [
+    { name: 'wireframe render locks the modelled geometry', pattern: /LOCK THE GEOMETRY/ },
+    { name: 'wireframe render refuses to rebalance the elevation', pattern: /look better balanced/i },
+  ],
+};
+
+const renderRefine: FeatureDef<RenderRefineSettings> = {
+  key: 'renderRefine',
+  category: 'visualization',
+  name: 'Render Refinement',
+  blurb: 'Draft to Portfolio Quality',
+  icon: Gem,
+  inputMode: 'image',
+  maxReferences: 0,
+  defaultSettings: { level: 'finish', fixPeople: true, fixMaterials: true },
+  buildPrompt: (s) => buildRenderRefinePrompt(s),
+  sceneShow: {},
+  sendTargets: ['upscale', 'humanScale'],
+  poolLabel: 'Refined renders',
+  galleryLabel: 'Refined render',
+  ui: {
+    eyebrow: 'Visualization',
+    title: 'Draft Render → Finished Render',
+    description:
+      'The same image, produced properly: resolved materials, correct contact shadows, believable glass. It changes nothing about the design, the view or the light — for a requested change, use Refine on an output instead.',
+    inputLabel: 'Input',
+    inputHint: 'A draft, quick or AI render that needs finishing',
+    outputCaption: 'The finished version',
+    emptyIcon: Gem,
+    emptyTitle: 'No refined render yet',
+    emptyDescription: 'Upload a draft render and press Generate — the finished version appears here.',
+    compare: { before: 'Draft', after: 'Finished' },
+  },
+  blockedReason: (_s, hasInput) => (hasInput ? null : 'Upload a render to begin.'),
+  toOptions: (_s, ctx) => plainOptions(ctx),
+  promptContracts: [
+    { name: 'refinement locks everything but execution', pattern: /LOCK EVERYTHING EXCEPT the quality of the rendering itself/ },
+    { name: 'refinement says it is not a new picture', pattern: /not making a new picture/ },
+  ],
+};
+
+const atmosphere: FeatureDef<AtmosphereSettings> = {
+  key: 'atmosphere',
+  category: 'visualization',
+  name: 'Atmosphere & Light',
+  blurb: 'Re-light an Existing Render',
+  icon: Sun,
+  inputMode: 'image',
+  maxReferences: 0,
+  defaultSettings: { lighting: 'golden-hour', season: 'none', mood: 'none', keepPeople: true },
+  buildPrompt: (s) => buildAtmospherePrompt(s),
+  sceneShow: {},
+  sendTargets: ['upscale', 'humanScale'],
+  poolLabel: 'Re-lit renders',
+  galleryLabel: 'Atmosphere',
+  ui: {
+    eyebrow: 'Visualization',
+    title: 'Re-light the Render',
+    description:
+      'Golden hour, overcast, dusk, winter — applied to an image that already exists. The same vocabulary as the scene controls, pointed the other way: at a finished render rather than a new one.',
+    inputLabel: 'Input',
+    inputHint: 'Any finished render or photograph of the building',
+    outputCaption: 'The re-lit image',
+    emptyIcon: Sun,
+    emptyTitle: 'No re-lit image yet',
+    emptyDescription: 'Upload a render, pick the light and press Generate.',
+    compare: { before: 'Original', after: 'Re-lit' },
+  },
+  blockedReason: (_s, hasInput) => (hasInput ? null : 'Upload a render to begin.'),
+  toOptions: (_s, ctx) => plainOptions(ctx),
+  promptContracts: [
+    { name: 'atmosphere locks all but the light', pattern: /LOCK EVERYTHING EXCEPT the light, the sky and the season/ },
+    { name: 'atmosphere recomputes what follows from the light', pattern: /Recompute everything that follows from that light/ },
+  ],
+};
+
+const facadeMaterial: FeatureDef<FacadeMaterialSettings> = {
+  key: 'facadeMaterial',
+  category: 'visualization',
+  name: 'Facade Material Study',
+  blurb: 'Same Building, New Material',
+  icon: Layers,
+  inputMode: 'image',
+  maxReferences: 0,
+  defaultSettings: { materials: 'brick-timber', customMaterials: '', scope: 'whole', target: '' },
+  buildPrompt: (s) => buildFacadeMaterialPrompt(s),
+  sceneShow: {},
+  sendTargets: ['atmosphere', 'upscale'],
+  poolLabel: 'Material studies',
+  galleryLabel: 'Material study',
+  ui: {
+    eyebrow: 'Visualization',
+    title: 'Facade Material Study',
+    description:
+      'The same building, the same view, a different cladding. Only useful if nothing else moves — so the openings are locked hard: a new material does not get new windows.',
+    inputLabel: 'Input',
+    inputHint: 'A render or photograph showing the facade',
+    outputCaption: 'The re-clad building',
+    emptyIcon: Layers,
+    emptyTitle: 'No material study yet',
+    emptyDescription: 'Upload a facade, pick a material and press Generate.',
+    compare: { before: 'Original', after: 'Re-clad' },
+  },
+  blockedReason: (s, hasInput) => {
+    if (!hasInput) return 'Upload a facade to begin.';
+    if (s.materials === 'custom' && !s.customMaterials.trim()) return 'Describe the material to use.';
+    if (s.scope === 'named' && !s.target.trim()) return 'Name the element to re-clad.';
+    return null;
+  },
+  toOptions: (_s, ctx) => plainOptions(ctx),
+  promptContracts: [
+    { name: 'material study locks the openings', pattern: /A new material does not get new openings/ },
+    { name: 'material study shows the real module', pattern: /its real module and coursing/ },
+  ],
+};
+
+const humanScale: FeatureDef<HumanScaleSettings> = {
+  key: 'humanScale',
+  category: 'visualization',
+  name: 'Add Human Scale',
+  blurb: 'People, Vehicles, Planting',
+  icon: Users,
+  inputMode: 'image',
+  maxReferences: 0,
+  defaultSettings: { density: 'some', setting: 'residential', vehicles: false, planting: false },
+  buildPrompt: (s) => buildHumanScalePrompt(s),
+  sceneShow: {},
+  sendTargets: ['atmosphere', 'upscale'],
+  poolLabel: 'Populated renders',
+  galleryLabel: 'Human scale',
+  ui: {
+    eyebrow: 'Visualization',
+    title: 'Add Life and Human Scale',
+    description:
+      'Figures sized against the door height rather than by eye, doing something rather than posing. Scale is what stops a render reading as a model, and a row of people facing the camera is what makes one read as fake.',
+    inputLabel: 'Input',
+    inputHint: 'A finished render, ideally an empty one',
+    outputCaption: 'The populated render',
+    emptyIcon: Users,
+    emptyTitle: 'No populated render yet',
+    emptyDescription: 'Upload a render and press Generate — the people appear here.',
+    compare: { before: 'Empty', after: 'Populated' },
+  },
+  blockedReason: (_s, hasInput) => (hasInput ? null : 'Upload a render to begin.'),
+  toOptions: (_s, ctx) => plainOptions(ctx),
+  promptContracts: [
+    { name: 'human scale measures figures against the door', pattern: /shorter than a standard door opening/ },
+    { name: 'human scale forbids posing at the camera', pattern: /Nobody poses, nobody faces the lens/ },
+  ],
+};
+
+const multiView: FeatureDef<MultiViewSettings> = {
+  key: 'multiView',
+  category: 'visualization',
+  name: 'Multi-View Sheet',
+  blurb: 'One Building, Several Views',
+  icon: LayoutPanelTop,
+  inputMode: 'image',
+  maxReferences: 0,
+  // The one tool here that can fail in a way that looks entirely plausible:
+  // four beautiful panels showing four slightly different buildings.
+  accuracyWarning: () =>
+    'Check the panels against each other before you use this — count storeys and windows in each. Generating several views of one building is the hardest thing this app asks, and a sheet of four near-misses looks convincing at a glance.',
+  defaultSettings: { views: ['front', 'threequarter', 'side', 'aerial'], layout: '2x2' },
+  buildPrompt: (s) => buildMultiViewPrompt(s),
+  sceneShow: {},
+  // A sheet is a landscape composition whatever the building.
+  aspectRatio: () => '3:2',
+  sendTargets: ['upscale'],
+  poolLabel: 'View sheets',
+  galleryLabel: 'View sheet',
+  ui: {
+    eyebrow: 'Visualization',
+    title: 'Multi-View Presentation Sheet',
+    description:
+      'One building, several cameras, one sheet — the thing you actually send a client. The whole difficulty is consistency: every panel has to be the same building, not four similar ones.',
+    inputLabel: 'Input',
+    inputHint: 'A render or photograph of the building',
+    outputCaption: 'The presentation sheet',
+    emptyIcon: LayoutPanelTop,
+    emptyTitle: 'No sheet yet',
+    emptyDescription: 'Upload the building, pick the views and press Generate.',
+  },
+  blockedReason: (s, hasInput) => {
+    if (!hasInput) return 'Upload the building to begin.';
+    if (s.views.length < 2) return 'Pick at least two views.';
+    return null;
+  },
+  toOptions: (_s, ctx) => plainOptions(ctx),
+  promptContracts: [
+    { name: 'multi-view states the consistency rule first', pattern: /every panel shows THE SAME BUILDING/ },
+    { name: 'multi-view calls near-misses a failure', pattern: /is a complete failure of this task/ },
+    { name: 'multi-view ends on a panel-by-panel count', pattern: /count the storeys in each/ },
+  ],
+};
+
+const reflection: FeatureDef<ReflectionSettings> = {
+  key: 'reflection',
+  category: 'visualization',
+  name: 'Reflection Control',
+  blurb: 'Tune What the Glass Does',
+  icon: Sparkle,
+  inputMode: 'image',
+  maxReferences: 0,
+  defaultSettings: { mode: 'balanced', reflect: '' },
+  buildPrompt: (s) => buildReflectionPrompt(s),
+  sceneShow: {},
+  sendTargets: ['upscale', 'atmosphere'],
+  poolLabel: 'Glazing studies',
+  galleryLabel: 'Reflection',
+  ui: {
+    eyebrow: 'Visualization',
+    title: 'Reflection Control',
+    description:
+      'Transparent enough to look occupied, or mirrored enough to disappear into the sky. Reflections break at every mullion and change pane by pane — a continuous mirrored sheet is the tell that gives an AI render away.',
+    inputLabel: 'Input',
+    inputHint: 'A render or photograph with glazing in it',
+    outputCaption: 'The adjusted image',
+    emptyIcon: Sparkle,
+    emptyTitle: 'No glazing study yet',
+    emptyDescription: 'Upload a render with glazing and press Generate.',
+    compare: { before: 'Original', after: 'Adjusted' },
+  },
+  blockedReason: (_s, hasInput) => (hasInput ? null : 'Upload a render to begin.'),
+  toOptions: (_s, ctx) => plainOptions(ctx),
+  promptContracts: [
+    { name: 'reflection breaks at the mullions', pattern: /Reflections break at every mullion/ },
+    { name: 'reflection keeps the frames put', pattern: /keep exactly the size, shape and position/ },
+  ],
+};
+
+const upscale: FeatureDef<UpscaleSettings> = {
+  key: 'upscale',
+  category: 'visualization',
+  name: 'Upscale for Print',
+  blurb: 'Approved Image to Print Master',
+  icon: Maximize2,
+  inputMode: 'image',
+  maxReferences: 0,
+  defaultSettings: { resolution: '2K', sharpen: true },
+  buildPrompt: (s) => buildUpscalePrompt(s),
+  sceneShow: {},
+  sendTargets: [],
+  poolLabel: 'Print masters',
+  galleryLabel: 'Print master',
+  ui: {
+    eyebrow: 'Visualization',
+    title: 'Upscale for Print',
+    description:
+      'The one already approved, at board size. It resolves detail rather than inventing it — an upscaler that adds a more interesting balcony has destroyed the image for the only purpose it had.',
+    inputLabel: 'Input',
+    inputHint: 'The finished image to print',
+    outputCaption: 'The print master',
+    emptyIcon: Maximize2,
+    emptyTitle: 'No print master yet',
+    emptyDescription: 'Upload the approved image and press Generate.',
+    compare: { before: 'Original', after: 'Print master' },
+  },
+  blockedReason: (_s, hasInput) => (hasInput ? null : 'Upload an image to begin.'),
+  // The only tool that sends `resolution`. It reaches the kie.ai API; Gemini
+  // takes no equivalent parameter, so there the prompt does the work alone —
+  // which the screen says out loud rather than quietly under-delivering.
+  toOptions: (s, ctx) => ({ variations: 1, refine: ctx.refine || undefined, resolution: s.resolution }),
+  promptContracts: [
+    { name: 'upscale resolves rather than invents', pattern: /resolve detail, do not invent it/ },
+    { name: 'upscale refuses to improve the design', pattern: /your job is to make it printable, not better/ },
+  ],
+};
+
 const moodboard: FeatureDef<MoodboardSettings> = {
   key: 'moodboard',
   category: 'boards',
@@ -922,6 +1247,14 @@ export const REGISTRY = {
   cadElevation,
   section,
   renderToPlan,
+  wireframeRender,
+  renderRefine,
+  atmosphere,
+  facadeMaterial,
+  humanScale,
+  multiView,
+  reflection,
+  upscale,
   axonometric,
   interior,
   declutter,

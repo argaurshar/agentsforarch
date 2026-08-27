@@ -70,6 +70,29 @@ const PAIRS = [
     'one flat face and nothing else',
     'a plan-shaped dimension instruction reused on an elevation, which has no depth',
   ],
+  // The Visualization category's shared lock enumerates what must not change.
+  // Any tool whose job IS to change one of those things needs it dropped from
+  // the list, not carved out afterwards.
+  [
+    'its materials come through completely unchanged',
+    'ONLY THEN CHANGE THE MATERIAL',
+    'the material study locks materials and then changes them',
+  ],
+  [
+    'its materials come through completely unchanged',
+    'ONLY THEN ADJUST THE GLASS',
+    'glass is a material; the shared lock forbids touching it',
+  ],
+  [
+    'its materials come through completely unchanged',
+    'real material texture where the input only suggests it',
+    'the upscaler is told to resolve material detail and to leave materials alone',
+  ],
+  [
+    'its materials come through completely unchanged',
+    'Fix the materials specifically',
+    'the refiner is told to fix materials and to leave materials alone',
+  ],
 ];
 
 /**

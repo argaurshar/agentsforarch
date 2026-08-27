@@ -22,6 +22,16 @@ export const FEATURE_KEYS = [
   'cadElevation',
   'section',
   'renderToPlan',
+  // Visualization, in the order a render matures: build it, resolve it, light
+  // it, study it, populate it, sheet it, tune the glass, print it.
+  'wireframeRender',
+  'renderRefine',
+  'atmosphere',
+  'facadeMaterial',
+  'humanScale',
+  'multiView',
+  'reflection',
+  'upscale',
   'interior',
   'declutter',
   'placeObject',

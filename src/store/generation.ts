@@ -8,7 +8,7 @@
 // registry (src/features/registry), which owns each tool's defaults.
 
 import { defaultScene } from '../lib/scene';
-import type { AspectRatio } from '../providers/options';
+import type { AspectRatio, Resolution } from '../providers/options';
 import type { GeneratedImage } from '../types';
 
 export { defaultScene };
@@ -129,6 +129,76 @@ export interface SpecSheetSettings {
   roomLabel: string;
 }
 
+// --- Visualization ----------------------------------------------------------
+//
+// Every tool here takes a finished image and changes exactly ONE property of it,
+// so the settings are narrow by design: the axis being changed, and nothing
+// about the building.
+
+export interface WireframeRenderSettings {
+  /** Keep the viewport's own background instead of inventing a setting. */
+  keepBackground: boolean;
+  scene: SceneOptions;
+}
+
+export type RefineLevel = 'polish' | 'finish';
+
+export interface RenderRefineSettings {
+  level: RefineLevel;
+  fixPeople: boolean;
+  fixMaterials: boolean;
+}
+
+export interface AtmosphereSettings {
+  lighting: LightingKey;
+  season: SeasonKey;
+  mood: MoodKey;
+  keepPeople: boolean;
+}
+
+export type MaterialScope = 'whole' | 'named';
+
+export interface FacadeMaterialSettings {
+  materials: MaterialsKey;
+  customMaterials: string;
+  scope: MaterialScope;
+  /** Which element, when the scope is a named one. */
+  target: string;
+}
+
+export type EntourageDensity = 'few' | 'some' | 'busy';
+export type EntourageSetting = 'residential' | 'commercial' | 'civic';
+
+export interface HumanScaleSettings {
+  density: EntourageDensity;
+  setting: EntourageSetting;
+  vehicles: boolean;
+  planting: boolean;
+}
+
+export type SheetLayout = '2x2' | '1x3' | '2x3';
+export type SheetView = 'front' | 'threequarter' | 'side' | 'aerial' | 'detail' | 'entrance';
+
+export interface MultiViewSettings {
+  views: SheetView[];
+  layout: SheetLayout;
+}
+
+export type ReflectionMode = 'transparent' | 'balanced' | 'mirror';
+
+export interface ReflectionSettings {
+  mode: ReflectionMode;
+  /** Free text: what the glass should reflect. */
+  reflect: string;
+}
+
+export interface UpscaleSettings {
+  /** Only the kie.ai engine carries this to the API; Gemini takes no such
+   *  parameter, so there the prompt does the work alone. */
+  resolution: Extract<Resolution, '2K' | '4K'>;
+  sharpen: boolean;
+}
+
 // --- Plans & Drawings -------------------------------------------------------
 //
 // Every tool here outputs an orthographic line drawing, so they share two axes:
@@ -206,6 +276,14 @@ export type FeatureSettings =
   | SectionSettings
   | RenderToPlanSettings
   | CadElevationSettings
+  | WireframeRenderSettings
+  | RenderRefineSettings
+  | AtmosphereSettings
+  | FacadeMaterialSettings
+  | HumanScaleSettings
+  | MultiViewSettings
+  | ReflectionSettings
+  | UpscaleSettings
   | MassingSettings
   | MoodboardSettings;
 

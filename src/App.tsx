@@ -16,6 +16,14 @@ import { PlaceObjectFeature } from './features/interiors/PlaceObjectFeature';
 import { SpecSheetFeature } from './features/interiors/SpecSheetFeature';
 import { TargetedSwapFeature } from './features/interiors/TargetedSwapFeature';
 import { MoodboardFeature } from './features/moodboard/MoodboardFeature';
+import { AtmosphereFeature } from './features/visualization/AtmosphereFeature';
+import { FacadeMaterialFeature } from './features/visualization/FacadeMaterialFeature';
+import { HumanScaleFeature } from './features/visualization/HumanScaleFeature';
+import { MultiViewFeature } from './features/visualization/MultiViewFeature';
+import { ReflectionFeature } from './features/visualization/ReflectionFeature';
+import { RenderRefineFeature } from './features/visualization/RenderRefineFeature';
+import { UpscaleFeature } from './features/visualization/UpscaleFeature';
+import { WireframeRenderFeature } from './features/visualization/WireframeRenderFeature';
 import { RenderFeature } from './features/render/RenderFeature';
 import { useHashRoute } from './lib/useHashRoute';
 import { useProjectStore } from './store/useProjectStore';
@@ -35,6 +43,14 @@ const FEATURES: Record<FeatureKind | 'home' | 'gallery', ComponentType> = {
   cadElevation: CadElevationFeature,
   section: SectionFeature,
   renderToPlan: RenderToPlanFeature,
+  wireframeRender: WireframeRenderFeature,
+  renderRefine: RenderRefineFeature,
+  atmosphere: AtmosphereFeature,
+  facadeMaterial: FacadeMaterialFeature,
+  humanScale: HumanScaleFeature,
+  multiView: MultiViewFeature,
+  reflection: ReflectionFeature,
+  upscale: UpscaleFeature,
   axonometric: AxonometricFeature,
   interior: InteriorFeature,
   declutter: DeclutterFeature,

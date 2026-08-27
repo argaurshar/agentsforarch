@@ -36,7 +36,7 @@ npm run preview    # preview the production build
 
 ## The tools
 
-Fourteen generation tools, grouped by the stage of the job they belong to. Pick a
+Twenty-two generation tools, grouped by the stage of the job they belong to. Pick a
 category in the sidebar and you get its **tool rail**: tick as many tools as you
 want, drop **one** image, and press **Synthesize** — they all run on it, one at a
 time, each with its own settings. Nothing is ever locked, disabled or gated
@@ -49,6 +49,7 @@ its controls live and where it can be run on its own.
 |---|---|
 | **Concept & Form** | Massing Study |
 | **Plans & Drawings** | Sketch to CAD Plan · Isometric · Axonometric · Elevation · CAD Elevation · Section · Render to Plan |
+| **Visualization** | Wireframe to Render · Render Refinement · Atmosphere & Light · Facade Material Study · Add Human Scale · Multi-View Sheet · Reflection Control · Upscale for Print |
 | **Interiors** | Interior Design · Declutter · Place Object · Targeted Edit · FF&E Spec Sheet |
 | **Diagrams & Boards** | Material & Mood Board |
 
@@ -70,6 +71,14 @@ section header shows. It is derived from position, so it can never disagree.
 | 05 | 3D Model → CAD Elevation | A SketchUp / Revit / Rhino viewport screenshot | The **measured line elevation** for the drawing set — perspective flattened out, level lines, optional material hatching and dimension chains. Distinct from 03, which renders an elevation for a client |
 | 06 | Architectural Section | A 3D view, render or plan | A **vertical cut** through the building: floor slabs and cut walls in solid poché, room interiors and the stair beyond, real ceiling heights, optional figures for scale |
 | 07 | 3D View → Floor Plan | A render, 3D view or photograph | The **floor plan the image implies** — the pipeline run backwards. Carries a visible accuracy warning: one viewpoint cannot show a whole plan, so part of it is inference |
+| 01 | Wireframe → Photoreal Render | A wireframe, clay or shaded viewport | A finished render with materials, light and setting. The modelled geometry is fixed input — it will not add a window to balance the elevation |
+| 02 | Draft Render → Finished Render | A rough, quick or AI render | The **same image, produced properly**: resolved materials, correct contact shadows, believable glass. Changes nothing about the design, view or light |
+| 03 | Re-light the Render | Any finished render | Golden hour, overcast, dusk, winter — the scene vocabulary pointed at an image that **already exists** rather than a new one |
+| 04 | Facade Material Study | A render or photo of the facade | The same building in a different cladding. The openings are locked hard: **a new material does not get new windows** |
+| 05 | Add Life and Human Scale | A finished render, ideally empty | People, vehicles and planting. Figures measured against door height rather than sized by eye, occupied rather than posed |
+| 06 | Multi-View Presentation Sheet | A render or photo of the building | Several views on one sheet. Carries an accuracy warning — the hard part is that every panel must be **the same building**, not four similar ones |
+| 07 | Reflection Control | A render with glazing | Transparent enough to look occupied, or mirrored enough to disappear. Reflections break at every mullion and vary pane by pane |
+| 08 | Upscale for Print | The approved image | A print master that **resolves** detail rather than inventing it. Sends `resolution` on the kie.ai engine; on Gemini the screen says so rather than under-delivering |
 | 01 | Room Photo → Interior Design | Photo of a room (furnished or empty) | **Restyled / staged / renovated interior** in a chosen design theme, or from an uploaded mood board, with interior-specific refine chips |
 | 02 | Messy Room → Empty Shell | Photo of a cluttered room | The **bare architectural shell**, ready to re-stage — everything movable removed and the surfaces behind it repaired, with fitted joinery optionally kept |
 | 03 | Place Object | Room photo **+ a product shot** | That **exact** product placed in the room — furniture (contact shadow), a light fitting (switched on, lighting the room) or artwork (mounted flat to the wall) |
