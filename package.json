@@ -9,7 +9,7 @@
     "build": "tsc --noEmit -p tsconfig.json && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "qa": "node qa/designLint.cjs && node qa/promptSnapshot.cjs",
+    "qa": "node qa/designLint.cjs && node qa/registryLint.cjs && node qa/promptSnapshot.cjs",
     "qa:e2e": "node qa/verifyEngines.cjs"
   },
   "dependencies": {

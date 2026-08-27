@@ -1,4 +1,5 @@
 import { featureDef } from '../features/registry';
+import { FALLBACK_PROMPT } from '../lib/prompt/clauses';
 import { outputLabels } from './labels';
 import type { GenerateRequest } from './types';
 
@@ -87,6 +88,6 @@ export function abortableDelay(ms: number, signal?: AbortSignal): Promise<void> 
   });
 }
 
-/** The neutral fallback instruction when a feature sends no prompt. */
-export const FALLBACK_PROMPT =
-  'Reimagine this architectural input as a polished presentation image while preserving its geometry and proportions.';
+// Re-exported so the two providers keep importing it from here; the text itself
+// now lives with the other prompt clauses.
+export { FALLBACK_PROMPT };

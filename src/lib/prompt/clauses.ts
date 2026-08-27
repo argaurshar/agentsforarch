@@ -9,6 +9,14 @@
 // as illumination"), and TypeScript cannot see a changed prompt — so moving text
 // and rewording it are separate commits, deliberately.
 
+/**
+ * What a tool sends when it has no prompt of its own. Lived in
+ * providers/shared.ts until qa/registryLint.cjs flagged it — the transport layer
+ * should carry no prompt text at all.
+ */
+export const FALLBACK_PROMPT =
+  'Reimagine this architectural input as a polished presentation image while preserving its geometry and proportions.';
+
 export const NO_TEXT = 'Do not add any watermark, signature, caption or stray text to the image.';
 
 // Reference-chaining: when a pooled image is picked as a style reference it rides
