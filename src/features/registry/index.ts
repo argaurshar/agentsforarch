@@ -11,7 +11,7 @@
 // stray key is a build error, and every derived table maps over it.
 
 import type { LucideIcon } from 'lucide-react';
-import { Box, Building2, Palette, PencilRuler, Sofa } from 'lucide-react';
+import { Box, Boxes, Building2, Palette, PencilRuler, Sofa } from 'lucide-react';
 import {
   buildAxonometricPrompt,
   buildElevationPrompt,
@@ -21,7 +21,7 @@ import {
 } from '../../lib/prompts';
 import { defaultScene } from '../../lib/scene';
 import type { AspectRatio } from '../../providers/options';
-import type { GenerateRequest } from '../../providers/types';
+import type { GenerateOptions, GenerateRequest } from '../../providers/types';
 import type {
   AxonSettings,
   ElevationSettings,
@@ -32,6 +32,7 @@ import type {
   RenderSettings,
 } from '../../store/generation';
 import { baseRun } from '../../store/generation';
+import type { FeatureMode } from '../../store/generation';
 import type { CategoryKey, FeatureKind } from './keys';
 import { FEATURE_KEYS } from './keys';
 
@@ -112,6 +113,40 @@ export interface FeatureDef<S extends FeatureSettings = FeatureSettings> {
 
   /** Regexes `qa/verifyEngines.cjs` asserts against this tool's live prompt. */
   promptContracts: { name: string; pattern: RegExp }[];
+
+  /**
+   * Screen copy. Lives here rather than in the component so `<GenerationScreen>`
+   * can render any tool without a bespoke file — and so the five screens stop
+   * drifting apart, which they already had.
+   */
+  ui: {
+    index: string;
+    eyebrow: string;
+    title: string;
+    description: string;
+    inputLabel: string;
+    inputHint: string;
+    outputCaption: string;
+    emptyIcon: LucideIcon;
+    emptyTitle: string;
+    emptyDescription: string;
+    /** Before/after slider labels. Omit to hide the comparison. */
+    compare?: { before: string; after: string };
+  };
+
+  /** Why Generate is disabled, phrased for the user. `null` when it is enabled. */
+  blockedReason?: (settings: S, hasInput: boolean, mode: FeatureMode) => string | null;
+  /** Build the provider options for a run. */
+  toOptions: (settings: S, ctx: RunContext) => GenerateOptions;
+  /** How many output skeletons to show while running. */
+  plannedCount?: (settings: S, mode: FeatureMode) => number;
+}
+
+/** What the shell knows about a run that the settings alone do not. */
+export interface RunContext {
+  refine: boolean;
+  referenceImages?: string[];
+  styleVariants?: { label: string; clause: string }[];
 }
 
 // --- Per-feature batch clauses ----------------------------------------------
@@ -165,6 +200,28 @@ const render: FeatureDef<RenderSettings> = {
   poolLabel: 'Renders',
   galleryLabel: 'Isometric',
   stage: { index: '01', what: 'Floor plan → 3D cutaway' },
+  ui: {
+    index: '01',
+    eyebrow: 'Plan to 3D Isometric · 2D Furnished Plan',
+    title: 'Floor Plan → 3D Isometric',
+    description:
+      'Turn a 2D floor plan into a 3D isometric cutaway — or a fully furnished top-down 2D marketing plan. Upload directly — no prior step required.',
+    inputLabel: 'Input',
+    inputHint: '2D floor plan',
+    outputCaption: 'Your generated view',
+    emptyIcon: Boxes,
+    emptyTitle: 'No isometric view yet',
+    emptyDescription: 'Upload a floor plan and press Generate — your view appears here.',
+    compare: { before: 'Plan', after: 'Isometric' },
+  },
+  blockedReason: (_s, hasInput) => (hasInput ? null : 'Upload a floor plan to begin.'),
+  toOptions: (s, ctx) => ({
+    style: s.style,
+    variations: 1,
+    refine: ctx.refine || undefined,
+    referenceImages: ctx.referenceImages,
+    styleVariants: ctx.styleVariants,
+  }),
   promptContracts: [
     { name: 'isometric prompt names the footprint', pattern: /outer wall silhouette/i },
     { name: 'isometric prompt forbids squaring off an irregular plan', pattern: /do NOT simplify an irregular footprint/i },
@@ -224,6 +281,28 @@ const elevation: FeatureDef<ElevationSettings> = {
     }
     return [{ label: labels[0], prompt: base }];
   },
+  ui: {
+    index: '02',
+    eyebrow: 'Facade design',
+    title: 'Sketch / Model → Elevation',
+    description:
+      'Produce an elevation design render from a sketch or SketchUp model. Works standalone — upload whatever you have.',
+    inputLabel: 'Input',
+    inputHint: 'Sketch or SketchUp screenshot',
+    outputCaption: 'One image per selected face',
+    emptyIcon: Building2,
+    emptyTitle: 'No elevation yet',
+    emptyDescription: 'Your elevation will appear here. Choose a face and style, then Generate.',
+    compare: { before: 'Input', after: 'Elevation' },
+  },
+  blockedReason: (_s, hasInput) => (hasInput ? null : 'Upload a sketch to begin.'),
+  toOptions: (s, ctx) => ({
+    style: s.style,
+    viewpoints: s.face === 'All' ? ['Front', 'Side', 'Rear'] : [s.face],
+    refine: ctx.refine || undefined,
+    referenceImages: ctx.referenceImages,
+  }),
+  plannedCount: (s, mode) => (mode === 'refine' ? 1 : s.face === 'All' ? 3 : 1),
   promptContracts: [
     { name: 'elevation prompt grammar fixed', pattern: /elevation of the building shown in the input image/ },
     { name: 'elevation lighting scoped to the flat façade', pattern: /applied purely as illumination/ },
@@ -259,6 +338,31 @@ const axonometric: FeatureDef<AxonSettings> = {
       prompt: `${base}\n\nViewpoint: ${VIEWPOINT_FULL[vp] ?? vp} axonometric.`,
     }));
   },
+  ui: {
+    index: '03',
+    eyebrow: 'Drawing conversion',
+    title: 'Elevation → Axonometric',
+    description:
+      'Generate axonometric and section-axonometric views from an elevation. Upload an elevation directly — running feature 02 first is never required.',
+    inputLabel: 'Input',
+    inputHint: 'Elevation drawing or render',
+    outputCaption: 'One image per viewpoint',
+    emptyIcon: Box,
+    emptyTitle: 'No axonometric views yet',
+    emptyDescription:
+      'Upload an elevation, pick the corners you want and press Generate — one view appears here per viewpoint.',
+    compare: { before: 'Elevation', after: 'Axonometric' },
+  },
+  blockedReason: (s, hasInput, mode) => {
+    if (!hasInput) return 'Upload an elevation to begin.';
+    if (mode !== 'refine' && s.viewpoints.length === 0) return 'Select at least one viewpoint.';
+    return null;
+  },
+  toOptions: (s, ctx) =>
+    ctx.refine
+      ? { style: s.style, section: s.section, refine: true }
+      : { viewpoints: s.viewpoints, style: s.style, section: s.section },
+  plannedCount: (s, mode) => (mode === 'refine' ? 1 : Math.max(1, s.viewpoints.length)),
   promptContracts: [{ name: 'axonometric prompt forbids a flat front-on result', pattern: /do NOT reproduce a flat, front-on elevation/i }],
 };
 
@@ -294,6 +398,27 @@ const interior: FeatureDef<InteriorSettings> = {
   galleryLabel: 'Interior',
   stage: { index: '04', what: 'Room photo → redesign' },
   labelsFor: (req, pretty) => [pretty(req.options.style, 'Interior')],
+  ui: {
+    index: '04',
+    eyebrow: 'Interior Design',
+    title: 'Room Photo → Interior Design',
+    description:
+      "Restyle a client's room, stage an empty one, or renovate — from a photo, in a chosen design style or from an uploaded mood board.",
+    inputLabel: 'Input',
+    inputHint: 'A phone photo works — shoot from a corner to capture the whole room.',
+    outputCaption: 'Your redesigned room',
+    emptyIcon: Sofa,
+    emptyTitle: 'No redesign yet',
+    emptyDescription: 'Your redesigned room will appear here. Upload a photo, pick a style, and Generate.',
+    compare: { before: 'Room', after: 'Redesign' },
+  },
+  blockedReason: (_s, hasInput) => (hasInput ? null : 'Upload a room photo to begin.'),
+  toOptions: (s, ctx) => ({
+    style: s.mode,
+    refine: ctx.refine || undefined,
+    referenceImages: ctx.referenceImages,
+    styleVariants: ctx.styleVariants,
+  }),
   promptContracts: [
     { name: 'interior prompt locks the shell', pattern: /LOCK THE SHELL/ },
     { name: 'interior prompt keeps blank walls blank', pattern: /A wall that is blank in the photo stays blank/ },
@@ -317,6 +442,21 @@ const moodboard: FeatureDef<MoodboardSettings> = {
   sendTargets: [],
   poolLabel: 'Material boards',
   galleryLabel: 'Material board',
+  ui: {
+    index: '05',
+    eyebrow: 'Mood Board',
+    title: 'Image → Material & Mood Board',
+    description:
+      'Upload any image — or pick one of your outputs — and generate a flat-lay material & mood board extracting its materials, colours, fabrics and vibe. Or compose a collage board from your outputs.',
+    inputLabel: 'Input',
+    inputHint: 'Any render, sketch or photo',
+    outputCaption: 'Your material board',
+    emptyIcon: Palette,
+    emptyTitle: 'No board yet',
+    emptyDescription: 'Upload an image and press Generate — the material board appears here.',
+  },
+  blockedReason: (_s, hasInput) => (hasInput ? null : 'Upload an image to begin.'),
+  toOptions: (s) => ({ aspectRatio: s.aspect }),
   labelsFor: () => ['Material board'],
   promptContracts: [{ name: 'mood board prompt asks for a flat-lay material board', pattern: /MATERIAL & MOOD BOARD/ }],
 };
