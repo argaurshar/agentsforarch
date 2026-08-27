@@ -11,7 +11,7 @@
 // stray key is a build error, and every derived table maps over it.
 
 import type { LucideIcon } from 'lucide-react';
-import { Box, Boxes, Building2, Palette, PencilRuler, Sofa } from 'lucide-react';
+import { Armchair, Box, Boxes, Building2, ClipboardList, Eraser, Palette, PencilRuler, Replace, Sofa } from 'lucide-react';
 import {
   buildAxonometricPrompt,
   buildElevationPrompt,
@@ -19,12 +19,22 @@ import {
   buildMoodboardPrompt,
   buildRenderPrompt,
 } from '../../lib/prompts';
+import {
+  buildDeclutterPrompt,
+  buildPlaceObjectPrompt,
+  buildSpecSheetPrompt,
+  buildTargetedSwapPrompt,
+} from '../../lib/prompt/interiors';
 import { defaultScene } from '../../lib/scene';
 import type { AspectRatio } from '../../providers/options';
 import type { GenerateOptions, GenerateRequest } from '../../providers/types';
 import type {
   AxonSettings,
+  DeclutterSettings,
   ElevationSettings,
+  PlaceObjectSettings,
+  SpecSheetSettings,
+  TargetedSwapSettings,
   FeatureRun,
   FeatureSettings,
   InteriorSettings,
@@ -426,6 +436,171 @@ const interior: FeatureDef<InteriorSettings> = {
   ],
 };
 
+// --- The Interiors additions ------------------------------------------------
+
+const declutter: FeatureDef<DeclutterSettings> = {
+  key: 'declutter',
+  category: 'interiors',
+  name: 'Declutter',
+  blurb: 'Messy Room to Empty Shell',
+  icon: Eraser,
+  inputMode: 'image',
+  maxReferences: 0,
+  needsMarker: false,
+  defaultSettings: { keepBuiltIns: true },
+  buildPrompt: (s) => buildDeclutterPrompt(s),
+  sceneShow: {},
+  sendTargets: ['interior'],
+  poolLabel: 'Cleared rooms',
+  galleryLabel: 'Declutter',
+  ui: {
+    index: '05',
+    eyebrow: 'Interior Design',
+    title: 'Messy Room → Empty Shell',
+    description:
+      'Strip a real room back to its bare architecture so it can be re-staged. Everything movable goes; the walls, windows, doors and finishes stay exactly as they are.',
+    inputLabel: 'Input',
+    inputHint: 'A photo of the room as it is now — clutter and all',
+    outputCaption: 'The cleared room',
+    emptyIcon: Eraser,
+    emptyTitle: 'No cleared room yet',
+    emptyDescription: 'Upload a room photo and press Generate — the emptied shell appears here, ready to stage.',
+    compare: { before: 'As found', after: 'Cleared' },
+  },
+  blockedReason: (_s, hasInput) => (hasInput ? null : 'Upload a room photo to begin.'),
+  toOptions: (_s, ctx) => ({ style: 'declutter', refine: ctx.refine || undefined }),
+  labelsFor: () => ['Cleared room'],
+  promptContracts: [
+    { name: 'declutter locks the shell', pattern: /LOCK THE SHELL/ },
+    { name: 'declutter repairs surfaces rather than inventing them', pattern: /Do not invent a new floor or a feature wall/ },
+    { name: 'declutter audits the openings at the end', pattern: /opening by opening/ },
+  ],
+};
+
+const placeObject: FeatureDef<PlaceObjectSettings> = {
+  key: 'placeObject',
+  category: 'interiors',
+  name: 'Place Object',
+  blurb: 'Product Shot into Room',
+  icon: Armchair,
+  // The first tool that genuinely needs two images: the room, and the product.
+  inputMode: 'images',
+  maxReferences: 1,
+  needsMarker: false,
+  defaultSettings: { kind: 'furniture', placement: 'replace', target: '' },
+  buildPrompt: (s) => buildPlaceObjectPrompt(s),
+  sceneShow: {},
+  sendTargets: [],
+  poolLabel: 'Placed objects',
+  galleryLabel: 'Place object',
+  ui: {
+    index: '06',
+    eyebrow: 'Interior Design',
+    title: 'Product Shot → Placed in the Room',
+    description:
+      'Put a specific product into a real room — a sofa, a pendant, a framed piece. It is that exact item, scaled and lit to the space, with nothing else touched.',
+    inputLabel: 'Input · the room',
+    inputHint: 'The room photo or render the object goes into',
+    outputCaption: 'The room with the object placed',
+    emptyIcon: Armchair,
+    emptyTitle: 'Nothing placed yet',
+    emptyDescription: 'Add a room photo and a product shot, say where it goes, and press Generate.',
+    compare: { before: 'Room', after: 'With object' },
+  },
+  blockedReason: (_s, hasInput) => (hasInput ? null : 'Upload the room photo to begin.'),
+  toOptions: (s, ctx) => ({ style: s.kind, refine: ctx.refine || undefined, referenceImages: ctx.referenceImages }),
+  labelsFor: (req, pretty) => [pretty(req.options.style, 'Placed object')],
+  promptContracts: [
+    { name: 'place-object states there are two images', pattern: /TWO IMAGES ARE ATTACHED/ },
+    { name: 'place-object demands the exact product, not its style', pattern: /not something in its style/ },
+    { name: 'place-object locks the shell', pattern: /LOCK THE SHELL/ },
+    { name: 'place-object changes nothing else', pattern: /Change NOTHING else/ },
+  ],
+};
+
+const targetedSwap: FeatureDef<TargetedSwapSettings> = {
+  key: 'targetedSwap',
+  category: 'interiors',
+  name: 'Targeted Edit',
+  blurb: 'Change One Thing Only',
+  icon: Replace,
+  inputMode: 'image',
+  maxReferences: 0,
+  needsMarker: false,
+  defaultSettings: { element: '', replacement: '' },
+  buildPrompt: (s) => buildTargetedSwapPrompt(s),
+  sceneShow: {},
+  sendTargets: [],
+  poolLabel: 'Targeted edits',
+  galleryLabel: 'Targeted edit',
+  ui: {
+    index: '07',
+    eyebrow: 'Interior Design',
+    title: 'Change One Thing, Leave the Rest',
+    description:
+      'Name one element and what it should become. Everything else in the image comes through untouched — the surgical alternative to re-running a whole render.',
+    inputLabel: 'Input',
+    inputHint: 'Any render or photo',
+    outputCaption: 'The edited image',
+    emptyIcon: Replace,
+    emptyTitle: 'No edit yet',
+    emptyDescription: 'Upload an image, name the element and its replacement, then Generate.',
+    compare: { before: 'Before', after: 'After' },
+  },
+  blockedReason: (s, hasInput) => {
+    if (!hasInput) return 'Upload an image to begin.';
+    if (!s.element.trim()) return 'Name the element to change.';
+    if (!s.replacement.trim()) return 'Say what it should become.';
+    return null;
+  },
+  toOptions: (_s, ctx) => ({ style: 'edit', refine: ctx.refine || undefined }),
+  labelsFor: () => ['Targeted edit'],
+  promptContracts: [
+    { name: 'targeted edit makes exactly one change', pattern: /Make ONE change/ },
+    { name: 'targeted edit locks everything else', pattern: /LOCK EVERYTHING ELSE/ },
+    { name: 'targeted edit forbids unrequested improvements', pattern: /Do not "improve" anything you were not asked to change/ },
+  ],
+};
+
+const specSheet: FeatureDef<SpecSheetSettings> = {
+  key: 'specSheet',
+  category: 'interiors',
+  name: 'FF&E Spec Sheet',
+  blurb: 'Room to Component List',
+  icon: ClipboardList,
+  inputMode: 'image',
+  maxReferences: 0,
+  needsMarker: false,
+  defaultSettings: { roomLabel: '' },
+  buildPrompt: (s) => buildSpecSheetPrompt(s),
+  sceneShow: {},
+  aspectRatio: () => '4:5',
+  sendTargets: [],
+  poolLabel: 'Spec sheets',
+  galleryLabel: 'Spec sheet',
+  ui: {
+    index: '08',
+    eyebrow: 'Interior Design',
+    title: 'Room → FF&E Spec Sheet',
+    description:
+      'Deconstruct a finished room into its kit of parts: every piece isolated on white, laid out and labelled with its material. The "shop the look" board, from a render you already have.',
+    inputLabel: 'Input',
+    inputHint: 'A finished interior render or photo',
+    outputCaption: 'The component inventory',
+    emptyIcon: ClipboardList,
+    emptyTitle: 'No spec sheet yet',
+    emptyDescription: 'Upload a finished interior and press Generate — its components appear here, labelled.',
+  },
+  blockedReason: (_s, hasInput) => (hasInput ? null : 'Upload an interior image to begin.'),
+  toOptions: () => ({ style: 'specsheet' }),
+  labelsFor: () => ['FF&E spec sheet'],
+  promptContracts: [
+    { name: 'spec sheet knolls onto white', pattern: /knolling-style flat-lay on a plain white background/ },
+    { name: 'spec sheet inventories THIS room, not similar products', pattern: /not a mood board of similar products/ },
+    { name: 'spec sheet labels beside items, never on them', pattern: /placed beside it — never on top of it/ },
+  ],
+};
+
 const moodboard: FeatureDef<MoodboardSettings> = {
   key: 'moodboard',
   category: 'boards',
@@ -470,6 +645,10 @@ export const REGISTRY = {
   elevation,
   axonometric,
   interior,
+  declutter,
+  placeObject,
+  targetedSwap,
+  specSheet,
   moodboard,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
 } satisfies Record<FeatureKind, FeatureDef<any>>;

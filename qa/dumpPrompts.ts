@@ -8,6 +8,12 @@
 // sampled: the bugs that shipped were all in combinations nobody thought to try.
 
 import { buildAxonometricPrompt, buildElevationPrompt, buildInteriorPrompt, buildMoodboardPrompt, buildRefinePrompt, buildRenderPrompt } from '../src/lib/prompts';
+import {
+  buildDeclutterPrompt,
+  buildPlaceObjectPrompt,
+  buildSpecSheetPrompt,
+  buildTargetedSwapPrompt,
+} from '../src/lib/prompt/interiors';
 import { defaultScene } from '../src/lib/scene';
 const sc = defaultScene();
 const out: string[] = [];
@@ -25,6 +31,14 @@ for (const mode of ['restyle','stage','renovate'] as const)
       add(`int:${mode}:${room}:${theme}`, buildInteriorPrompt({ mode, roomType: room, theme, mood: sc.mood }));
 for (const style of ['realistic','lineart','bw'] as const)
   for (const sec of [false,true]) add(`axon:${style}:${sec}`, buildAxonometricPrompt({ section: sec, style }));
+for (const keep of [true, false]) add(`declutter:builtins${keep}`, buildDeclutterPrompt({ keepBuiltIns: keep }));
+for (const kind of ['furniture','lighting','artwork'] as const)
+  for (const placement of ['replace','add'] as const)
+    for (const target of ['', 'the grey sofa'])
+      add(`place:${kind}:${placement}:${target ? 'named' : 'blank'}`, buildPlaceObjectPrompt({ kind, placement, target }));
+add('swap:filled', buildTargetedSwapPrompt({ element: 'the pendant over the island', replacement: 'a brushed brass dome' }));
+add('swap:blank', buildTargetedSwapPrompt({ element: '', replacement: '' }));
+for (const room of ['', 'kitchen', 'living room']) add(`spec:${room || 'auto'}`, buildSpecSheetPrompt({ roomLabel: room }));
 add('moodboard', buildMoodboardPrompt());
 add('refine', buildRefinePrompt({ chips: ['warmer-light','change-curtains'], freeText: 'more plants' }));
 console.log(out.join('\n\n'));

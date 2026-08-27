@@ -5,6 +5,10 @@ import { ElevationFeature } from './features/elevation/ElevationFeature';
 import { DashboardFeature } from './features/home/DashboardFeature';
 import { GalleryFeature } from './features/gallery/GalleryFeature';
 import { InteriorFeature } from './features/interior/InteriorFeature';
+import { DeclutterFeature } from './features/interiors/DeclutterFeature';
+import { PlaceObjectFeature } from './features/interiors/PlaceObjectFeature';
+import { SpecSheetFeature } from './features/interiors/SpecSheetFeature';
+import { TargetedSwapFeature } from './features/interiors/TargetedSwapFeature';
 import { MoodboardFeature } from './features/moodboard/MoodboardFeature';
 import { RenderFeature } from './features/render/RenderFeature';
 import { useHashRoute } from './lib/useHashRoute';
@@ -18,6 +22,10 @@ const FEATURES: Record<TabKey, ComponentType> = {
   elevation: ElevationFeature,
   axonometric: AxonometricFeature,
   interior: InteriorFeature,
+  declutter: DeclutterFeature,
+  placeObject: PlaceObjectFeature,
+  targetedSwap: TargetedSwapFeature,
+  specSheet: SpecSheetFeature,
   moodboard: MoodboardFeature,
   gallery: GalleryFeature,
 };

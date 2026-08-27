@@ -50,6 +50,20 @@ export interface GenerationScreenProps<K extends FeatureKind> {
   children?: (ctx: ControlsContext<K>) => ReactNode;
   /** Extra content directly under the input dropzone (e.g. the plan-prep tips). */
   belowInput?: ReactNode;
+  /**
+   * A second input the tool needs in its own right — not a style reference.
+   *
+   * Place Object is the first tool that needs this: the room and the product
+   * are BOTH inputs, and the prompt addresses them positionally ("the FIRST
+   * image… the SECOND image"). Rendered as its own labelled dropzone so it
+   * reads as a required input rather than an optional extra.
+   */
+  secondInput?: {
+    label: string;
+    hint: string;
+    value: string | null;
+    onChange: (url: string | null) => void;
+  };
   /** Refine chips specific to this tool; defaults to the general set. */
   refineChips?: RefineChip[];
   /**
@@ -81,6 +95,7 @@ export function GenerationScreen<K extends FeatureKind>({
   refineChips,
   run: runExtras,
   labels,
+  secondInput,
 }: GenerationScreenProps<K>) {
   const def = featureDef(feature);
   const { input, settings, mode, refine, prompt, promptEdited } = useProjectStore((s) => s.generation[feature]);
@@ -164,6 +179,20 @@ export function GenerationScreen<K extends FeatureKind>({
               />
               {belowInput}
             </div>
+
+            {secondInput ? (
+              <div className="flex flex-col gap-3 p-5">
+                <div>
+                  <p className="section-heading">{secondInput.label}</p>
+                  <p className="mt-1 text-caption text-mist">{secondInput.hint}</p>
+                </div>
+                <ImageDropzone
+                  value={secondInput.value}
+                  onImage={(url) => secondInput.onChange(url)}
+                  onClear={() => secondInput.onChange(null)}
+                />
+              </div>
+            ) : null}
 
             {/* Refine REPLACES the controls rather than sitting under them — the
                 controls are ignored in this mode, so showing them would lie. */}
