@@ -103,13 +103,48 @@ export interface AxonSettings {
   scene: SceneOptions;
 }
 
+// --- Interiors: the tools added alongside restyle/stage/renovate -------------
+
+export interface DeclutterSettings {
+  /** Fitted joinery stays (a re-stage) or goes too (a strip-out). */
+  keepBuiltIns: boolean;
+}
+
+export type PlaceObjectKind = 'furniture' | 'lighting' | 'artwork';
+export type PlacementMode = 'replace' | 'add';
+
+export interface PlaceObjectSettings {
+  kind: PlaceObjectKind;
+  placement: PlacementMode;
+  /** What to replace, or where to put it. Free text — there is no mask. */
+  target: string;
+}
+
+export interface TargetedSwapSettings {
+  element: string;
+  replacement: string;
+}
+
+export interface SpecSheetSettings {
+  roomLabel: string;
+}
+
 // --- Material & mood board (Feature 05: any image → AI board) ---------------
 export type BoardAspectKey = Extract<AspectRatio, '4:5' | '1:1' | '16:9'>;
 export interface MoodboardSettings {
   aspect: BoardAspectKey; // board shape (portrait presentation default)
 }
 
-export type FeatureSettings = RenderSettings | ElevationSettings | AxonSettings | InteriorSettings | MoodboardSettings;
+export type FeatureSettings =
+  | RenderSettings
+  | ElevationSettings
+  | AxonSettings
+  | InteriorSettings
+  | DeclutterSettings
+  | PlaceObjectSettings
+  | TargetedSwapSettings
+  | SpecSheetSettings
+  | MoodboardSettings;
 
 /** Quick-action refinement of a specific output (P2). */
 export interface RefineState {

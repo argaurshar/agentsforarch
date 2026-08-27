@@ -9,7 +9,17 @@
 // declared `satisfies Record<FeatureKind, FeatureDef>`, so TypeScript fails the
 // build if a key here has no definition, or a definition has no key here.
 
-export const FEATURE_KEYS = ['render', 'elevation', 'axonometric', 'interior', 'moodboard'] as const;
+export const FEATURE_KEYS = [
+  'render',
+  'elevation',
+  'axonometric',
+  'interior',
+  'declutter',
+  'placeObject',
+  'targetedSwap',
+  'specSheet',
+  'moodboard',
+] as const;
 
 export type FeatureKind = (typeof FEATURE_KEYS)[number];
 

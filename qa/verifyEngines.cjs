@@ -283,6 +283,31 @@ const check = (name, ok, detail = '') => {
   );
   check('kie sends a resolution', kie.createBodies.every((b) => /"resolution":"/.test(b)));
 
+  // 11. The four new Interiors tools. Each is asserted against its own live
+  //     prompt box, which is also what proves the registry wired it into the
+  //     nav, the route and the shell — a tool that is unreachable fails here.
+  const NEW_TOOLS = [
+    ['declutter', [/LOCK THE SHELL/, /Do not invent a new floor or a feature wall/]],
+    ['placeObject', [/TWO IMAGES ARE ATTACHED/, /not something in its style/, /Change NOTHING else/]],
+    ['targetedSwap', [/Make ONE change/, /LOCK EVERYTHING ELSE/]],
+    ['specSheet', [/knolling-style flat-lay on a plain white background/, /not a mood board of similar products/]],
+  ];
+  for (const [key, patterns] of NEW_TOOLS) {
+    await navTo(key).click();
+    await page.waitForTimeout(350);
+    const box = page.locator(`#${key}-prompt`);
+    check(`${key} is reachable and has its prompt box`, (await box.count()) === 1);
+    const text = (await box.count()) ? await box.inputValue() : '';
+    for (const re of patterns) {
+      check(`${key} prompt carries ${re.source.slice(0, 40)}`, re.test(text));
+    }
+  }
+
+  // The two-input tool must render a SECOND dropzone, not just a reference picker.
+  await navTo('placeObject').click();
+  await page.waitForTimeout(300);
+  check('placeObject offers two separate image inputs', (await page.locator('input[type=file]').count()) >= 2);
+
   check('no page crashes', perr.length === 0, perr.slice(0, 2).join(' | '));
   await browser.close();
   const failed = results.filter((r) => !r.ok).length;
