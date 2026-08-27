@@ -223,6 +223,28 @@ const check = (name, ok, detail = '') => {
     (await page.locator('[title="Add to presentation"]').count()) === 0,
   );
 
+  // 9. First run on a phone must show the app, not a full-screen key form.
+  //    The Settings drawer is w-full below 448px, so auto-opening it hid every
+  //    use case behind a form on the one viewport where that is fatal.
+  const mob = await browser
+    .newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true })
+    .then((c) => c.newPage());
+  const mobErr = [];
+  mob.on('pageerror', (e) => mobErr.push(String(e)));
+  await mob.goto(BASE, { waitUntil: 'domcontentloaded' });
+  await mob.waitForTimeout(700);
+  check('mobile first run does not auto-open Settings', (await mob.locator('[role="dialog"]').count()) === 0);
+  check(
+    'mobile first run shows the pipeline use cases',
+    (await mob.getByText('Floor plan → 3D cutaway').count()) > 0,
+  );
+  const connect = mob.getByRole('button', { name: /Connect key/ });
+  check('mobile top bar offers a visible Connect key button', await connect.isVisible());
+  await connect.click();
+  await mob.waitForTimeout(400);
+  check('tapping Connect key opens Settings on mobile', (await mob.locator('[role="dialog"]').count()) === 1);
+  check('no mobile page crashes', mobErr.length === 0, mobErr.slice(0, 2).join(' | '));
+
   check('no page crashes', perr.length === 0, perr.slice(0, 2).join(' | '));
   await browser.close();
   const failed = results.filter((r) => !r.ok).length;
