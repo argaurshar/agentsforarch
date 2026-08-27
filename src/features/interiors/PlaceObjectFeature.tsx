@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { GenerationScreen } from '../../components/Generation/GenerationScreen';
 import { ChipGroup } from '../../components/ui/ChipGroup';
 import type { PlaceObjectKind } from '../../store/generation';
@@ -23,21 +22,12 @@ const PLACEMENT_OPTIONS = [
 ] as const;
 
 export function PlaceObjectFeature() {
-  // The product shot is a second INPUT, not a style reference, so it is local to
-  // the screen and passed through as a reference image on the request.
-  const [product, setProduct] = useState<string | null>(null);
-
+  // The product shot is declared on the registry entry as an extra input slot,
+  // so the shell renders its dropzone and the store holds it. It used to be
+  // `useState` here, which meant App.tsx's remount-on-tab-change quietly threw
+  // it away the moment you looked at another tool.
   return (
-    <GenerationScreen
-      feature="placeObject"
-      secondInput={{
-        label: 'Input · the object',
-        hint: 'A product shot of the exact item — plain background works best',
-        value: product,
-        onChange: setProduct,
-      }}
-      run={{ referenceImages: product ? [product] : undefined }}
-    >
+    <GenerationScreen feature="placeObject">
       {({ settings, patch }) => (
         <>
           <div className="flex flex-col gap-2 p-5">

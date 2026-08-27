@@ -85,6 +85,8 @@ interface ProjectState {
   generation: GenerationState;
   patchFeatureRun: (feature: FeatureKind, patch: Partial<Omit<FeatureRun<FeatureSettings>, 'settings'>>) => void;
   setFeatureInput: (feature: FeatureKind, dataURL: string | null) => void;
+  /** Set one of a tool's own extra image inputs, by slot index. */
+  setFeatureExtraInput: (feature: FeatureKind, index: number, dataURL: string | null) => void;
   updateFeatureSettings: <K extends FeatureKind>(feature: K, patch: SettingsPatch<SettingsFor<K>>) => void;
   setFeaturePrompt: (feature: FeatureKind, prompt: string, edited: boolean) => void;
   beginRefine: (feature: FeatureKind, image: GeneratedImage) => void;
@@ -163,12 +165,25 @@ export const useProjectStore = create<ProjectState>((set, get) => {
       const gen = get().generation;
       const run = gen[feature];
       // A manual input replace exits refine mode and clears the compare snapshot.
+      // The marker goes too: it is a region of the OLD image, and silently
+      // carrying it onto a new one would burn a box over something arbitrary.
       set({
         generation: {
           ...gen,
-          [feature]: { ...run, input: dataURL, mode: 'compose', inputUsed: null },
+          [feature]: { ...run, input: dataURL, marker: null, mode: 'compose', inputUsed: null },
         },
       });
+    },
+
+    setFeatureExtraInput: (feature, index, dataURL) => {
+      const gen = get().generation;
+      const run = gen[feature];
+      const extraInputs = [...run.extraInputs];
+      // Slots are positional and the prompt names them by position, so a gap has
+      // to stay a gap rather than closing up.
+      while (extraInputs.length <= index) extraInputs.push(null);
+      extraInputs[index] = dataURL;
+      set({ generation: { ...gen, [feature]: { ...run, extraInputs } } });
     },
 
     updateFeatureSettings: (feature, patch) => {

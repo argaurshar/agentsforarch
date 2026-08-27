@@ -10,6 +10,7 @@
 // build if a key here has no definition, or a definition has no key here.
 
 export const FEATURE_KEYS = [
+  'massing',
   'render',
   'elevation',
   'axonometric',

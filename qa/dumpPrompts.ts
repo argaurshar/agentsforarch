@@ -8,6 +8,7 @@
 // sampled: the bugs that shipped were all in combinations nobody thought to try.
 
 import { buildAxonometricPrompt, buildElevationPrompt, buildInteriorPrompt, buildMoodboardPrompt, buildRefinePrompt, buildRenderPrompt } from '../src/lib/prompts';
+import { buildMassingPrompt } from '../src/lib/prompt/concept';
 import {
   buildDeclutterPrompt,
   buildPlaceObjectPrompt,
@@ -36,9 +37,16 @@ for (const kind of ['furniture','lighting','artwork'] as const)
   for (const placement of ['replace','add'] as const)
     for (const target of ['', 'the grey sofa'])
       add(`place:${kind}:${placement}:${target ? 'named' : 'blank'}`, buildPlaceObjectPrompt({ kind, placement, target }));
-add('swap:filled', buildTargetedSwapPrompt({ element: 'the pendant over the island', replacement: 'a brushed brass dome' }));
-add('swap:blank', buildTargetedSwapPrompt({ element: '', replacement: '' }));
+for (const marked of [false, true]) {
+  add(`swap:filled:mark${marked}`, buildTargetedSwapPrompt({ element: 'the pendant over the island', replacement: 'a brushed brass dome', marked }));
+  add(`swap:blank:mark${marked}`, buildTargetedSwapPrompt({ element: '', replacement: '', marked }));
+}
 for (const room of ['', 'kitchen', 'living room']) add(`spec:${room || 'auto'}`, buildSpecSheetPrompt({ roomLabel: room }));
+for (const density of ['low','medium','high'] as const)
+  for (const filled of [false, true])
+    add(`massing:${density}:${filled ? 'full' : 'bare'}`, buildMassingPrompt(filled
+      ? { brief: '40-unit residential block with ground-floor retail', siteSize: '45m x 60m corner plot', density, storeys: '6 storeys stepping to 4', context: 'four-storey terraces on two sides' }
+      : { brief: '', siteSize: '', density, storeys: '', context: '' }));
 add('moodboard', buildMoodboardPrompt());
 add('refine', buildRefinePrompt({ chips: ['warmer-light','change-curtains'], freeText: 'more plants' }));
 console.log(out.join('\n\n'));

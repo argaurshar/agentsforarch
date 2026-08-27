@@ -419,6 +419,119 @@ const check = (name, ok, detail = '') => {
   check('a tool screen leads back to its category', (await page.locator('[data-tool]').count()) > 0);
   check('and the category deep link is in the URL', /#\/c\/interiors$/.test(page.url()));
 
+  // 15. Input capabilities: an extra image slot, a text-only tool, and the
+  //     region marker. Each is asserted through the one tool that consumes it —
+  //     a capability with no consumer is a capability nothing tests.
+
+  // 15a. Place Object's product shot lives in the STORE now. It used to be
+  //      component state, and App.tsx remounts the routed feature on every tab
+  //      change, so it vanished the moment you looked at another tool.
+  await navTo('placeObject');
+  const zones = page.locator('input[type=file]');
+  check('a tool with an extra input slot renders two dropzones', (await zones.count()) >= 2);
+  await zones.nth(1).setInputFiles(PLAN);
+  await page.waitForTimeout(500);
+  const imagesAfterUpload = await page.locator('img[src^="data:"]').count();
+  await navTo('declutter');
+  await navTo('placeObject');
+  check(
+    'the extra input survives navigating away and back',
+    (await page.locator('img[src^="data:"]').count()) >= imagesAfterUpload,
+  );
+
+  // Both images go out, in the order the prompt names them.
+  await zones.nth(0).setInputFiles(PLAN);
+  await page.waitForTimeout(500);
+  const beforeTwo = geminiBodies.length;
+  await page.getByRole('button', { name: /^Generate$/ }).click();
+  await page.waitForTimeout(2000);
+  check('a two-input run actually fired', geminiBodies.length > beforeTwo);
+  const twoBody = geminiBodies[geminiBodies.length - 1] || '';
+  check(
+    'a two-input run sends two image parts',
+    (twoBody.match(/"inlineData"/g) || []).length === 2,
+    `${(twoBody.match(/"inlineData"/g) || []).length}`,
+  );
+
+  // 15b. The text-only tool has no dropzone at all, and Generate is gated on
+  //      the form rather than on an upload.
+  await navTo('massing');
+  check('a text-only tool renders no image dropzone', (await page.locator('input[type=file]').count()) === 0);
+  const massingPrompt = page.locator('#massing-prompt');
+  check('a text-only tool still has its prompt box', (await massingPrompt.count()) === 1);
+  check('massing prompt refuses materials and glazing', /no materials, no brick, no timber, no glazing/i.test(await massingPrompt.inputValue()));
+  const genMassing = page.getByRole('button', { name: /^Generate$/ });
+  check('a text-only tool is blocked by its own form, not by an upload', await genMassing.isDisabled());
+  await page.fill('#massing-brief', 'A 40-unit residential block with ground-floor retail');
+  await page.waitForTimeout(300);
+  check('filling the form unblocks it', !(await genMassing.isDisabled()));
+  const beforeText = geminiBodies.length;
+  await genMassing.click();
+  await page.waitForTimeout(2000);
+  check('a text-only run fired', geminiBodies.length > beforeText);
+  const textBody = geminiBodies[geminiBodies.length - 1] || '';
+  check('a text-only run sends NO image part', !/"inlineData"/.test(textBody));
+  check('a text-only run carries what the user typed', /40-unit residential block/.test(textBody));
+
+  // The new category exists only because this tool put it there.
+  await page.goto(BASE + '#/home', { waitUntil: 'domcontentloaded' });
+  await page.waitForTimeout(400);
+  const navAfter = await page.locator('nav[aria-label="Features"] [data-nav]').evaluateAll((els) =>
+    els.map((e) => e.getAttribute('data-nav')),
+  );
+  check('a new category appears once its first tool exists', navAfter.includes('cat:concept'));
+
+  // 15c. The region marker. Dragging a box must change the PROMPT — an
+  //      unexplained red rectangle is just something for the model to reproduce.
+  await navTo('targetedSwap');
+  const swapPrompt = page.locator('#targetedSwap-prompt');
+  check('an unmarked tool says nothing about a red rectangle', !/RED RECTANGLE/.test(await swapPrompt.inputValue()));
+  check('no marker canvas before there is an image', (await page.locator('[data-marker-canvas]').count()) === 0);
+  await page.setInputFiles('input[type=file]', PLAN);
+  await page.waitForTimeout(600);
+  const canvas = page.locator('[data-marker-canvas]');
+  check('a marker-capable tool offers the canvas once an image is there', (await canvas.count()) === 1);
+
+  const box = await canvas.boundingBox();
+  await page.mouse.move(box.x + box.width * 0.3, box.y + box.height * 0.3);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width * 0.7, box.y + box.height * 0.7, { steps: 8 });
+  await page.mouse.up();
+  await page.waitForTimeout(400);
+  check('dragging leaves a mark on the image', (await page.getByRole('button', { name: /Clear mark/ }).count()) === 1);
+  const markedPrompt = await swapPrompt.inputValue();
+  check('marking the image tells the prompt about it', /RED RECTANGLE/.test(markedPrompt));
+  check('and the prompt orders the box erased from the output', /finished image contains no red box/i.test(markedPrompt));
+
+  // The prompt changing is half of it. The box has to reach the WIRE — it is
+  // burned into the pixels at request time, and a prompt that talks about a red
+  // rectangle the model cannot see is worse than no marker at all.
+  await page.fill('#swap-element', 'the pendant');
+  await page.fill('#swap-replacement', 'a brass dome');
+  await page.waitForTimeout(300);
+  const beforeMarked = geminiBodies.length;
+  await page.getByRole('button', { name: /^Generate$/ }).click();
+  await page.waitForTimeout(2500);
+  check('a marked run fired', geminiBodies.length > beforeMarked);
+  const markedBody = geminiBodies[geminiBodies.length - 1] || '';
+
+  await page.getByRole('button', { name: /Clear mark/ }).click();
+  await page.waitForTimeout(400);
+  check('clearing the mark takes it back out of the prompt', !/RED RECTANGLE/.test(await swapPrompt.inputValue()));
+
+  const beforeClean = geminiBodies.length;
+  await page.getByRole('button', { name: /^Generate$/ }).click();
+  await page.waitForTimeout(2500);
+  check('an unmarked run fired', geminiBodies.length > beforeClean);
+  const cleanBody = geminiBodies[geminiBodies.length - 1] || '';
+
+  const payload = (body) => (body.match(/"data":"([^"]+)"/) || [])[1] || '';
+  check(
+    'the marked run sends different pixels from the unmarked one',
+    payload(markedBody).length > 0 && payload(markedBody) !== payload(cleanBody),
+    'same bytes means burnMarker never ran',
+  );
+
   check('no page crashes', perr.length === 0, perr.slice(0, 2).join(' | '));
   await browser.close();
   const failed = results.filter((r) => !r.ok).length;

@@ -36,7 +36,7 @@ npm run preview    # preview the production build
 
 ## The tools
 
-Nine generation tools, grouped by the stage of the job they belong to. Pick a
+Ten generation tools, grouped by the stage of the job they belong to. Pick a
 category in the sidebar and you get its **tool rail**: tick as many tools as you
 want, drop **one** image, and press **Synthesize** — they all run on it, one at a
 time, each with its own settings. Nothing is ever locked, disabled or gated
@@ -47,6 +47,7 @@ its controls live and where it can be run on its own.
 
 | Category | Tools |
 |---|---|
+| **Concept & Form** | Massing Study |
 | **Plans & Drawings** | Isometric · Elevation · Axonometric |
 | **Interiors** | Interior Design · Declutter · Place Object · Targeted Edit · FF&E Spec Sheet |
 | **Diagrams & Boards** | Material & Mood Board |
@@ -59,19 +60,39 @@ the no-backend persistence answer).
 
 | # | Tool | Input | Output |
 |---|------|-------|--------|
-| 01 | Floor Plan → 3D Isometric | 2D floor plan | **3D isometric "dollhouse" cutaway** or a **fully furnished top-down 2D marketing plan** — plus **Compare styles** (one plan × up to 4 design languages in one batch) and a before/after compare |
-| 02 | Sketch / Model → Elevation | Sketch or SketchUp screenshot | Rendered elevation, styled by a **design theme** (Contemporary / Modern / Traditional / Boho chic) **or an uploaded mood board** |
-| 03 | Elevation → Axonometric | Elevation image | True 3D axonometric + section-axonometric views in **realistic / line-art / black-&-white**, one per viewpoint |
-| 04 | Room Photo → Interior Design | Photo of a room (furnished or empty) | **Restyled / staged / renovated interior** in a chosen design theme, or from an uploaded mood board, with interior-specific refine chips |
-| 05 | Messy Room → Empty Shell | Photo of a cluttered room | The **bare architectural shell**, ready to re-stage — everything movable removed and the surfaces behind it repaired, with fitted joinery optionally kept |
-| 06 | Place Object | Room photo **+ a product shot** | That **exact** product placed in the room — furniture (contact shadow), a light fitting (switched on, lighting the room) or artwork (mounted flat to the wall) |
-| 07 | Targeted Edit | Any interior photo | **One named thing changed** and nothing else — no mask, the target is described in words |
-| 08 | FF&E Spec Sheet | A finished interior | A **knolled flat-lay component inventory** of that room on white, each item captioned with its material or finish |
-| 09 | Material & Mood Board | Any image (render, sketch or photo) — or up to 9 outputs in Collage mode | **AI board** (default): a flat-lay material & mood board **extracted from the image** — labelled samples, furniture suggestions, colour dots, a 5-swatch palette strip and a vibe line. **Collage**: the branded canvas grid board |
+| 01 | Brief → Massing Study | **No image at all** — a typed brief, plot size, density and context | A white study **massing model**, photographed three-quarter aerial. Deliberately no materials, glazing or entourage: a massing study earns its keep by refusing to answer questions it is too early to ask |
+| 02 | Floor Plan → 3D Isometric | 2D floor plan | **3D isometric "dollhouse" cutaway** or a **fully furnished top-down 2D marketing plan** — plus **Compare styles** (one plan × up to 4 design languages in one batch) and a before/after compare |
+| 03 | Sketch / Model → Elevation | Sketch or SketchUp screenshot | Rendered elevation, styled by a **design theme** (Contemporary / Modern / Traditional / Boho chic) **or an uploaded mood board** |
+| 04 | Elevation → Axonometric | Elevation image | True 3D axonometric + section-axonometric views in **realistic / line-art / black-&-white**, one per viewpoint |
+| 05 | Room Photo → Interior Design | Photo of a room (furnished or empty) | **Restyled / staged / renovated interior** in a chosen design theme, or from an uploaded mood board, with interior-specific refine chips |
+| 06 | Messy Room → Empty Shell | Photo of a cluttered room | The **bare architectural shell**, ready to re-stage — everything movable removed and the surfaces behind it repaired, with fitted joinery optionally kept |
+| 07 | Place Object | Room photo **+ a product shot** | That **exact** product placed in the room — furniture (contact shadow), a light fitting (switched on, lighting the room) or artwork (mounted flat to the wall) |
+| 08 | Targeted Edit | Any interior photo | **One named thing changed** and nothing else — no mask, the target is described in words |
+| 09 | FF&E Spec Sheet | A finished interior | A **knolled flat-lay component inventory** of that room on white, each item captioned with its material or finish |
+| 10 | Material & Mood Board | Any image (render, sketch or photo) — or up to 9 outputs in Collage mode | **AI board** (default): a flat-lay material & mood board **extracted from the image** — labelled samples, furniture suggestions, colour dots, a 5-swatch palette strip and a vibe line. **Collage**: the branded canvas grid board |
 
 Every tool accepts its input by direct upload, independent of anything else in
 the session — Axonometric works from a directly uploaded elevation without
 running Elevation first.
+
+### Inputs
+
+Most tools take one image. Three capabilities go beyond that, and each is worth
+knowing about:
+
+- **A second image of its own.** Place Object needs the room *and* the product
+  shot, and the prompt addresses them by position — "the FIRST image… the
+  SECOND". Tools declare their extra input slots, and the shell renders one
+  labelled dropzone each.
+- **No image at all.** Massing Study generates from a typed brief. With no input
+  image holding the model to anything, whatever you leave unsaid gets invented
+  plausibly and confidently — which is why that screen is a form with specific
+  fields rather than one free-text box.
+- **A marked region.** Targeted Edit lets you drag a red box over the area to
+  work on, because language alone cannot point. The box is burned into the pixels
+  only when you press Generate, so your original is never touched and the mark
+  can be redrawn freely — and the prompt tells the model in as many words that
+  the rectangle is an annotation to erase, not part of the scene.
 
 ### Batch runs and cost
 

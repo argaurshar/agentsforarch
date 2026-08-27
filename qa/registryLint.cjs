@@ -156,7 +156,29 @@ check(
   'the second hop: a category that hand-lists its tools hides the next one added',
 );
 
-// --- 6. One request builder ---------------------------------------------------
+// --- 6. Every tool's prompt is under the snapshot ------------------------------
+//
+// qa/dumpPrompts.ts is hand-written — it has to be, because each builder has its
+// own axes and only a human knows which combinations matter. That makes it the
+// one place a new tool can be forgotten, and the failure is silent in the worst
+// way: the snapshot goes on passing while the new tool's prompt is covered by
+// nothing at all. Caught exactly that on `massing`.
+
+const dump = fs.readFileSync(path.join(ROOT, 'qa', 'dumpPrompts.ts'), 'utf8');
+const unsnapshotted = declaredKeys.filter((k) => {
+  // Match on the builder name rather than the key: the dump calls
+  // buildMassingPrompt / buildPlaceObjectPrompt, and its variant labels are
+  // abbreviated ("place:", "swap:", "int:"), so the key itself often is absent.
+  const builder = new RegExp(`build${k[0].toUpperCase()}${k.slice(1)}Prompt`, 'i');
+  return !builder.test(dump);
+});
+check(
+  'every tool appears in the prompt snapshot dump',
+  unsnapshotted.length === 0,
+  unsnapshotted.join(', ') + '  — add it to qa/dumpPrompts.ts, then promptSnapshot.cjs --update',
+);
+
+// --- 7. One request builder ---------------------------------------------------
 //
 // There are two callers that run a tool now — the single-tool screen and the
 // batch runner — and the pinned aspect ratio is applied in `buildFeatureRequest`.

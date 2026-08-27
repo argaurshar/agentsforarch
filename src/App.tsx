@@ -1,6 +1,7 @@
 import { AppShell } from './components/Layout/AppShell';
 import { FeatureErrorBoundary } from './components/ui/FeatureErrorBoundary';
 import { AxonometricFeature } from './features/axonometric/AxonometricFeature';
+import { MassingFeature } from './features/concept/MassingFeature';
 import { CategoryScreen } from './features/category/CategoryScreen';
 import { ElevationFeature } from './features/elevation/ElevationFeature';
 import { DashboardFeature } from './features/home/DashboardFeature';
@@ -23,6 +24,7 @@ import type { FeatureKind } from './types';
 // anywhere: it exists because a tool declared it.
 const FEATURES: Record<FeatureKind | 'home' | 'gallery', ComponentType> = {
   home: DashboardFeature,
+  massing: MassingFeature,
   render: RenderFeature,
   elevation: ElevationFeature,
   axonometric: AxonometricFeature,

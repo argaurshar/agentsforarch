@@ -36,6 +36,7 @@ import {
   buildMoodboardPrompt,
   buildRenderPrompt,
 } from '../../lib/prompts';
+import { buildMassingPrompt } from '../../lib/prompt/concept';
 import {
   buildDeclutterPrompt,
   buildPlaceObjectPrompt,
@@ -55,6 +56,7 @@ import type {
   FeatureRun,
   FeatureSettings,
   InteriorSettings,
+  MassingSettings,
   MoodboardSettings,
   RenderSettings,
 } from '../../store/generation';
@@ -78,6 +80,10 @@ export interface PromptContext {
   useMoodboard: boolean;
   /** A pooled output is attached as a style reference (reference-chaining). */
   useStyleRef: boolean;
+  /** A red rectangle has been marked on the input and will be burned in.
+   *  The prompt has to say so — an unexplained red box in the image is just
+   *  something for the model to faithfully reproduce in its output. */
+  hasMarker?: boolean;
 }
 
 /** A batch job: one output image, with the clause that distinguishes it. */
@@ -100,8 +106,22 @@ export interface FeatureDef<S extends FeatureSettings = FeatureSettings> {
   inputMode: InputMode;
   /** Extra reference images allowed beyond the primary input. */
   maxReferences: number;
-  /** This tool wants a region marked on the input before running. */
-  needsMarker: boolean;
+  /**
+   * Further images this tool needs in its OWN right, one entry per slot — not
+   * style references. Positional: the prompt says "the SECOND image", so slot 0
+   * is always that one, which is why this is an ordered list of labelled slots
+   * rather than "up to N images".
+   */
+  extraInputs?: { label: string; hint: string }[];
+  /**
+   * Whether this tool offers a region marker, and whether it insists on one.
+   *
+   * `'required'` is structural — the tool cannot do anything without knowing
+   * where. `'optional'` is an aid: it works from words alone, and the box makes
+   * it more precise. The distinction matters because a required marker takes the
+   * tool out of a batch run entirely, and an optional one does not.
+   */
+  marker?: 'required' | 'optional';
   /** Output depends on real-world facts the model may get wrong. */
   accuracyWarning?: string;
 
@@ -206,6 +226,48 @@ const FACE_CLAUSE: Record<string, string> = {
 
 // --- The definitions --------------------------------------------------------
 
+const massing: FeatureDef<MassingSettings> = {
+  key: 'massing',
+  category: 'concept',
+  name: 'Massing Study',
+  blurb: 'Brief to White Model',
+  icon: Boxes,
+  // The first tool with NO image input. Everything an uploaded drawing would
+  // have told the model has to be said in words instead, which is why this
+  // screen is a form rather than a dropzone.
+  inputMode: 'text',
+  maxReferences: 0,
+  defaultSettings: { brief: '', siteSize: '', density: 'medium', storeys: '', context: '' },
+  buildPrompt: (s) => buildMassingPrompt(s),
+  sceneShow: {},
+  // A massing model is photographed three-quarter aerial, which is a landscape
+  // composition whatever the plot shape — there is no input canvas to inherit.
+  aspectRatio: () => '3:2',
+  sendTargets: ['render'],
+  poolLabel: 'Massing studies',
+  galleryLabel: 'Massing',
+  ui: {
+    index: '01',
+    eyebrow: 'Concept & Form',
+    title: 'Brief → Massing Study',
+    description:
+      'The first-morning question: how much building, arranged how, on this plot. Describe the brief and the site — no drawing needed — and get a white study model back.',
+    inputLabel: 'Brief',
+    inputHint: 'No image needed — this one generates from what you type',
+    outputCaption: 'The massing model',
+    emptyIcon: Boxes,
+    emptyTitle: 'No massing study yet',
+    emptyDescription: 'Describe the brief and press Generate — a white study model appears here.',
+  },
+  blockedReason: (s) => (s.brief.trim() ? null : 'Describe the project to begin.'),
+  toOptions: (_s, ctx) => ({ variations: 1, refine: ctx.refine || undefined, referenceImages: ctx.referenceImages }),
+  promptContracts: [
+    { name: 'massing prompt refuses materials and glazing', pattern: /no materials, no brick, no timber, no glazing/i },
+    { name: 'massing prompt asks for a white study model', pattern: /MASSING model, not a render/i },
+    { name: 'massing prompt shows neighbouring context for scale', pattern: /lower-contrast grey blocks/i },
+  ],
+};
+
 const render: FeatureDef<RenderSettings> = {
   key: 'render',
   category: 'drawings',
@@ -214,7 +276,6 @@ const render: FeatureDef<RenderSettings> = {
   icon: PencilRuler,
   inputMode: 'image',
   maxReferences: 1,
-  needsMarker: false,
   defaultSettings: { style: 'isometric', variations: 1, scene: defaultScene() },
   buildPrompt: (s, ctx) => buildRenderPrompt({ style: s.style, useStyleRef: ctx.useStyleRef, ...s.scene }),
   sceneShow: { archStyle: true },
@@ -265,7 +326,6 @@ const elevation: FeatureDef<ElevationSettings> = {
   icon: Building2,
   inputMode: 'image',
   maxReferences: 1,
-  needsMarker: false,
   defaultSettings: {
     face: 'Front',
     style: 'rendered',
@@ -344,7 +404,6 @@ const axonometric: FeatureDef<AxonSettings> = {
   icon: Box,
   inputMode: 'image',
   maxReferences: 1,
-  needsMarker: false,
   defaultSettings: { viewpoints: ['NE'], style: 'realistic', section: false, scene: defaultScene() },
   buildPrompt: (s) => buildAxonometricPrompt({ section: s.section, style: s.style }),
   // Deliberately none: this is a pure conversion of an already-rendered image,
@@ -401,7 +460,6 @@ const interior: FeatureDef<InteriorSettings> = {
   icon: PaintRoller,
   inputMode: 'image',
   maxReferences: 1,
-  needsMarker: false,
   defaultSettings: {
     mode: 'restyle',
     roomType: 'living',
@@ -463,7 +521,6 @@ const declutter: FeatureDef<DeclutterSettings> = {
   icon: Eraser,
   inputMode: 'image',
   maxReferences: 0,
-  needsMarker: false,
   defaultSettings: { keepBuiltIns: true },
   buildPrompt: (s) => buildDeclutterPrompt(s),
   sceneShow: {},
@@ -503,7 +560,10 @@ const placeObject: FeatureDef<PlaceObjectSettings> = {
   // The first tool that genuinely needs two images: the room, and the product.
   inputMode: 'images',
   maxReferences: 1,
-  needsMarker: false,
+  // Positional, and the prompt says so out loud: "the FIRST image… the SECOND".
+  extraInputs: [
+    { label: 'Input · the object', hint: 'A product shot of the exact item — plain background works best' },
+  ],
   defaultSettings: { kind: 'furniture', placement: 'replace', target: '' },
   buildPrompt: (s) => buildPlaceObjectPrompt(s),
   sceneShow: {},
@@ -543,9 +603,11 @@ const targetedSwap: FeatureDef<TargetedSwapSettings> = {
   icon: Replace,
   inputMode: 'image',
   maxReferences: 0,
-  needsMarker: false,
+  // Optional, not required: this tool works from words alone, and the box only
+  // makes it more precise. A REQUIRED marker would take it out of batch runs.
+  marker: 'optional',
   defaultSettings: { element: '', replacement: '' },
-  buildPrompt: (s) => buildTargetedSwapPrompt(s),
+  buildPrompt: (s, ctx) => buildTargetedSwapPrompt({ ...s, marked: ctx.hasMarker }),
   sceneShow: {},
   sendTargets: [],
   poolLabel: 'Targeted edits',
@@ -587,7 +649,6 @@ const specSheet: FeatureDef<SpecSheetSettings> = {
   icon: ClipboardList,
   inputMode: 'image',
   maxReferences: 0,
-  needsMarker: false,
   defaultSettings: { roomLabel: '' },
   buildPrompt: (s) => buildSpecSheetPrompt(s),
   sceneShow: {},
@@ -626,7 +687,6 @@ const moodboard: FeatureDef<MoodboardSettings> = {
   icon: Palette,
   inputMode: 'image',
   maxReferences: 0,
-  needsMarker: false,
   defaultSettings: { aspect: '4:5' },
   buildPrompt: () => buildMoodboardPrompt(),
   sceneShow: {},
@@ -658,6 +718,7 @@ const moodboard: FeatureDef<MoodboardSettings> = {
  * directions — a key with no definition, or a definition with no key.
  */
 export const REGISTRY = {
+  massing,
   render,
   elevation,
   axonometric,
@@ -794,7 +855,7 @@ export function buildFeatureRequest(
 export function batchBlockedReason(feature: FeatureKind, settings: FeatureSettings): string | null {
   const def = featureDef(feature);
   if (def.inputMode === 'images') return 'Needs a second image of its own — open the tool.';
-  if (def.needsMarker) return 'Needs a region marked on the input — open the tool.';
+  if (def.marker === 'required') return 'Needs a region marked on the input — open the tool.';
   if (def.inputMode === 'text') return 'Takes no image — open the tool.';
   return def.blockedReason?.(settings, true, 'compose') ?? null;
 }
