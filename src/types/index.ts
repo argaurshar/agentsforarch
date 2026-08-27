@@ -1,10 +1,18 @@
+import type { CategoryTab } from '../features/registry/keys';
 import type { FeatureKind, GeneratedImage } from '../providers/types';
 
 // Re-export the provider-owned types so app code has a single import surface.
 export type { FeatureKind, GeneratedImage };
 
-/** The sidebar destinations. Home, Moodboard and Gallery are not generation features. */
-export type TabKey = FeatureKind | 'home' | 'moodboard' | 'gallery';
+/**
+ * Every destination the app can be at.
+ *
+ * Three kinds, and they are not the same thing: the two fixed pages, one page
+ * per CATEGORY (what the sidebar lists now — a flat row per tool stopped
+ * scanning at eleven and this app is heading for ~54), and one page per TOOL,
+ * still deep-linkable and still where a tool's own settings live.
+ */
+export type TabKey = FeatureKind | 'home' | 'gallery' | CategoryTab;
 
 /**
  * The studio/client's brand colours, stamped onto the artefacts the app renders

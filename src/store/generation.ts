@@ -129,6 +129,20 @@ export interface SpecSheetSettings {
   roomLabel: string;
 }
 
+// --- Concept & Form ---------------------------------------------------------
+
+export type MassingDensity = 'low' | 'medium' | 'high';
+
+/** The first tool with no image input at all — every field here is what an
+ *  uploaded drawing would otherwise have told the model. */
+export interface MassingSettings {
+  brief: string;
+  siteSize: string;
+  density: MassingDensity;
+  storeys: string;
+  context: string;
+}
+
 // --- Material & mood board (Feature 05: any image → AI board) ---------------
 export type BoardAspectKey = Extract<AspectRatio, '4:5' | '1:1' | '16:9'>;
 export interface MoodboardSettings {
@@ -144,6 +158,7 @@ export type FeatureSettings =
   | PlaceObjectSettings
   | TargetedSwapSettings
   | SpecSheetSettings
+  | MassingSettings
   | MoodboardSettings;
 
 /** Quick-action refinement of a specific output (P2). */
@@ -157,9 +172,33 @@ export function emptyRefine(): RefineState {
   return { chips: [], freeText: '', sourceLabel: null };
 }
 
+/**
+ * A region marked on the input, in fractions of the image (0..1) so it survives
+ * any later resize. Burned into the pixels just before the request goes out —
+ * the stored input stays clean, so re-marking never degrades the original.
+ */
+export interface MarkerRect {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
 /** The full live state of one generation feature. */
 export interface FeatureRun<S extends FeatureSettings> {
   input: string | null; // dataURL — seeded by dropzone, Refine, or Send-to pipeline
+  /**
+   * Further images this tool needs in its OWN right, one per slot its registry
+   * entry declares — not style references. Positional: the prompt says "the
+   * SECOND image", so index 0 here is always that one.
+   *
+   * In the store rather than in the screen's `useState` because App.tsx remounts
+   * the routed feature on every tab change, so component-local state meant a
+   * product shot vanished the moment you looked at another tool.
+   */
+  extraInputs: (string | null)[];
+  /** Region marked on the input, for tools that want one. */
+  marker: MarkerRect | null;
   settings: S;
   mode: FeatureMode;
   refine: RefineState;
@@ -197,6 +236,8 @@ export type SettingsPatch<S extends FeatureSettings> = S extends unknown ? OnePa
 export function baseRun<S extends FeatureSettings>(settings: S, prompt: string): FeatureRun<S> {
   return {
     input: null,
+    extraInputs: [],
+    marker: null,
     settings,
     mode: 'compose',
     refine: emptyRefine(),

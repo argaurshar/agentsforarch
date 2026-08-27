@@ -115,13 +115,21 @@ const check = (name, ok, detail = '') => {
   const enginePill = page.locator('button[title="API keys"], button[title="Connect your API key to generate"]').first();
   check('header pill shows Nano Banana Pro on Gemini', /Nano Banana Pro/i.test(await enginePill.innerText()));
 
-  // Nav rows are addressed by their stable data-nav key, never by position: the
-  // sidebar is derived from the feature registry now, so any new tool shifts
-  // every index. `.first()` because the mobile drawer renders a second Sidebar.
-  const navTo = (key) => page.locator(`nav[aria-label="Features"] [data-nav="${key}"]`).first();
+  // Destinations are addressed by identity, never by position. The sidebar lists
+  // CATEGORIES now, so a tool has no row of its own — it is reached by its route,
+  // and its presence in a category rail is asserted separately (section 12), which
+  // is a stronger reachability check than clicking one row at a time.
+  // `.first()` because the mobile drawer renders a second Sidebar.
+  const navTo = async (key) => {
+    await page.goto(BASE + '#/' + key, { waitUntil: 'domcontentloaded' });
+    await page.waitForTimeout(350);
+  };
+  const catTo = async (key) => {
+    await page.locator(`nav[aria-label="Features"] [data-nav="cat:${key}"]`).first().click();
+    await page.waitForTimeout(350);
+  };
   const nav = page.locator('nav[aria-label="Features"] button');
-  await navTo('render').click();
-  await page.waitForTimeout(300);
+  await navTo('render');
 
   // 3. The Isometric tab now has the editable prompt box.
   const promptBox = page.locator('#render-prompt');
@@ -178,8 +186,7 @@ const check = (name, ok, detail = '') => {
   await page.waitForTimeout(250);
   check('header pill shows Nano Banana 2 · kie.ai', /Nano Banana 2/i.test(await enginePill.innerText()));
 
-  await navTo('elevation').click();
-  await page.waitForTimeout(300);
+  await navTo('elevation');
   await page.setInputFiles('input[type=file]', PLAN);
   await page.waitForTimeout(200);
   await page.getByRole('button', { name: /^Generate$/ }).click();
@@ -195,8 +202,7 @@ const check = (name, ok, detail = '') => {
   // 7. Interior: the shell lock. Staging must add furniture only — the old prompt
   //    asked for "curtains" in the same breath as "windows must not change", and
   //    the model settled that by draping blank walls, i.e. inventing windows.
-  await navTo('interior').click();
-  await page.waitForTimeout(300);
+  await navTo('interior');
   const interiorPrompt = page.locator('#interior-prompt');
   await page.getByRole('button', { name: 'Stage (furnish empty room)' }).click();
   await page.waitForTimeout(200);
@@ -293,8 +299,7 @@ const check = (name, ok, detail = '') => {
     ['specSheet', [/knolling-style flat-lay on a plain white background/, /not a mood board of similar products/]],
   ];
   for (const [key, patterns] of NEW_TOOLS) {
-    await navTo(key).click();
-    await page.waitForTimeout(350);
+    await navTo(key);
     const box = page.locator(`#${key}-prompt`);
     check(`${key} is reachable and has its prompt box`, (await box.count()) === 1);
     const text = (await box.count()) ? await box.inputValue() : '';
@@ -304,9 +309,228 @@ const check = (name, ok, detail = '') => {
   }
 
   // The two-input tool must render a SECOND dropzone, not just a reference picker.
-  await navTo('placeObject').click();
-  await page.waitForTimeout(300);
+  await navTo('placeObject');
   check('placeObject offers two separate image inputs', (await page.locator('input[type=file]').count()) >= 2);
+
+  // 12. The navigation shell. The sidebar lists CATEGORIES now — a row per tool
+  //     was right at five and wrong at eleven — so reachability is two hops, and
+  //     both have to hold or a tool ships invisible.
+  const KEYS = (fs
+    .readFileSync(path.join(__dirname, '..', 'src', 'features', 'registry', 'keys.ts'), 'utf8')
+    .match(/FEATURE_KEYS = \[([^\]]+)\]/)?.[1] ?? '')
+    .split(',')
+    .map((s) => s.trim().replace(/^['"]|['"]$/g, ''))
+    .filter(Boolean);
+
+  await page.goto(BASE + '#/home', { waitUntil: 'domcontentloaded' });
+  await page.waitForTimeout(400);
+  const navKeys = await page.locator('nav[aria-label="Features"] [data-nav]').evaluateAll((els) =>
+    els.map((e) => e.getAttribute('data-nav')),
+  );
+  const catRows = navKeys.filter((k) => k.startsWith('cat:'));
+  check('the sidebar lists categories, not one row per tool', catRows.length > 0 && catRows.length < navKeys.length);
+  check(
+    'no tool has its own sidebar row',
+    KEYS.every((k) => !navKeys.includes(k)),
+    navKeys.join(','),
+  );
+
+  // Walk every category rail and collect the tools it offers. The union must be
+  // every registered tool, and no tool may appear twice — this is what proves a
+  // new tool is reachable without anyone remembering to add it to a nav list.
+  const seen = [];
+  for (const row of catRows) {
+    await page.locator(`nav[aria-label="Features"] [data-nav="${row}"]`).first().click();
+    await page.waitForTimeout(400);
+    const tools = await page
+      .locator('[data-tool]')
+      .evaluateAll((els) => els.map((e) => e.getAttribute('data-tool')));
+    seen.push(...tools);
+  }
+  const missing = KEYS.filter((k) => !seen.includes(k));
+  const dupes = seen.filter((k, i) => seen.indexOf(k) !== i);
+  check('every registered tool appears in a category rail', missing.length === 0, `missing: ${missing.join(',')}`);
+  check('no tool appears in two rails', dupes.length === 0, dupes.join(','));
+
+  // 13. Batch Synthesize and the cost guard. Back on Gemini: its mock answers
+  //     instantly, so a five-tool queue does not spend a minute on kie's polls.
+  await enginePill.click();
+  await page.waitForSelector('[role="dialog"]');
+  await page.getByRole('radio', { name: /Google Gemini/ }).click();
+  await page.fill('#api-key', 'AIza-qa-test');
+  await page.getByRole('button', { name: /^Save$/ }).click();
+  await page.locator('[role="dialog"] button[aria-label="Close settings"]').click();
+  await page.waitForTimeout(250);
+
+  await page.goto(BASE + '#/c/interiors', { waitUntil: 'domcontentloaded' });
+  await page.waitForTimeout(500);
+  check('a category deep link opens its tool rail', (await page.locator('[data-tool]').count()) > 0);
+
+  // A tool needing a second image of its own can never run from the shared
+  // dropzone, and the rail has to say so rather than silently dropping it.
+  const placeCard = page.locator('[data-tool="placeObject"] [role="checkbox"]');
+  check('a two-image tool is not selectable in the rail', await placeCard.isDisabled());
+  check(
+    'and the rail says why',
+    /second image/i.test(await page.locator('[data-tool="placeObject"]').innerText()),
+  );
+
+  await page.setInputFiles('input[type=file]', PLAN);
+  await page.waitForTimeout(400);
+
+  // Two tools is under the guard — it runs on the click, no dialog.
+  await page.locator('[data-tool="declutter"] [role="checkbox"]').click();
+  await page.locator('[data-tool="specSheet"] [role="checkbox"]').click();
+  const before = geminiBodies.length;
+  await page.getByRole('button', { name: /^Synthesize$/ }).click();
+  await page.waitForTimeout(300);
+  check('a small batch runs without a confirmation', (await page.locator('[role="alertdialog"]').count()) === 0);
+  await page.waitForTimeout(2500);
+  check('a two-tool batch sent two generations', geminiBodies.length - before === 2, `${geminiBodies.length - before}`);
+
+  // Each tool in the batch must send its OWN prompt, not a shared one — this is
+  // what proves the batch runs each tool rather than one prompt N times.
+  const batchBodies = geminiBodies.slice(before);
+  check(
+    'each batched tool sent its own prompt',
+    batchBodies.some((b) => /Do not invent a new floor or a feature wall/.test(b)) &&
+      batchBodies.some((b) => /knolling-style flat-lay/.test(b)),
+  );
+
+  // Select all always confirms, and the dialog states the count.
+  await page.getByRole('button', { name: /^Select all$/ }).click();
+  await page.waitForTimeout(200);
+  await page.getByRole('button', { name: /^Synthesize/ }).click();
+  await page.waitForTimeout(300);
+  const dialog = page.locator('[role="alertdialog"]');
+  check('Select all always asks first', (await dialog.count()) === 1);
+  check('the confirmation states how many images it will generate', /Generate \d+ images\?/.test(await dialog.innerText()));
+  await dialog.getByRole('button', { name: /^Cancel$/ }).click();
+  await page.waitForTimeout(200);
+  check('cancelling the confirmation generates nothing', (await page.locator('[role="alertdialog"]').count()) === 0);
+
+  // 14. A tool screen leads back to its category — the sidebar no longer has a
+  //     row for it, so without this you open a tool and are nowhere.
+  await page.locator('[data-open-tool="declutter"]').click();
+  await page.waitForTimeout(400);
+  check('the rail opens the tool it names', (await page.locator('#declutter-prompt').count()) === 1);
+  await page.locator('[data-back-to-category="interiors"]').click();
+  await page.waitForTimeout(400);
+  check('a tool screen leads back to its category', (await page.locator('[data-tool]').count()) > 0);
+  check('and the category deep link is in the URL', /#\/c\/interiors$/.test(page.url()));
+
+  // 15. Input capabilities: an extra image slot, a text-only tool, and the
+  //     region marker. Each is asserted through the one tool that consumes it —
+  //     a capability with no consumer is a capability nothing tests.
+
+  // 15a. Place Object's product shot lives in the STORE now. It used to be
+  //      component state, and App.tsx remounts the routed feature on every tab
+  //      change, so it vanished the moment you looked at another tool.
+  await navTo('placeObject');
+  const zones = page.locator('input[type=file]');
+  check('a tool with an extra input slot renders two dropzones', (await zones.count()) >= 2);
+  await zones.nth(1).setInputFiles(PLAN);
+  await page.waitForTimeout(500);
+  const imagesAfterUpload = await page.locator('img[src^="data:"]').count();
+  await navTo('declutter');
+  await navTo('placeObject');
+  check(
+    'the extra input survives navigating away and back',
+    (await page.locator('img[src^="data:"]').count()) >= imagesAfterUpload,
+  );
+
+  // Both images go out, in the order the prompt names them.
+  await zones.nth(0).setInputFiles(PLAN);
+  await page.waitForTimeout(500);
+  const beforeTwo = geminiBodies.length;
+  await page.getByRole('button', { name: /^Generate$/ }).click();
+  await page.waitForTimeout(2000);
+  check('a two-input run actually fired', geminiBodies.length > beforeTwo);
+  const twoBody = geminiBodies[geminiBodies.length - 1] || '';
+  check(
+    'a two-input run sends two image parts',
+    (twoBody.match(/"inlineData"/g) || []).length === 2,
+    `${(twoBody.match(/"inlineData"/g) || []).length}`,
+  );
+
+  // 15b. The text-only tool has no dropzone at all, and Generate is gated on
+  //      the form rather than on an upload.
+  await navTo('massing');
+  check('a text-only tool renders no image dropzone', (await page.locator('input[type=file]').count()) === 0);
+  const massingPrompt = page.locator('#massing-prompt');
+  check('a text-only tool still has its prompt box', (await massingPrompt.count()) === 1);
+  check('massing prompt refuses materials and glazing', /no materials, no brick, no timber, no glazing/i.test(await massingPrompt.inputValue()));
+  const genMassing = page.getByRole('button', { name: /^Generate$/ });
+  check('a text-only tool is blocked by its own form, not by an upload', await genMassing.isDisabled());
+  await page.fill('#massing-brief', 'A 40-unit residential block with ground-floor retail');
+  await page.waitForTimeout(300);
+  check('filling the form unblocks it', !(await genMassing.isDisabled()));
+  const beforeText = geminiBodies.length;
+  await genMassing.click();
+  await page.waitForTimeout(2000);
+  check('a text-only run fired', geminiBodies.length > beforeText);
+  const textBody = geminiBodies[geminiBodies.length - 1] || '';
+  check('a text-only run sends NO image part', !/"inlineData"/.test(textBody));
+  check('a text-only run carries what the user typed', /40-unit residential block/.test(textBody));
+
+  // The new category exists only because this tool put it there.
+  await page.goto(BASE + '#/home', { waitUntil: 'domcontentloaded' });
+  await page.waitForTimeout(400);
+  const navAfter = await page.locator('nav[aria-label="Features"] [data-nav]').evaluateAll((els) =>
+    els.map((e) => e.getAttribute('data-nav')),
+  );
+  check('a new category appears once its first tool exists', navAfter.includes('cat:concept'));
+
+  // 15c. The region marker. Dragging a box must change the PROMPT — an
+  //      unexplained red rectangle is just something for the model to reproduce.
+  await navTo('targetedSwap');
+  const swapPrompt = page.locator('#targetedSwap-prompt');
+  check('an unmarked tool says nothing about a red rectangle', !/RED RECTANGLE/.test(await swapPrompt.inputValue()));
+  check('no marker canvas before there is an image', (await page.locator('[data-marker-canvas]').count()) === 0);
+  await page.setInputFiles('input[type=file]', PLAN);
+  await page.waitForTimeout(600);
+  const canvas = page.locator('[data-marker-canvas]');
+  check('a marker-capable tool offers the canvas once an image is there', (await canvas.count()) === 1);
+
+  const box = await canvas.boundingBox();
+  await page.mouse.move(box.x + box.width * 0.3, box.y + box.height * 0.3);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width * 0.7, box.y + box.height * 0.7, { steps: 8 });
+  await page.mouse.up();
+  await page.waitForTimeout(400);
+  check('dragging leaves a mark on the image', (await page.getByRole('button', { name: /Clear mark/ }).count()) === 1);
+  const markedPrompt = await swapPrompt.inputValue();
+  check('marking the image tells the prompt about it', /RED RECTANGLE/.test(markedPrompt));
+  check('and the prompt orders the box erased from the output', /finished image contains no red box/i.test(markedPrompt));
+
+  // The prompt changing is half of it. The box has to reach the WIRE — it is
+  // burned into the pixels at request time, and a prompt that talks about a red
+  // rectangle the model cannot see is worse than no marker at all.
+  await page.fill('#swap-element', 'the pendant');
+  await page.fill('#swap-replacement', 'a brass dome');
+  await page.waitForTimeout(300);
+  const beforeMarked = geminiBodies.length;
+  await page.getByRole('button', { name: /^Generate$/ }).click();
+  await page.waitForTimeout(2500);
+  check('a marked run fired', geminiBodies.length > beforeMarked);
+  const markedBody = geminiBodies[geminiBodies.length - 1] || '';
+
+  await page.getByRole('button', { name: /Clear mark/ }).click();
+  await page.waitForTimeout(400);
+  check('clearing the mark takes it back out of the prompt', !/RED RECTANGLE/.test(await swapPrompt.inputValue()));
+
+  const beforeClean = geminiBodies.length;
+  await page.getByRole('button', { name: /^Generate$/ }).click();
+  await page.waitForTimeout(2500);
+  check('an unmarked run fired', geminiBodies.length > beforeClean);
+  const cleanBody = geminiBodies[geminiBodies.length - 1] || '';
+
+  const payload = (body) => (body.match(/"data":"([^"]+)"/) || [])[1] || '';
+  check(
+    'the marked run sends different pixels from the unmarked one',
+    payload(markedBody).length > 0 && payload(markedBody) !== payload(cleanBody),
+    'same bytes means burnMarker never ran',
+  );
 
   check('no page crashes', perr.length === 0, perr.slice(0, 2).join(' | '));
   await browser.close();

@@ -1,6 +1,8 @@
 import { AppShell } from './components/Layout/AppShell';
 import { FeatureErrorBoundary } from './components/ui/FeatureErrorBoundary';
 import { AxonometricFeature } from './features/axonometric/AxonometricFeature';
+import { MassingFeature } from './features/concept/MassingFeature';
+import { CategoryScreen } from './features/category/CategoryScreen';
 import { ElevationFeature } from './features/elevation/ElevationFeature';
 import { DashboardFeature } from './features/home/DashboardFeature';
 import { GalleryFeature } from './features/gallery/GalleryFeature';
@@ -14,10 +16,15 @@ import { RenderFeature } from './features/render/RenderFeature';
 import { useHashRoute } from './lib/useHashRoute';
 import { useProjectStore } from './store/useProjectStore';
 import type { ComponentType } from 'react';
-import type { TabKey } from './types';
+import { categoryFromTab } from './features/registry/keys';
+import type { FeatureKind } from './types';
 
-const FEATURES: Record<TabKey, ComponentType> = {
+// Tool screens. Category destinations are not in here — there is one screen for
+// all of them, parameterised by which category, so a new category needs no entry
+// anywhere: it exists because a tool declared it.
+const FEATURES: Record<FeatureKind | 'home' | 'gallery', ComponentType> = {
   home: DashboardFeature,
+  massing: MassingFeature,
   render: RenderFeature,
   elevation: ElevationFeature,
   axonometric: AxonometricFeature,
@@ -33,7 +40,8 @@ const FEATURES: Record<TabKey, ComponentType> = {
 export default function App() {
   useHashRoute();
   const tab = useProjectStore((s) => s.tab);
-  const ActiveFeature = FEATURES[tab];
+  const category = categoryFromTab(tab);
+  const ActiveFeature = category ? null : FEATURES[tab as FeatureKind | 'home' | 'gallery'];
 
   return (
     <AppShell>
@@ -41,7 +49,7 @@ export default function App() {
           giving each feature screen a composed, unhurried arrival. */}
       <div key={tab} className="view-enter">
         <FeatureErrorBoundary resetKey={tab}>
-          <ActiveFeature />
+          {category ? <CategoryScreen category={category} /> : ActiveFeature ? <ActiveFeature /> : null}
         </FeatureErrorBoundary>
       </div>
     </AppShell>

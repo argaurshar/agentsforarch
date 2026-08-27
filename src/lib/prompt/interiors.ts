@@ -148,12 +148,31 @@ export function buildPlaceObjectPrompt(a: {
  * identified in language — so the instruction that carries the weight is the
  * negative one, and it is stated twice.
  */
-export function buildTargetedSwapPrompt(a: { element: string; replacement: string }): string {
+export function buildTargetedSwapPrompt(a: {
+  element: string;
+  replacement: string;
+  /** A red rectangle has been drawn on the input around the target. */
+  marked?: boolean;
+}): string {
   const element = a.element.trim() || 'the element indicated';
   const replacement = a.replacement.trim();
 
-  return [
+  const parts: string[] = [
     `Make ONE change to this photograph: ${element} becomes ${replacement || 'the new version described below'}.`,
+  ];
+
+  // An unexplained red box is just something for the model to reproduce
+  // faithfully in its output. Naming it as an annotation — and saying to erase
+  // it — is what turns it from a drawn object into a pointer.
+  if (a.marked) {
+    parts.push(
+      'A RED RECTANGLE has been drawn on the input image to show you exactly where to work. That rectangle is an ' +
+        'annotation, not part of the scene: make your change inside it, and do NOT draw the red rectangle, any part ' +
+        'of it, or any outline in its place into your output. The finished image contains no red box.',
+    );
+  }
+
+  parts.push(
     SHELL_READ,
     `STEP 2 — LOCK EVERYTHING ELSE. This is a targeted edit, not a redesign. Every part of the image other than ` +
       `${element} must come through completely unchanged: the other furniture and objects, all surfaces and finishes, ` +
@@ -166,7 +185,8 @@ export function buildTargetedSwapPrompt(a: { element: string; replacement: strin
     `Before you finish, compare your output against the input everywhere EXCEPT ${element}. Any other difference is a ` +
       'mistake — redo it.',
     NO_TEXT,
-  ].join(' ');
+  );
+  return parts.join(' ');
 }
 
 // --- FF&E spec sheet (Notion #18) -------------------------------------------

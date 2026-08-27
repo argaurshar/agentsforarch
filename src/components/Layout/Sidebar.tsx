@@ -1,6 +1,7 @@
 import { Images, LayoutDashboard } from 'lucide-react';
-import { ALL_FEATURES } from '../../features/registry';
+import { CATEGORIES, featureDef } from '../../features/registry';
 import type { LucideIcon } from 'lucide-react';
+import { categoryFromTab, isFeatureKind } from '../../features/registry/keys';
 import { useProjectStore } from '../../store/useProjectStore';
 import type { TabKey } from '../../types';
 
@@ -10,16 +11,23 @@ interface NavItem {
   /** Surfaced as the row's tooltip only — the nav itself stays single-line. */
   sub: string;
   icon: LucideIcon;
+  /** Tools in this destination, shown as a count. Absent for Home / Gallery. */
+  count?: number;
 }
 
-// All features are always present and always clickable (spec §1). None is
-// ever locked, greyed out, or gated behind another feature.
+// One row per CATEGORY, not per tool.
+//
+// A row per tool was right at five and wrong at eleven: a flat list stops being
+// scannable somewhere around a dozen rows, and this app is heading for ~54
+// tools. Categories give the nav a fixed height — six rows at most, forever.
+//
+// Still derived, and now doubly so: a category is in this list because a tool
+// declared it, and it disappears when it holds nothing. So a category arrives
+// the day its first tool does, rather than sitting here as an empty promise, and
+// a tool is still reachable by existing rather than by being remembered.
 const NAV_ITEMS: NavItem[] = [
   { key: 'home', name: 'Home', sub: 'Project Dashboard', icon: LayoutDashboard },
-  // Generation tools are derived — a new one appears here by existing, not by
-  // being remembered. This row used to be hand-maintained, which is how a
-  // feature could ship and be unreachable.
-  ...ALL_FEATURES.map((f) => ({ key: f.key, name: f.name, sub: f.blurb, icon: f.icon })),
+  ...CATEGORIES.map((c) => ({ key: c.tab, name: c.label, sub: c.blurb, icon: c.icon, count: c.features.length })),
   { key: 'gallery', name: 'Gallery', sub: 'All Outputs · Save / Load', icon: Images },
 ];
 
@@ -31,6 +39,7 @@ interface SidebarProps {
 export function Sidebar({ onNavigate }: SidebarProps = {}) {
   const tab = useProjectStore((s) => s.tab);
   const setTab = useProjectStore((s) => s.setTab);
+  const activeCategory = useProjectStore((s) => (isFeatureKind(s.tab) ? featureDef(s.tab).category : categoryFromTab(s.tab)));
 
   return (
     <nav
@@ -56,7 +65,9 @@ export function Sidebar({ onNavigate }: SidebarProps = {}) {
 
       <ul className="flex flex-col gap-1 px-3 pb-3 pt-2">
         {NAV_ITEMS.map((item) => {
-          const active = tab === item.key;
+          // A tool screen keeps its own category row lit — otherwise opening a
+          // tool from the rail unlights the whole nav and you are nowhere.
+          const active = tab === item.key || (categoryFromTab(item.key) !== null && categoryFromTab(item.key) === activeCategory);
           const Icon = item.icon;
           return (
             <li key={item.key}>
@@ -89,6 +100,9 @@ export function Sidebar({ onNavigate }: SidebarProps = {}) {
                   className={active ? 'text-ochre' : 'text-bone/60 transition-colors group-hover:text-bone'}
                 />
                 <span className="truncate text-label font-medium">{item.name}</span>
+                {item.count ? (
+                  <span className="ml-auto shrink-0 font-mono text-caption text-bone/60">{item.count}</span>
+                ) : null}
               </button>
             </li>
           );

@@ -1,4 +1,4 @@
-import { RotateCcw, Sparkles, X } from 'lucide-react';
+import { ChevronLeft, RotateCcw, Sparkles, X } from 'lucide-react';
 import { useEffect, useMemo } from 'react';
 import type { ReactNode } from 'react';
 import { ExampleShowcase } from '../Examples/ExampleShowcase';
@@ -6,14 +6,16 @@ import { CompareSection } from '../Output/CompareSection';
 import { OutputGrid } from '../Output/OutputGrid';
 import { RefineChips } from '../Scene/RefineChips';
 import { ImageDropzone } from '../Upload/ImageDropzone';
+import { MarkerCanvas } from '../Upload/MarkerCanvas';
 import { Button } from '../ui/Button';
 import { EmptyState } from '../ui/EmptyState';
 import { ErrorBanner } from '../ui/ErrorBanner';
 import { Notice } from '../ui/Notice';
 import { SectionHeader } from '../ui/SectionHeader';
-import { featureDef } from '../../features/registry';
+import { buildFeatureRequest, categoryOf, featureDef } from '../../features/registry';
 import type { FeatureKind, RunContext, SettingsFor } from '../../features/registry';
 import { useGenerate } from '../../features/hooks';
+import { burnMarker } from '../../lib/images';
 import { buildRefinePrompt } from '../../lib/prompts';
 import type { RefineChip } from '../../lib/refine';
 import { useProjectStore } from '../../store/useProjectStore';
@@ -50,20 +52,6 @@ export interface GenerationScreenProps<K extends FeatureKind> {
   children?: (ctx: ControlsContext<K>) => ReactNode;
   /** Extra content directly under the input dropzone (e.g. the plan-prep tips). */
   belowInput?: ReactNode;
-  /**
-   * A second input the tool needs in its own right — not a style reference.
-   *
-   * Place Object is the first tool that needs this: the room and the product
-   * are BOTH inputs, and the prompt addresses them positionally ("the FIRST
-   * image… the SECOND image"). Rendered as its own labelled dropzone so it
-   * reads as a required input rather than an optional extra.
-   */
-  secondInput?: {
-    label: string;
-    hint: string;
-    value: string | null;
-    onChange: (url: string | null) => void;
-  };
   /** Refine chips specific to this tool; defaults to the general set. */
   refineChips?: RefineChip[];
   /**
@@ -95,11 +83,13 @@ export function GenerationScreen<K extends FeatureKind>({
   refineChips,
   run: runExtras,
   labels,
-  secondInput,
 }: GenerationScreenProps<K>) {
   const def = featureDef(feature);
-  const { input, settings, mode, refine, prompt, promptEdited } = useProjectStore((s) => s.generation[feature]);
+  const { input, extraInputs, marker, settings, mode, refine, prompt, promptEdited } = useProjectStore(
+    (s) => s.generation[feature],
+  );
   const setFeatureInput = useProjectStore((s) => s.setFeatureInput);
+  const setFeatureExtraInput = useProjectStore((s) => s.setFeatureExtraInput);
   const updateFeatureSettings = useProjectStore((s) => s.updateFeatureSettings);
   const setFeaturePrompt = useProjectStore((s) => s.setFeaturePrompt);
   const patchFeatureRun = useProjectStore((s) => s.patchFeatureRun);
@@ -107,6 +97,7 @@ export function GenerationScreen<K extends FeatureKind>({
   const exitRefine = useProjectStore((s) => s.exitRefine);
   const removeImage = useProjectStore((s) => s.removeImage);
   const sendToFeature = useProjectStore((s) => s.sendToFeature);
+  const setTab = useProjectStore((s) => s.setTab);
 
   const typedSettings = settings as SettingsFor<K>;
   const refs = runExtras?.referenceImages;
@@ -117,8 +108,12 @@ export function GenerationScreen<K extends FeatureKind>({
     () =>
       mode === 'refine'
         ? buildRefinePrompt(refine)
-        : def.buildPrompt((runExtras?.promptSettings ?? settings) as never, { useMoodboard, useStyleRef }),
-    [mode, refine, settings, def, useMoodboard, useStyleRef, runExtras?.promptSettings],
+        : def.buildPrompt((runExtras?.promptSettings ?? settings) as never, {
+            useMoodboard,
+            useStyleRef,
+            hasMarker: marker !== null,
+          }),
+    [mode, refine, settings, def, useMoodboard, useStyleRef, marker, runExtras?.promptSettings],
   );
 
   // Controls drive the prompt until the user edits it, then they stop.
@@ -129,29 +124,68 @@ export function GenerationScreen<K extends FeatureKind>({
   const { status, error, warning, outputs, inputUsed, engineReady, run, cancel } = useGenerate(feature);
   const loading = status === 'loading';
 
-  const blocked = def.blockedReason?.(settings, input !== null, mode) ?? (input === null ? 'Upload an image to begin.' : null);
-  const canGenerate = blocked === null;
+  // A text-only tool has nothing to upload, so "has an input" is vacuously true
+  // for it — otherwise every such tool would be permanently blocked by a
+  // dropzone it does not have.
+  const wantsImage = def.inputMode !== 'text';
+  const hasInput = !wantsImage || input !== null;
+
+  const slots = def.extraInputs ?? [];
+  const missingSlot = slots.findIndex((_, i) => !extraInputs[i]);
+
+  const blocked =
+    def.blockedReason?.(settings, hasInput, mode) ??
+    (hasInput ? null : 'Upload an image to begin.') ??
+    null;
+  // A tool's own extra inputs are as required as the primary one — running
+  // without them would silently produce something else entirely.
+  const slotBlocked =
+    mode === 'refine' || missingSlot === -1 ? null : `Add ${slots[missingSlot].label.toLowerCase()} to begin.`;
+  const markerBlocked =
+    def.marker === 'required' && !marker ? 'Mark the area on the image to begin.' : null;
+  const allBlocked = blocked ?? slotBlocked ?? markerBlocked;
+  const canGenerate = allBlocked === null;
 
   const handleGenerate = () => {
-    if (!canGenerate || !input) return;
+    if (!canGenerate) return;
     const ctx: RunContext = {
       refine: mode === 'refine',
       referenceImages: refs,
       styleVariants: runExtras?.styleVariants,
     };
-    void run({
-      feature,
-      inputImages: [input],
-      prompt: prompt.trim() || undefined,
-      options: { ...def.toOptions(settings, ctx), aspectRatio: def.aspectRatio?.(settings) },
-    });
+    // Order is the contract: the primary image first, then each declared slot in
+    // the order the prompt names them.
+    const send = async () => {
+      let primary = input;
+      if (primary && marker) primary = await burnMarker(primary, marker);
+      const inputImages = [primary, ...slots.map((_, i) => extraInputs[i] ?? null)].filter(
+        (u): u is string => typeof u === 'string',
+      );
+      await run(buildFeatureRequest(feature, settings, { inputImages, prompt, ctx }));
+    };
+    void send();
   };
 
   const promptId = `${feature}-prompt`;
   const plannedCount = def.plannedCount?.(settings, mode) ?? 1;
 
+  const category = categoryOf(feature);
+
   return (
     <div>
+      {/* The sidebar lists categories now, so a tool screen has no row of its
+          own to be "at". Without this you can open a tool from the rail and have
+          nothing on the page that leads back to its siblings. */}
+      <button
+        type="button"
+        data-back-to-category={category.key}
+        onClick={() => setTab(category.tab)}
+        className="mb-4 -ml-1 inline-flex items-center gap-1.5 rounded-field px-1.5 py-1 text-caption text-mist transition-colors hover:bg-drafting hover:text-graphite"
+      >
+        <ChevronLeft size={14} strokeWidth={1.75} />
+        {category.label}
+      </button>
+
       <SectionHeader index={def.ui.index} eyebrow={def.ui.eyebrow} title={def.ui.title} description={def.ui.description} />
 
       {/* Worked examples — open until this tab has produced something. */}
@@ -167,32 +201,53 @@ export function GenerationScreen<K extends FeatureKind>({
             disabled={loading}
             className={`flex min-w-0 flex-col divide-y divide-hairline transition-opacity ${loading ? 'opacity-60' : ''}`}
           >
-            <div className="flex flex-col gap-3 p-5">
-              <div>
-                <p className="section-heading">{def.ui.inputLabel}</p>
-                <p className="mt-1 text-caption text-mist">{def.ui.inputHint}</p>
-              </div>
-              <ImageDropzone
-                value={input}
-                onImage={(url) => setFeatureInput(feature, url)}
-                onClear={() => setFeatureInput(feature, null)}
-              />
-              {belowInput}
-            </div>
-
-            {secondInput ? (
+            {wantsImage ? (
               <div className="flex flex-col gap-3 p-5">
                 <div>
-                  <p className="section-heading">{secondInput.label}</p>
-                  <p className="mt-1 text-caption text-mist">{secondInput.hint}</p>
+                  <p className="section-heading">{def.ui.inputLabel}</p>
+                  <p className="mt-1 text-caption text-mist">{def.ui.inputHint}</p>
                 </div>
-                <ImageDropzone
-                  value={secondInput.value}
-                  onImage={(url) => secondInput.onChange(url)}
-                  onClear={() => secondInput.onChange(null)}
-                />
+                {/* Once a marker-capable tool has an image, the marker view
+                    REPLACES the dropzone: both at once put the same picture on
+                    the card twice and pushed everything else below the fold. */}
+                {def.marker && input ? (
+                  <MarkerCanvas
+                    src={input}
+                    value={marker}
+                    disabled={loading}
+                    onChange={(rect) => patchFeatureRun(feature, { marker: rect })}
+                    onReplaceImage={() => setFeatureInput(feature, null)}
+                  />
+                ) : (
+                  <ImageDropzone
+                    value={input}
+                    onImage={(url) => setFeatureInput(feature, url)}
+                    onClear={() => setFeatureInput(feature, null)}
+                  />
+                )}
+                {belowInput}
               </div>
-            ) : null}
+            ) : (
+              belowInput ? <div className="flex flex-col gap-3 p-5">{belowInput}</div> : null
+            )}
+
+            {/* A tool's own extra inputs, one labelled dropzone per declared slot
+                and in the order the prompt names them. */}
+            {mode === 'refine'
+              ? null
+              : slots.map((slot, i) => (
+                  <div key={slot.label} className="flex flex-col gap-3 p-5">
+                    <div>
+                      <p className="section-heading">{slot.label}</p>
+                      <p className="mt-1 text-caption text-mist">{slot.hint}</p>
+                    </div>
+                    <ImageDropzone
+                      value={extraInputs[i] ?? null}
+                      onImage={(url) => setFeatureExtraInput(feature, i, url)}
+                      onClear={() => setFeatureExtraInput(feature, i, null)}
+                    />
+                  </div>
+                ))}
 
             {/* Refine REPLACES the controls rather than sitting under them — the
                 controls are ignored in this mode, so showing them would lie. */}
@@ -271,7 +326,7 @@ export function GenerationScreen<K extends FeatureKind>({
                   Cancel
                 </Button>
               ) : null}
-              {blocked ? <span className="text-body text-mist">{blocked}</span> : null}
+              {allBlocked ? <span className="text-body text-mist">{allBlocked}</span> : null}
             </div>
             {/* Blocked, not wrong — a warning tone, and it names a destination. */}
             {!engineReady ? <Notice tone="warning" message="Add your Gemini key in Settings to generate." /> : null}

@@ -130,3 +130,47 @@ export function slugify(value: string): string {
       .slice(0, 60) || 'image'
   );
 }
+
+/**
+ * Burn a red rectangle into an image, for the tools whose prompt refers to "the
+ * area marked in red".
+ *
+ * Done at request time rather than on the stored input, so the original is never
+ * degraded and the mark can be moved or removed any number of times. That also
+ * makes a failed first attempt recoverable, which matters: whether the model
+ * reads the box as an instruction or reproduces it in the output is not
+ * something we can settle without a paid generation.
+ *
+ * `rect` is in fractions of the image (0..1), so it survives any resize between
+ * marking and sending.
+ */
+export async function burnMarker(
+  dataURL: string,
+  rect: { x: number; y: number; w: number; h: number },
+): Promise<string> {
+  const img = await loadImage(dataURL);
+  const canvas = document.createElement('canvas');
+  canvas.width = img.width;
+  canvas.height = img.height;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return dataURL;
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, img.width, img.height);
+  ctx.drawImage(img, 0, 0);
+
+  // Scale the stroke to the image so the box is equally visible on a 600px
+  // sketch and a 3000px site plan — a fixed pixel width vanishes on the latter.
+  const stroke = Math.max(3, Math.round(Math.min(img.width, img.height) * 0.006));
+  ctx.strokeStyle = '#ff0000';
+  ctx.lineWidth = stroke;
+  ctx.strokeRect(
+    rect.x * img.width + stroke / 2,
+    rect.y * img.height + stroke / 2,
+    Math.max(0, rect.w * img.width - stroke),
+    Math.max(0, rect.h * img.height - stroke),
+  );
+  // PNG, not JPEG: the whole point is a crisp red edge, and JPEG ringing around
+  // pure red on a light ground is exactly the artefact that would make the model
+  // read the mark as part of the drawing.
+  return canvas.toDataURL('image/png');
+}
