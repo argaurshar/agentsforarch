@@ -52,8 +52,24 @@ export interface GenerationScreenProps<K extends FeatureKind> {
   belowInput?: ReactNode;
   /** Refine chips specific to this tool; defaults to the general set. */
   refineChips?: RefineChip[];
-  /** Reference images to send alongside the input, and any compare-styles batch. */
-  run?: Pick<RunContext, 'referenceImages' | 'styleVariants'>;
+  /**
+   * What this run attaches beyond the input.
+   *
+   * `useMoodboard` and `useStyleRef` are deliberately SEPARATE flags, not one
+   * "has a reference" boolean: they select different prompt clauses (an uploaded
+   * mood board vs. a pooled output chained as a style reference), and the tools
+   * that support both treat them as mutually exclusive.
+   */
+  run?: Pick<RunContext, 'referenceImages' | 'styleVariants'> & {
+    useMoodboard?: boolean;
+    useStyleRef?: boolean;
+    /**
+     * Settings to build the PROMPT from, when they differ from the stored ones.
+     * Compare-styles needs this: the base prompt must carry no style, because
+     * the provider appends a different one per variant.
+     */
+    promptSettings?: unknown;
+  };
   /** Overrides the empty/compare/output labels when a tool's mode changes them. */
   labels?: { emptyTitle?: string; emptyDescription?: string; compareAfter?: string };
 }
@@ -75,17 +91,19 @@ export function GenerationScreen<K extends FeatureKind>({
   const beginRefine = useProjectStore((s) => s.beginRefine);
   const exitRefine = useProjectStore((s) => s.exitRefine);
   const removeImage = useProjectStore((s) => s.removeImage);
+  const sendToFeature = useProjectStore((s) => s.sendToFeature);
 
   const typedSettings = settings as SettingsFor<K>;
   const refs = runExtras?.referenceImages;
-  const useMoodboard = Boolean(refs?.length);
+  const useMoodboard = runExtras?.useMoodboard ?? false;
+  const useStyleRef = runExtras?.useStyleRef ?? false;
 
   const suggestedPrompt = useMemo(
     () =>
       mode === 'refine'
         ? buildRefinePrompt(refine)
-        : def.buildPrompt(settings, { useMoodboard, useStyleRef: useMoodboard }),
-    [mode, refine, settings, def, useMoodboard],
+        : def.buildPrompt((runExtras?.promptSettings ?? settings) as never, { useMoodboard, useStyleRef }),
+    [mode, refine, settings, def, useMoodboard, useStyleRef, runExtras?.promptSettings],
   );
 
   // Controls drive the prompt until the user edits it, then they stop.
@@ -245,7 +263,8 @@ export function GenerationScreen<K extends FeatureKind>({
               loadingCount={mode === 'refine' ? 1 : plannedCount}
               onDelete={removeImage}
               onRefine={(image) => beginRefine(feature, image)}
-              sendTargets={def.sendTargets.map((t) => ({ target: t, label: featureDef(t).name }))}
+              sendTargets={def.sendTargets.map((t) => ({ target: t, label: `Send to ${featureDef(t).name}` }))}
+              onSend={(target, image) => sendToFeature(target, image.url)}
             />
           ) : !error ? (
             <EmptyState
