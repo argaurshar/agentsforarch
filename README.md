@@ -68,6 +68,13 @@ drop / paste / shoot          →  "This is a…"  →  "Make it…"  →  the r
 (or tap a bundled sample)        one chip row     a shortlist    + what's next
 ```
 
+What a result can become next comes from what its tool **produces**, not what
+went into it (`outputKind`): a rendered elevation made from a sketch is a
+*building*, so it is offered the building tools rather than the sketch tools it
+has already been through. Tools whose output the app has no input kind for — a
+section, a sheet, a diagram, a board — say so by ending the chain rather than
+pretending.
+
 The chip is a **guess**, made from the pixels — ink on white is a drawing, a
 bright top edge is outside, flat and green-grey is satellite — and it is one tap
 to correct. It costs nothing and calls nothing; the alternative was a paid
@@ -83,6 +90,32 @@ Your **API key is asked once**, at your first generation, in the slot where the
 result will appear — not by a drawer that opens itself before you have seen the
 app. It is remembered by default, so coming back costs nothing. There is a
 switch to turn that off for a shared machine.
+
+### The samples need no key at all
+
+This app ships twenty-one real input→output pairs it produced itself. So when
+the input **is** one of those bundled images and the tool **is** the one that
+made the pair, the result already exists: the card is marked *No key needed* and
+tapping it hands the finished image over instantly, with no request and no cost.
+
+Two of those chain and stay free:
+
+```
+a sketch  →  Render an elevation  →  Turn it axonometric
+a room    →  Redesign it          →  Board it
+```
+
+Every result served this way says so on screen — *"This one was prepared
+earlier… your own image runs for real"* — and offers **Try it on your own
+image** as its primary action. A demo that lets someone believe their own file
+came back in 200ms for free is a lie, not a feature, so `qa:e2e` asserts the
+wording as well as the behaviour.
+
+The map is **derived from the worked examples**, not hand-written: a new example
+becomes a new instant path by existing, and a renamed asset cannot leave a
+dangling filename behind. `registryLint` checks every referenced asset is
+actually shipped, and that every sample on the drop zone has at least one tool
+that can answer it for free.
 
 ## The tools
 

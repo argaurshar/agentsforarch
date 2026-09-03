@@ -100,9 +100,17 @@ interface ProjectState {
   // output lands in `generation[tool]` exactly where the tool screen reads it.
   // That is what keeps the front door and the Advanced view showing the same
   // thing instead of two copies that drift.
-  studio: { input: string | null; kind: InputKind | null; tool: FeatureKind | null };
+  studio: {
+    input: string | null;
+    kind: InputKind | null;
+    tool: FeatureKind | null;
+    /** Basename of the bundled example this input came from, when it did. That
+     *  is what lets a result be served instantly instead of generated — and it
+     *  is null for anything the user supplied, which is every real use. */
+    source: string | null;
+  };
   /** Drop (or clear) the shared image. Clearing resets the whole studio. */
-  setStudioInput: (dataURL: string | null, kind: InputKind | null) => void;
+  setStudioInput: (dataURL: string | null, kind: InputKind | null, source?: string | null) => void;
   /** Correct the guessed kind. Also drops the chosen tool, since the shortlist
    *  it came from no longer applies. */
   setStudioKind: (kind: InputKind) => void;
@@ -250,8 +258,8 @@ export const useProjectStore = create<ProjectState>((set, get) => {
       set({ tab: target });
     },
 
-    studio: { input: null, kind: null, tool: null },
-    setStudioInput: (dataURL, kind) => set({ studio: { input: dataURL, kind, tool: null } }),
+    studio: { input: null, kind: null, tool: null, source: null },
+    setStudioInput: (dataURL, kind, source = null) => set({ studio: { input: dataURL, kind, tool: null, source } }),
     setStudioKind: (kind) => set((st) => ({ studio: { ...st.studio, kind, tool: null } })),
     setStudioTool: (tool) => {
       const { studio, setFeatureInput } = get();

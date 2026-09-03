@@ -852,17 +852,23 @@ const check = (name, ok, detail = '') => {
   check('a floor plan offers Make it 3D', (await page.locator('[data-card="render"]').count()) === 1);
   check('and does not offer a tool that cannot read a plan', (await page.locator('[data-card="birdsEye"]').count()) === 0);
 
+  // Deliberately NOT `render`: the plan sample plus Make it 3D is a prepared
+  // pair now, and this section is about the generated path. Floor analysis is
+  // in the same shortlist and has no prepared result behind it.
   const beforeStudio = geminiBodies.length;
-  await page.locator('[data-card="render"]').click();
+  await page.locator('[data-card="floorAnalysis"]').click();
   clicks += 1;
   await page.waitForTimeout(3000);
   check('two clicks reach a result', (await page.locator('[data-studio-result]').count()) === 1, `clicks: ${clicks}`);
   check('exactly two', clicks === 2);
   check('and it actually generated', geminiBodies.length > beforeStudio);
 
-  // The result points onward, from each tool's own declared kinds.
-  check('the result offers a next transformation', (await page.locator('[data-chain]').count()) > 0);
-  check('but never itself', (await page.locator('[data-chain="render"]').count()) === 0);
+  // A diagram is honestly an end of the chain: `outputKind: null` means the app
+  // has no input kind for what came out, and offering next steps anyway would
+  // be offering to run tools on something they cannot read. Section 23 asserts
+  // the other side — a tool that DOES produce a chainable kind offers them.
+  check('a diagram offers no next step, because it is an end', (await page.locator('[data-chain]').count()) === 0);
+  check('and never offers itself', (await page.locator('[data-chain="floorAnalysis"]').count()) === 0);
 
   // Correcting the guess re-derives the cards rather than filtering a fixed list.
   await page.locator('[data-replace]').count().then(() => {});
@@ -891,7 +897,7 @@ const check = (name, ok, detail = '') => {
   check('a keyless visitor still sees the app', (await fp.locator('[data-studio-drop]').count()) === 1);
   await fp.locator('[data-sample="plan"]').click();
   await fp.waitForTimeout(900);
-  await fp.locator('[data-card="render"]').click();
+  await fp.locator('[data-card="floorAnalysis"]').click();
   await fp.waitForTimeout(600);
   check('the key is asked in the result slot', (await fp.locator('[data-key-gate]').count()) === 1);
   check('remembering is on by default', await fp.getByRole('switch', { name: /Remember/ }).getAttribute('aria-checked') === 'true');
@@ -902,6 +908,92 @@ const check = (name, ok, detail = '') => {
   check('pasting the key continues the run with no second tap', freshBodies.length > beforeKey);
   check('and the result appears', (await fp.locator('[data-studio-result]').count()) === 1);
   await fresh.close();
+
+  // 23. The instant demo. A visitor who has given the app NOTHING gets a real
+  //     result in two clicks, and no request is made on their behalf.
+  //
+  //     This is the ten seconds that decides whether the link gets forwarded,
+  //     so it is asserted as a whole: the badge is on the card before the tap,
+  //     the result says out loud that it was prepared, and the network stayed
+  //     silent. A prepared result that did not say so would pass a weaker
+  //     version of this check and still be a lie.
+  const demo = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+  const dp = await demo.newPage();
+  let demoCalls = 0;
+  await dp.route('**generativelanguage.googleapis.com/**', (r) => {
+    demoCalls += 1;
+    return r.fulfill({ status: 200, headers: CORS, body: '{}' });
+  });
+  await dp.route('**api.kie.ai/**', (r) => {
+    demoCalls += 1;
+    return r.fulfill({ status: 200, headers: CORS, body: '{}' });
+  });
+  await dp.goto(BASE, { waitUntil: 'domcontentloaded' });
+  await dp.waitForTimeout(500);
+
+  let demoClicks = 0;
+  await dp.locator('[data-sample="plan"]').click();
+  demoClicks += 1;
+  await dp.waitForTimeout(900);
+  check('a sample card is marked as needing no key', (await dp.locator('[data-card="render"] [data-instant]').count()) === 1);
+  check('and it is the first card offered', (await dp.locator('[data-card]').first().getAttribute('data-card')) === 'render');
+
+  await dp.locator('[data-card="render"]').click();
+  demoClicks += 1;
+  await dp.waitForTimeout(1200);
+  check('two clicks reach a result with no key at all', (await dp.locator('[data-studio-result]').count()) === 1);
+  check('in exactly two', demoClicks === 2);
+  check('nothing was asked of any engine', demoCalls === 0, `${demoCalls} call(s)`);
+  check('and no key was demanded', (await dp.locator('[data-key-gate]').count()) === 0);
+
+  // Honesty: the result must say what it is, and offer the real thing.
+  const demoText = await dp.locator('main').innerText();
+  check('the result says it was prepared earlier', /prepared earlier/i.test(demoText));
+  check('and says the visitor\'s own image runs for real', /your own image runs for real/i.test(demoText));
+  check('and offers that as the primary action', await dp.getByRole('button', { name: /Try it on your own image/ }).isVisible());
+  check('the prepared result is marked in the DOM', (await dp.locator('[data-studio-prepared]').count()) === 1);
+
+  // A prepared result can chain and stay prepared: sketch → elevation →
+  // axonometric is two free steps, because the elevation it produced is itself
+  // the bundled input of the axonometric pair.
+  await dp.goto(BASE, { waitUntil: 'domcontentloaded' });
+  await dp.waitForTimeout(400);
+  await dp.locator('[data-sample="sketch"]').click();
+  await dp.waitForTimeout(900);
+  await dp.locator('[data-card="elevation"]').click();
+  await dp.waitForTimeout(1200);
+  check('the sketch sample is prepared too', (await dp.locator('[data-studio-prepared]').count()) === 1);
+  check('a rendered elevation offers next steps', (await dp.locator('[data-chain]').count()) > 0);
+  check('from what it PRODUCED, not what went in', (await dp.locator('[data-chain="axonometric"]').count()) === 1);
+  check('and never the sketch tools it came from', (await dp.locator('[data-chain="sketchRender"]').count()) === 0);
+  check('and its result offers a prepared next step', (await dp.locator('[data-chain-instant]').count()) > 0);
+  await dp.locator('[data-chain="axonometric"]').click();
+  await dp.waitForTimeout(1200);
+  check('chaining stays free', (await dp.locator('[data-studio-prepared]').count()) === 1);
+  check('still with no engine call', demoCalls === 0, `${demoCalls} call(s)`);
+
+  // The chain row is capped, so the overflow link has to carry the RESULT
+  // forward — not send you back to the cards for the image that made it.
+  check('a capped chain offers a way to see the rest', (await dp.locator('[data-continue]').count()) === 1);
+  await dp.locator('[data-continue]').click();
+  await dp.waitForTimeout(700);
+  // The axonometric produces a 3D model view, so the list is the model tools —
+  // not the sketch tools three steps back.
+  check('which lists what the RESULT can become', (await dp.locator('[data-card="wireframeRender"]').count()) === 1);
+  check('and not what its first input could', (await dp.locator('[data-card="sketchRender"]').count()) === 0);
+
+  // A user's OWN image is never served a prepared result — that would be
+  // handing them someone else's building and calling it theirs.
+  await dp.goto(BASE, { waitUntil: 'domcontentloaded' });
+  await dp.waitForTimeout(400);
+  await dp.setInputFiles('input[type=file]', PLAN);
+  await dp.waitForTimeout(1400);
+  check('an uploaded image gets no instant badges', (await dp.locator('[data-instant]').count()) === 0);
+  await dp.locator('[data-card]').first().click();
+  await dp.waitForTimeout(700);
+  check('and is asked for a key rather than shown a sample', (await dp.locator('[data-key-gate]').count()) === 1);
+  check('with the network still untouched', demoCalls === 0, `${demoCalls} call(s)`);
+  await demo.close();
 
   check('no page crashes', perr.length === 0, perr.slice(0, 2).join(' | '));
   await browser.close();

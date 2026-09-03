@@ -27,8 +27,9 @@ function describeRejection(rejections: FileRejection[]): string {
 
 interface StudioDropProps {
   /** Called with the image and, when a sample was used, the kind it is known to
-   *  be — which lets the caller skip guessing. */
-  onImage: (dataURL: string, knownKind?: StudioSample['kind']) => void;
+   *  be plus the asset it came from — which lets the caller skip guessing, and
+   *  lets the result be served from the bundled pair instead of generated. */
+  onImage: (dataURL: string, knownKind?: StudioSample['kind'], source?: string) => void;
 }
 
 /**
@@ -89,7 +90,7 @@ export function StudioDrop({ onImage }: StudioDropProps) {
     setError(null);
     setBusy('sample');
     try {
-      onImage(await loadExampleInput(sampleUrl(sample)), sample.kind);
+      onImage(await loadExampleInput(sampleUrl(sample)), sample.kind, sample.file);
     } catch {
       setError('Could not load that sample. Check your connection.');
     } finally {

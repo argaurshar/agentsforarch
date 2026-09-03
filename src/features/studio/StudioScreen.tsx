@@ -29,10 +29,10 @@ export function StudioScreen() {
   const [guessed, setGuessed] = useState(false);
 
   const onImage = useCallback(
-    (dataURL: string, knownKind?: InputKind) => {
+    (dataURL: string, knownKind?: InputKind, source?: string) => {
       if (knownKind) {
         setGuessed(false);
-        setStudioInput(dataURL, knownKind);
+        setStudioInput(dataURL, knownKind, source ?? null);
         return;
       }
       // Show the picker immediately with a provisional kind, then correct it
@@ -51,15 +51,20 @@ export function StudioScreen() {
   );
 
   const chain = useCallback(
-    (feature: FeatureKind, image: string) => {
-      // A chained run starts a NEW flow whose input is the previous output. The
-      // kind carries over: an isometric of a plan is still a building, and the
-      // user has already told us what they are working on.
+    (feature: FeatureKind, image: string, nextKind: InputKind, source: string | null) => {
+      // A chained run starts a NEW flow whose input is the previous output, and
+      // whose kind is what that tool PRODUCES — not what went into it. The
+      // result view works that out from `outputKind`; here it is just carried.
+      //
+      // `source` carries over when the previous result was a prepared one, so a
+      // demo can chain and stay free: sketch → elevation → axonometric is two
+      // instant steps, because the elevation it produced is itself the bundled
+      // input of the axonometric pair.
       setGuessed(false);
-      setStudioInput(image, studio.kind);
+      setStudioInput(image, nextKind, source);
       setStudioTool(feature);
     },
-    [setStudioInput, setStudioTool, studio.kind],
+    [setStudioInput, setStudioTool],
   );
 
   if (!studio.input || !studio.kind) return <StudioDrop onImage={onImage} />;
@@ -70,8 +75,14 @@ export function StudioScreen() {
         feature={studio.tool}
         input={studio.input}
         kind={studio.kind}
+        source={studio.source}
         onBack={() => setStudioTool(null)}
         onChain={chain}
+        onContinue={(image, nextKind, src) => {
+          setGuessed(false);
+          setStudioInput(image, nextKind, src);
+        }}
+        onStartOver={() => setStudioInput(null, null)}
       />
     );
   }
@@ -81,6 +92,7 @@ export function StudioScreen() {
       input={studio.input}
       kind={studio.kind}
       guessed={guessed}
+      source={studio.source}
       onRun={setStudioTool}
       onReplace={() => setStudioInput(null, null)}
     />

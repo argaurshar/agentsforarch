@@ -152,6 +152,47 @@ check(
   'a hand-listed card grid is how the next tool ships unreachable',
 );
 
+// --- 1c. The instant demo actually has files behind it ----------------------
+//
+// The front door serves a prepared result when the input is a bundled example
+// and the tool is the one that made the pair. That map is derived from
+// `EXAMPLES`, so it cannot drift from the showcase — but both point at files on
+// disk by name, and a rename would break the app's most important ten seconds
+// with a broken image and nothing else complaining.
+//
+// The second rule is the promise itself: every sample offered on the drop zone
+// must have at least one tool that can answer it for free. A sample without one
+// is a keyless visitor's dead end — they tap it, tap a card, and get asked for
+// a credential, which is the exact experience this was built to remove.
+
+const examplesSrc = fs.readFileSync(path.join(ROOT, 'src', 'lib', 'examples.ts'), 'utf8');
+const shipped = new Set(fs.readdirSync(path.join(ROOT, 'public', 'examples')));
+const referenced = [...stripComments(examplesSrc).matchAll(/asset\('([^']+)'\)/g)].map((m) => m[1]);
+const missingAssets = [...new Set(referenced)].filter((f) => !shipped.has(f));
+check(
+  'every example asset is actually shipped',
+  missingAssets.length === 0,
+  `${missingAssets.join(', ')} — referenced in examples.ts, absent from public/examples`,
+);
+
+// An example case with an `input` is one (input asset, tool) pair that can be
+// served instantly. Collect them the way src/features/studio/instant.ts does.
+const instantInputs = new Set(
+  [...stripComments(examplesSrc).matchAll(/input: asset\('([^']+)'\)/g)].map((m) => m[1]),
+);
+const samplesSrc = fs.readFileSync(
+  path.join(ROOT, 'src', 'features', 'studio', 'samples.ts'),
+  'utf8',
+);
+const sampleFiles = [...stripComments(samplesSrc).matchAll(/file: '([^']+)'/g)].map((m) => m[1]);
+check('the drop zone offers samples', sampleFiles.length > 0, sampleFiles.join(', '));
+const deadSamples = sampleFiles.filter((f) => !instantInputs.has(f));
+check(
+  'every sample can answer at least one tool with no key',
+  deadSamples.length === 0,
+  `${deadSamples.join(', ')} — offered on the drop zone with no prepared result behind it`,
+);
+
 // --- 2. Layering: prompt text must not live in the transport layer -----------
 //
 // providers/shared.ts used to carry the per-face elevation clauses — hundreds of

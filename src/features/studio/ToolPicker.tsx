@@ -1,4 +1,4 @@
-import { ChevronDown, RefreshCw, Settings2, Sparkles, X } from 'lucide-react';
+import { ChevronDown, RefreshCw, Settings2, Sparkles, X, Zap } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Button } from '../../components/ui/Button';
 import { Notice } from '../../components/ui/Notice';
@@ -9,29 +9,37 @@ import { batchBlockedReason, toolsForKind } from '../registry';
 import type { FeatureDef } from '../registry';
 import type { FeatureKind } from '../../types';
 import { useProjectStore } from '../../store/useProjectStore';
+import { instantFeatures, instantFor } from './instant';
 
 /** How many cards before the rest go behind a disclosure. A building render can
  *  feed seventeen tools; showing all of them is a wall, not a shortlist. */
 const SHOW_FIRST = 6;
 
-/** The output side of a card's preview, when the app already ships one. Uses
- *  the bundled worked examples rather than new assets — five tools have them
- *  today, and the rest show their icon until P2 fills the gaps. */
-function previewFor(feature: FeatureKind): string | undefined {
-  return EXAMPLES[feature]?.cases[0]?.output;
+/**
+ * The output side of a card's preview.
+ *
+ * When a prepared result exists for THIS input, that is the preview — the card
+ * is then showing the exact image the tap will produce, not a picture of what
+ * the tool did to something else. Otherwise it falls back to the tool's first
+ * worked example, and to its icon when there is none.
+ */
+function previewFor(feature: FeatureKind, source: string | null): string | undefined {
+  return instantFor(source, feature)?.output ?? EXAMPLES[feature]?.cases[0]?.output;
 }
 
 interface ToolCardProps {
   def: FeatureDef;
   input: string;
+  source: string | null;
   blocked: string | null;
   onRun: () => void;
   onOpen: () => void;
 }
 
-function ToolCard({ def, input, blocked, onRun, onOpen }: ToolCardProps) {
+function ToolCard({ def, input, source, blocked, onRun, onOpen }: ToolCardProps) {
   const Icon = def.icon;
-  const preview = previewFor(def.key);
+  const preview = previewFor(def.key, source);
+  const instant = instantFor(source, def.key) !== null;
   // A tool needing a second image or a marked region cannot run from one drop.
   // The card still appears — the transformation IS available — but it says so
   // and takes you where it can be set up, rather than failing after a tap.
@@ -41,8 +49,21 @@ function ToolCard({ def, input, blocked, onRun, onOpen }: ToolCardProps) {
       type="button"
       data-card={def.key}
       onClick={needsSetup ? onOpen : onRun}
-      className="group flex flex-col overflow-hidden rounded-card border border-hairline bg-paper text-left transition-all hover:border-ochre/60 hover:shadow-card active:scale-[0.995]"
+      className={`group relative flex flex-col overflow-hidden rounded-card border bg-paper text-left transition-all hover:shadow-card active:scale-[0.995] ${
+        instant ? 'border-ochre/50 hover:border-ochre' : 'border-hairline hover:border-ochre/60'
+      }`}
     >
+      {/* Says out loud that this one needs nothing. Without the badge a visitor
+          cannot tell which card will answer for free and which will stop and
+          ask for a key — and finding out by tapping is the wrong way round. */}
+      {instant ? (
+        <span
+          data-instant
+          className="absolute right-2 top-2 z-10 flex items-center gap-1 rounded-full bg-ink/80 px-2 py-1 text-caption font-medium text-bone backdrop-blur-sm"
+        >
+          <Zap size={11} strokeWidth={2} /> No key needed
+        </span>
+      ) : null}
       <span className="grid grid-cols-2 gap-px bg-hairline">
         <img src={input} alt="" className="aspect-square w-full object-cover" />
         {preview ? (
@@ -68,6 +89,8 @@ function ToolCard({ def, input, blocked, onRun, onOpen }: ToolCardProps) {
 interface ToolPickerProps {
   input: string;
   kind: InputKind;
+  /** The bundled asset this input came from, when it is one. */
+  source: string | null;
   /** True when the kind was guessed from pixels rather than known from a sample
    *  — the chip row leads with a question in that case. */
   guessed: boolean;
@@ -83,14 +106,28 @@ interface ToolPickerProps {
  * declaring what it reads — the same property that makes the nav rows and the
  * prompt snapshot derived rather than maintained.
  */
-export function ToolPicker({ input, kind, guessed, onRun, onReplace }: ToolPickerProps) {
+export function ToolPicker({ input, kind, guessed, source, onRun, onReplace }: ToolPickerProps) {
   const setStudioKind = useProjectStore((s) => s.setStudioKind);
   const setTab = useProjectStore((s) => s.setTab);
   const engineReady = useProjectStore((s) => s.engineReady);
   const generation = useProjectStore((s) => s.generation);
   const [expanded, setExpanded] = useState(false);
 
-  const tools = useMemo(() => toolsForKind(kind), [kind]);
+  // Cards that can answer with no key come first. Registry order is workflow
+  // order and is the right default — but for a visitor who has not given the
+  // app anything, the card that works is the one worth putting under their
+  // thumb. With a user's own image nothing is instant, so the order is
+  // untouched: this reorders the demo, not the product.
+  const tools = useMemo(() => {
+    const all = toolsForKind(kind);
+    const free = instantFeatures(source);
+    if (free.size === 0) return all;
+    return [...all.filter((f) => free.has(f.key)), ...all.filter((f) => !free.has(f.key))];
+  }, [kind, source]);
+  const freeCount = useMemo(() => {
+    const free = instantFeatures(source);
+    return tools.filter((f) => free.has(f.key)).length;
+  }, [tools, source]);
   const shown = expanded ? tools : tools.slice(0, SHOW_FIRST);
 
   return (
@@ -162,6 +199,7 @@ export function ToolPicker({ input, kind, guessed, onRun, onReplace }: ToolPicke
                     key={def.key}
                     def={def}
                     input={input}
+                    source={source}
                     blocked={batchBlockedReason(def.key, generation[def.key].settings)}
                     onRun={() => onRun(def.key)}
                     onOpen={() => setTab(def.key)}
@@ -185,7 +223,9 @@ export function ToolPicker({ input, kind, guessed, onRun, onReplace }: ToolPicke
           {!engineReady ? (
             <p className="text-caption text-mist">
               <Sparkles size={12} strokeWidth={1.75} className="mr-1 inline align-[-1px]" />
-              You will be asked for an API key the first time you run one. It is free, and it stays in this browser.
+              {freeCount > 0
+                ? `${freeCount === 1 ? 'The marked card is' : `The ${freeCount} marked cards are`} already made — tap one to see a real result now. The rest ask for an API key, which is free and stays in this browser.`
+                : 'You will be asked for an API key the first time you run one. It is free, and it stays in this browser.'}
             </p>
           ) : null}
         </div>

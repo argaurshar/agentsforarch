@@ -186,6 +186,18 @@ export interface FeatureDef<S extends FeatureSettings = FeatureSettings> {
    * from FEATURE_KEYS.
    */
   inputKind: InputKind[];
+  /**
+   * What this tool PRODUCES, so a result knows what it can become next.
+   *
+   * Chaining on the input's kind is wrong and was: a rendered elevation made
+   * from a sketch is a `building`, and offering it the sketch tools again is
+   * offering to do what was just done. `'same'` is for tools that change a
+   * property without changing what the thing is — an upscale of a plan is
+   * still a plan. `null` is for outputs the app has no input kind for: a
+   * section, a sheet, a diagram, a board. Those are ends of a chain, and
+   * saying so is more honest than pretending otherwise.
+   */
+  outputKind: InputKind | 'same' | null;
 
   inputMode: InputMode;
   /** Extra reference images allowed beyond the primary input. */
@@ -345,6 +357,7 @@ const massing: FeatureDef<MassingSettings> = {
   blurb: 'Brief to White Model',
   verb: 'Model the brief',
   inputKind: [],
+  outputKind: 'building',
   icon: Boxes,
   // The first tool with NO image input. Everything an uploaded drawing would
   // have told the model has to be said in words instead, which is why this
@@ -387,6 +400,7 @@ const sketchRender: FeatureDef<SketchRenderSettings> = {
   blurb: 'Hand Sketch to Finished Image',
   verb: 'Finish the sketch',
   inputKind: ['sketch'],
+  outputKind: 'building',
   icon: Wand2,
   inputMode: 'image',
   maxReferences: 0,
@@ -428,6 +442,7 @@ const render: FeatureDef<RenderSettings> = {
   blurb: 'Floor Plan to 3D',
   verb: 'Make it 3D',
   inputKind: ['plan'],
+  outputKind: 'model',
   icon: PencilRuler,
   inputMode: 'image',
   maxReferences: 1,
@@ -478,6 +493,7 @@ const sketchPlan: FeatureDef<SketchPlanSettings> = {
   blurb: 'Napkin Sketch to Drawing',
   verb: 'Draw it up',
   inputKind: ['sketch', 'plan'],
+  outputKind: 'plan',
   icon: PenLine,
   inputMode: 'image',
   maxReferences: 0,
@@ -519,6 +535,7 @@ const cadElevation: FeatureDef<CadElevationSettings> = {
   blurb: '3D Model to Line Drawing',
   verb: 'Measure an elevation',
   inputKind: ['model', 'building'],
+  outputKind: 'building',
   icon: Ruler,
   inputMode: 'image',
   maxReferences: 0,
@@ -564,6 +581,7 @@ const section: FeatureDef<SectionSettings> = {
   blurb: 'Cut Through the Building',
   verb: 'Cut a section',
   inputKind: ['plan', 'model', 'building'],
+  outputKind: null,
   icon: SquareSplitVertical,
   inputMode: 'image',
   maxReferences: 0,
@@ -609,6 +627,7 @@ const renderToPlan: FeatureDef<RenderToPlanSettings> = {
   blurb: '3D View Back to Plan',
   verb: 'Get the floor plan',
   inputKind: ['building', 'model', 'room'],
+  outputKind: 'plan',
   icon: Undo2,
   inputMode: 'image',
   maxReferences: 0,
@@ -654,6 +673,7 @@ const elevation: FeatureDef<ElevationSettings> = {
   blurb: 'Sketch to Elevation',
   verb: 'Render an elevation',
   inputKind: ['sketch', 'model'],
+  outputKind: 'building',
   icon: Building2,
   inputMode: 'image',
   maxReferences: 1,
@@ -732,6 +752,7 @@ const axonometric: FeatureDef<AxonSettings> = {
   blurb: 'Elevation or 3D to Axonometric',
   verb: 'Turn it axonometric',
   inputKind: ['building', 'model'],
+  outputKind: 'model',
   icon: Box,
   inputMode: 'image',
   maxReferences: 1,
@@ -799,6 +820,7 @@ const watercolour: FeatureDef<WatercolourSettings> = {
   blurb: 'Render to Painted Illustration',
   verb: 'Paint it',
   inputKind: ['building', 'room', 'sketch'],
+  outputKind: 'same',
   icon: Brush,
   inputMode: 'image',
   maxReferences: 0,
@@ -836,6 +858,7 @@ const interior: FeatureDef<InteriorSettings> = {
   blurb: 'Room Photo to Design',
   verb: 'Redesign it',
   inputKind: ['room'],
+  outputKind: 'room',
   icon: PaintRoller,
   inputMode: 'image',
   maxReferences: 1,
@@ -897,6 +920,7 @@ const declutter: FeatureDef<DeclutterSettings> = {
   blurb: 'Messy Room to Empty Shell',
   verb: 'Empty it',
   inputKind: ['room'],
+  outputKind: 'room',
   icon: Eraser,
   inputMode: 'image',
   maxReferences: 0,
@@ -935,6 +959,7 @@ const placeObject: FeatureDef<PlaceObjectSettings> = {
   blurb: 'Product Shot into Room',
   verb: 'Place a product',
   inputKind: ['room'],
+  outputKind: 'room',
   icon: Armchair,
   // The first tool that genuinely needs two images: the room, and the product.
   inputMode: 'images',
@@ -979,6 +1004,7 @@ const targetedSwap: FeatureDef<TargetedSwapSettings> = {
   blurb: 'Change One Thing Only',
   verb: 'Swap one thing',
   inputKind: ['room'],
+  outputKind: 'room',
   icon: Replace,
   inputMode: 'image',
   maxReferences: 0,
@@ -1028,6 +1054,7 @@ const specSheet: FeatureDef<SpecSheetSettings> = {
   blurb: 'Room to Component List',
   verb: 'List the furniture',
   inputKind: ['room'],
+  outputKind: null,
   icon: ClipboardList,
   inputMode: 'image',
   maxReferences: 0,
@@ -1075,6 +1102,7 @@ const birdsEye: FeatureDef<BirdsEyeSettings> = {
   blurb: 'Satellite to Aerial Photo',
   verb: 'Fly over it',
   inputKind: ['map'],
+  outputKind: 'building',
   icon: Plane,
   inputMode: 'image',
   maxReferences: 0,
@@ -1120,6 +1148,7 @@ const urbanContext: FeatureDef<UrbanContextSettings> = {
   blurb: 'Isolated Building into a Street',
   verb: 'Put it in a street',
   inputKind: ['building'],
+  outputKind: 'building',
   icon: Building,
   inputMode: 'image',
   maxReferences: 0,
@@ -1161,6 +1190,7 @@ const wireframeRender: FeatureDef<WireframeRenderSettings> = {
   blurb: '3D Model to Photoreal',
   verb: 'Render the model',
   inputKind: ['model'],
+  outputKind: 'building',
   icon: Camera,
   inputMode: 'image',
   maxReferences: 1,
@@ -1197,6 +1227,7 @@ const renderRefine: FeatureDef<RenderRefineSettings> = {
   blurb: 'Draft to Portfolio Quality',
   verb: 'Finish the render',
   inputKind: ['building', 'room'],
+  outputKind: 'building',
   icon: Gem,
   inputMode: 'image',
   maxReferences: 0,
@@ -1233,6 +1264,7 @@ const atmosphere: FeatureDef<AtmosphereSettings> = {
   blurb: 'Re-light an Existing Render',
   verb: 'Change the light',
   inputKind: ['building'],
+  outputKind: 'building',
   icon: Sun,
   inputMode: 'image',
   maxReferences: 0,
@@ -1269,6 +1301,7 @@ const facadeMaterial: FeatureDef<FacadeMaterialSettings> = {
   blurb: 'Same Building, New Material',
   verb: 'Re-clad it',
   inputKind: ['building'],
+  outputKind: 'building',
   icon: Layers,
   inputMode: 'image',
   maxReferences: 0,
@@ -1313,6 +1346,7 @@ const humanScale: FeatureDef<HumanScaleSettings> = {
   blurb: 'People, Vehicles, Planting',
   verb: 'Add people',
   inputKind: ['building'],
+  outputKind: 'building',
   icon: Users,
   inputMode: 'image',
   maxReferences: 0,
@@ -1349,6 +1383,7 @@ const multiView: FeatureDef<MultiViewSettings> = {
   blurb: 'One Building, Several Views',
   verb: 'Make a sheet',
   inputKind: ['building', 'model'],
+  outputKind: null,
   icon: LayoutPanelTop,
   inputMode: 'image',
   maxReferences: 0,
@@ -1398,6 +1433,7 @@ const reflection: FeatureDef<ReflectionSettings> = {
   blurb: 'Tune What the Glass Does',
   verb: 'Fix the glass',
   inputKind: ['building'],
+  outputKind: 'building',
   icon: Sparkle,
   inputMode: 'image',
   maxReferences: 0,
@@ -1434,6 +1470,7 @@ const upscale: FeatureDef<UpscaleSettings> = {
   blurb: 'Approved Image to Print Master',
   verb: 'Upscale for print',
   inputKind: ['plan', 'sketch', 'room', 'building', 'model', 'map'],
+  outputKind: 'same',
   icon: Maximize2,
   inputMode: 'image',
   maxReferences: 0,
@@ -1480,6 +1517,7 @@ const floorAnalysis: FeatureDef<FloorAnalysisSettings> = {
   blurb: 'Plan to Analysis Diagram',
   verb: 'Analyse the plan',
   inputKind: ['plan'],
+  outputKind: null,
   icon: Route,
   inputMode: 'image',
   maxReferences: 0,
@@ -1517,6 +1555,7 @@ const programDiagram: FeatureDef<ProgramDiagramSettings> = {
   blurb: 'Building to Labelled Floors',
   verb: 'Break down the floors',
   inputKind: ['building', 'model'],
+  outputKind: null,
   icon: Rows3,
   inputMode: 'image',
   maxReferences: 0,
@@ -1557,6 +1596,7 @@ const explodedAxon: FeatureDef<ExplodedAxonSettings> = {
   blurb: 'Building to Assembly Diagram',
   verb: 'Explode it',
   inputKind: ['building', 'model'],
+  outputKind: null,
   icon: Layers3,
   inputMode: 'image',
   maxReferences: 0,
@@ -1595,6 +1635,7 @@ const annotation: FeatureDef<AnnotationSettings> = {
   blurb: 'Image to Explained Diagram',
   verb: 'Annotate it',
   inputKind: ['plan', 'sketch', 'room', 'building', 'model'],
+  outputKind: null,
   icon: PenTool,
   inputMode: 'image',
   maxReferences: 0,
@@ -1639,6 +1680,7 @@ const moodboard: FeatureDef<MoodboardSettings> = {
   blurb: 'Image → Material Board',
   verb: 'Board it',
   inputKind: ['plan', 'sketch', 'room', 'building'],
+  outputKind: null,
   icon: Palette,
   inputMode: 'image',
   maxReferences: 0,
@@ -1800,6 +1842,18 @@ export function categoryOf(feature: FeatureKind): CategoryDef {
  */
 export function toolsForKind(kind: InputKind): FeatureDef<FeatureSettings>[] {
   return ALL_FEATURES.filter((f) => f.inputKind.includes(kind));
+}
+
+/**
+ * The kind a result of `feature` is, given the kind that went in.
+ *
+ * `'same'` resolves against the input, which is the only reason this needs the
+ * input kind at all — an upscale of a plan is a plan, an upscale of a room is a
+ * room. `null` means the output is not something the app can chain from.
+ */
+export function outputKindOf(feature: FeatureKind, inputKind: InputKind): InputKind | null {
+  const declared = REGISTRY[feature].outputKind;
+  return declared === 'same' ? inputKind : declared;
 }
 
 /** Tools that take no image at all — the only ones reachable before a drop. */
