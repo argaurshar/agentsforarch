@@ -326,6 +326,161 @@ check(
   toOptionsCallers.join('\n      ') + '  — use buildFeatureRequest()',
 );
 
+// --- 9. The promise is written once ------------------------------------------
+//
+// `src/lib/brand.ts` is the single source for the name and the tagline, and
+// every runtime surface reads it. The `<meta>` tags cannot: a crawler fetches
+// index.html before a line of JavaScript runs, so those literals are typed by
+// hand and can quietly disagree with the app they describe.
+//
+// That is exactly what happened before this rule existed — the title still said
+// "Internal Visualization Platform" while the front door had spent two phases
+// becoming a public, shareable, two-click tool. So the tags are recomputed here
+// from brand.ts and the registry's own tool count, and any drift is a failure.
+
+const brandSrc = stripComments(
+  fs.readFileSync(path.join(SRC, 'lib', 'brand.ts'), 'utf8'),
+);
+const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+
+const brandField = (key, quote = "'") => {
+  const m = brandSrc.match(new RegExp(`${key}:\\s*${quote}([^${quote}]*)${quote}`));
+  return m?.[1];
+};
+const NAME = brandField('name');
+const DESCRIPTION = brandField('description');
+const SITE = brandField('site');
+const OG_IMAGE = brandField('ogImage');
+// Templates are read, not restated: the wording lives in brand.ts and only the
+// interpolation happens here.
+const PROMISE = brandField('promise', '`')?.replace('${TOOL_COUNT}', String(declaredKeys.length));
+const TITLE = brandSrc
+  .match(/PAGE_TITLE = `([^`]+)`/)?.[1]
+  ?.replace('${BRAND.name}', NAME ?? '')
+  .replace('${BRAND.promise}', PROMISE ?? '');
+
+check('the brand is declared in one place', Boolean(NAME && DESCRIPTION && SITE && OG_IMAGE && PROMISE && TITLE));
+check(
+  'the promise counts the tools the registry actually has',
+  Boolean(PROMISE?.includes(String(declaredKeys.length))),
+  `"${PROMISE}" vs ${declaredKeys.length} registered tools`,
+);
+
+// Every `<meta>` in the document, tolerant of the multi-line form prettier
+// produces. Keyed by name= or property=, whichever it carries.
+const metas = {};
+for (const tag of html.match(/<meta\b[\s\S]*?>/g) ?? []) {
+  const key = tag.match(/(?:name|property)="([^"]+)"/)?.[1];
+  const content = tag.match(/content="([^"]*)"/)?.[1];
+  if (key && content !== undefined) metas[key] = content;
+}
+const docTitle = html.match(/<title>([\s\S]*?)<\/title>/)?.[1]?.trim();
+
+const titled = { '<title>': docTitle, 'og:title': metas['og:title'], 'twitter:title': metas['twitter:title'] };
+for (const [where, value] of Object.entries(titled)) {
+  check(`${where} matches the brand`, value === TITLE, `"${value}"\n      want  "${TITLE}"`);
+}
+
+const described = {
+  'meta description': metas.description,
+  'og:description': metas['og:description'],
+  'twitter:description': metas['twitter:description'],
+};
+for (const [where, value] of Object.entries(described)) {
+  check(`${where} matches the brand`, value === DESCRIPTION, `"${value}"`);
+}
+
+check('og:url is the canonical site', metas['og:url'] === SITE, `"${metas['og:url']}" want "${SITE}"`);
+
+// A relative og:image resolves against nothing in a crawler, so this must be
+// absolute — and the file has to be there, because a preview card with a broken
+// image is worse than no card at all.
+const wantImage = `${SITE}${OG_IMAGE}`;
+check('og:image is absolute and points at the shipped card', metas['og:image'] === wantImage, `"${metas['og:image']}"`);
+check(
+  `public/${OG_IMAGE} is shipped`,
+  Boolean(OG_IMAGE) && fs.existsSync(path.join(ROOT, 'public', OG_IMAGE)),
+  'regenerate with: node qa/makeOgCard.cjs',
+);
+check(
+  'twitter:image matches og:image',
+  metas['twitter:image'] === wantImage,
+  'the two crawlers read different tags and must be told the same thing',
+);
+check(
+  'the link preview declares a large card',
+  metas['twitter:card'] === 'summary_large_image',
+  `"${metas['twitter:card']}" — the default card crops the pair to a thumbnail`,
+);
+
+// The name is a constant, not a string literal scattered through the UI. This
+// is the rule that makes a future rename a one-line change rather than an
+// archaeology exercise.
+const nameLiterals = files
+  .filter((f) => !f.rel.endsWith(path.join('lib', 'brand.ts')))
+  .filter((f) => NAME && stripComments(f.text).includes(`'${NAME}'`))
+  .map((f) => f.rel);
+check(
+  'the app name is not hard-coded outside brand.ts',
+  nameLiterals.length === 0,
+  nameLiterals.join('\n      ') + '  — read it from BRAND',
+);
+
+// The old positioning, in every form it took. All three told a visitor the
+// page was not for them, which is the one thing a shareable front door must
+// never do — and they were spread across the tab title, the sidebar wordmark
+// and the sidebar footer, which is exactly why one of them survived two
+// redesigns.
+const RETIRED = ['Internal Visualization Platform', 'Visualization Platform', 'Internal tool'];
+const retired = [];
+for (const rel of ['index.html', 'package.json', ...files.map((f) => f.rel)]) {
+  const text = fs.readFileSync(path.join(ROOT, rel), 'utf8');
+  for (const phrase of RETIRED) if (stripComments(text).includes(phrase)) retired.push(`${rel}: "${phrase}"`);
+}
+check(
+  'the retired "internal platform" positioning is gone',
+  retired.length === 0,
+  retired.join('\n      ') + '  — it tells a stranger the page is not for them',
+);
+
+// --- 10. Sharing is on both paths, and its routes cannot collide -------------
+//
+// A result reaches the screen two ways — prepared and generated — and a share
+// button wired to only one of them is the exact half-feature this suite exists
+// to catch: it works in every manual test done on a sample, and is missing for
+// every real user.
+
+const resultSrc = files.find((f) => f.rel.endsWith(path.join('studio', 'StudioResult.tsx')))?.text ?? '';
+const shareUses = (resultSrc.match(/<ShareBar\b/g) ?? []).length;
+check(
+  'both result paths offer sharing',
+  shareUses === 2,
+  `${shareUses} <ShareBar> in StudioResult — prepared and generated each need one`,
+);
+
+// Three namespaces live in the hash: `#/<tool>`, `#/c/<category>` and
+// `#/do/<tool>`. A tool key equal to a prefix would shadow a whole namespace,
+// silently, for every link already sent.
+const remixSrc = files.find((f) => f.rel.endsWith(path.join('studio', 'remix.ts')))?.text ?? '';
+const remixPrefix = remixSrc.match(/REMIX_ROUTE_PREFIX = '([^']+)'/)?.[1];
+const catPrefix = stripComments(keysFile?.text ?? '').match(/CATEGORY_ROUTE_PREFIX = '([^']+)'/)?.[1];
+check('the remix route has a prefix', Boolean(remixPrefix) && remixPrefix !== catPrefix, `${remixPrefix} vs ${catPrefix}`);
+const shadowing = declaredKeys.filter((k) => k === remixPrefix || k === catPrefix);
+check(
+  'no tool slug shadows a route prefix',
+  shadowing.length === 0,
+  `${shadowing.join(', ')} — would swallow every ${remixPrefix}/ link ever sent`,
+);
+
+// The router has to know about the prefix, or every shared link 404s to the
+// dashboard. Cheap to assert, and invisible to tsc.
+const routeSrc = files.find((f) => f.rel.endsWith(path.join('lib', 'useHashRoute.ts')))?.text ?? '';
+check(
+  'the router recognises remix links',
+  /REMIX_ROUTE_PREFIX/.test(routeSrc) && /parseRemix\(/.test(routeSrc) && /setStudioPending\(/.test(routeSrc),
+  'a #/do/… link would resolve to nothing — the router must parse it AND record it',
+);
+
 const failed = results.filter((r) => !r.ok).length;
 console.log(`\n${results.length - failed}/${results.length} registry checks passed`);
 process.exit(failed === 0 ? 0 : 1);

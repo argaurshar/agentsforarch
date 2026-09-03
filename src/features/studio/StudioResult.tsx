@@ -13,6 +13,7 @@ import { useGenerate } from '../hooks';
 import type { FeatureKind } from '../../types';
 import { useProjectStore } from '../../store/useProjectStore';
 import { KeyGate } from './KeyGate';
+import { ShareBar } from './ShareBar';
 import { instantFeatures, instantFor } from './instant';
 
 /** Chips in the "now make it…" row. Beyond this it reads as a directory. */
@@ -214,6 +215,15 @@ export function StudioResult({ feature, input, kind, source, onBack, onChain, on
             </Button>
           </div>
 
+          <ShareBar
+            feature={feature}
+            verb={def.verb}
+            before={input}
+            after={prepared.output}
+            source={source}
+            prepared
+          />
+
           {chainRow(prepared.output, prepared.outputSource)}
         </div>
       </div>
@@ -279,6 +289,15 @@ export function StudioResult({ feature, input, kind, source, onBack, onChain, on
               Full controls
             </Button>
           </div>
+
+          <ShareBar
+            feature={feature}
+            verb={def.verb}
+            before={inputUsed ?? input}
+            after={generated.url}
+            source={null}
+            prepared={false}
+          />
 
           {chainRow(generated.url, null)}
         </div>

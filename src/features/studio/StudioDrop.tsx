@@ -1,4 +1,4 @@
-import { Camera, ImageUp } from 'lucide-react';
+import { Camera, ImageUp, X, Zap } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { FileRejection } from 'react-dropzone';
 import { useDropzone } from 'react-dropzone';
@@ -9,6 +9,7 @@ import { STUDIO_SAMPLES, sampleUrl } from './samples';
 import type { StudioSample } from './samples';
 import { loadExampleInput } from '../../lib/examples';
 import { toolsWithoutImage } from '../registry';
+import type { FeatureDef } from '../registry';
 import { useProjectStore } from '../../store/useProjectStore';
 
 const ACCEPT = {
@@ -30,6 +31,10 @@ interface StudioDropProps {
    *  be plus the asset it came from — which lets the caller skip guessing, and
    *  lets the result be served from the bundled pair instead of generated. */
   onImage: (dataURL: string, knownKind?: StudioSample['kind'], source?: string) => void;
+  /** A transformation a `#/do/…` link asked for. The next image runs it
+   *  immediately, so this screen has to say so before the drop rather than
+   *  surprise them after it. */
+  queued?: FeatureDef | null;
 }
 
 /**
@@ -44,11 +49,12 @@ interface StudioDropProps {
  * to get a Google Earth grab into a browser is Cmd-V and no affordance in any
  * app announces it.
  */
-export function StudioDrop({ onImage }: StudioDropProps) {
+export function StudioDrop({ onImage, queued }: StudioDropProps) {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<'file' | 'sample' | null>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
   const setTab = useProjectStore((s) => s.setTab);
+  const setStudioPending = useProjectStore((s) => s.setStudioPending);
 
   // 2048px lossless, matching the shared dropzone: these are line drawings
   // headed for a vision model, and hairline walls do not survive JPEG.
@@ -102,6 +108,31 @@ export function StudioDrop({ onImage }: StudioDropProps) {
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
+      {/* Someone sent this person a link, and the link named a tool. Saying so
+          up front is the difference between "one click to the answer" and
+          "why did it do that?" — and the dismissal is right there, because a
+          queued tool they did not choose must never be a trap. */}
+      {queued ? (
+        <div
+          className="flex flex-wrap items-center gap-3 rounded-field border border-ochre/25 bg-ochre/[0.06] px-4 py-3"
+          data-studio-queued={queued.key}
+        >
+          <Zap size={15} strokeWidth={2} className="shrink-0 text-ochre-deep" />
+          <p className="flex-1 text-body text-graphite">
+            <span className="font-medium text-ink">{queued.verb}</span> is ready — drop an image and it runs straight
+            away.
+          </p>
+          <button
+            type="button"
+            data-studio-unqueue
+            onClick={() => setStudioPending(null)}
+            className="flex items-center gap-1 rounded-control text-caption text-mist transition-colors hover:text-graphite"
+          >
+            <X size={13} strokeWidth={1.75} /> Pick something else
+          </button>
+        </div>
+      ) : null}
+
       <div
         {...getRootProps()}
         data-studio-drop

@@ -3,6 +3,7 @@
 // Pure client-side canvas (no dependency): a serif header, an adaptive image
 // grid (cover-fit, centred partial last row), and a brand-accented footer.
 
+import { BRAND } from './brand';
 import { loadImage } from './images';
 
 export interface MoodboardOrientation {
@@ -147,7 +148,7 @@ export async function renderMoodboard(urls: string[], orientation: MoodboardOrie
   ctx.fillRect(margin, footerY - Math.round(w * 0.014), tickW, Math.round(w * 0.006));
   ctx.fillStyle = primary || '#1c1815';
   ctx.font = `${Math.round(w * 0.02)}px Fraunces, Georgia, serif`;
-  const project = opts.projectName.trim() || 'AND Studio';
+  const project = opts.projectName.trim() || BRAND.name;
   ctx.fillText(fitText(ctx, project, contentW * 0.6), margin + tickW + Math.round(w * 0.02), footerY - Math.round(w * 0.005));
 
   ctx.textAlign = 'right';

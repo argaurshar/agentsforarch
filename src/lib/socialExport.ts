@@ -2,6 +2,7 @@
 // footer), so architects/designers can post a render straight to Instagram or a
 // site without opening another tool. Pure client-side canvas — no dependency.
 
+import { BRAND } from './brand';
 import { loadImage } from './images';
 
 export interface SocialFormat {
@@ -53,7 +54,7 @@ export async function renderSocial(url: string, fmt: SocialFormat, opts: SocialO
   const tickW = Math.round(w * 0.06);
   ctx.fillStyle = opts.accent || '#86662e';
   ctx.fillRect(pad, h - pad - Math.round(w * 0.05), tickW, Math.round(w * 0.008));
-  const caption = opts.caption.trim() || 'AND Studio';
+  const caption = opts.caption.trim() || BRAND.name;
   ctx.fillStyle = '#f3ede1';
   ctx.textBaseline = 'alphabetic';
   ctx.font = `${Math.round(w * 0.036)}px Georgia, "Times New Roman", serif`;

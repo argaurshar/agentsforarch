@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "AND Studio \u2014 Internal Visualization Platform",
+  "description": "AND Studio \u2014 one image in, thirty architectural drawings out",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit -p tsconfig.json && vite build",

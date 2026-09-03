@@ -1,8 +1,14 @@
-# AND Studio — Internal Visualization Platform
+# AND Studio — one image in, thirty drawings out
 
-A single-page tool for AND Studio's architects and interior designers: turn
-sketches and models into renders, elevations, axonometric views, interior
-redesigns and material boards.
+Drop a plan, a sketch or a photo of a room. Two clicks later you have the
+isometric, the elevation, the section, the diagram or the material board.
+Thirty architectural transformations, all of them running in your browser.
+
+The name and the promise live in exactly one file, `src/lib/brand.ts`, and the
+tool count in them is read from the registry rather than typed. The static
+`<meta>` tags in `index.html` are the one surface that cannot import it — a
+crawler reads them before any JavaScript runs — so `registryLint` recomputes
+them and fails when they drift.
 
 **▶ Live app:** https://argaurshar.github.io/agentsforarch/ — a fully functional
 tool. It needs one of your own API keys to generate: a Google **Gemini** key
@@ -34,6 +40,7 @@ npm run typecheck  # type-check only
 npm run preview    # preview the production build
 npm run qa         # static gates — no browser, no API calls, no cost
 npm run qa:e2e     # browser suite against `npm run preview`, network mocked
+node qa/makeOgCard.cjs  # regenerate public/og.jpg (committed; run after a rename)
 ```
 
 `qa:e2e` carries the one assertion the front door exists to satisfy: **from an
@@ -116,6 +123,42 @@ becomes a new instant path by existing, and a renamed asset cannot leave a
 dangling filename behind. `registryLint` checks every referenced asset is
 actually shipped, and that every sample on the drop zone has at least one tool
 that can answer it for free.
+
+### Sharing a result
+
+A result is the only thing here worth sending someone, and it can travel two
+ways.
+
+**The picture.** *Share* composes a square before/after card in a canvas — the
+pair, the verb, the name, the address — and hands it to the OS share sheet.
+Where there is no share sheet it goes to the clipboard as a PNG; where the
+clipboard is refused it downloads. Three paths, tried in order, because no one
+of them exists everywhere and the feature detections lie: desktop Chrome defines
+`navigator.share` and then rejects files.
+
+**The link.** A result made from your own image cannot travel in a URL — the
+image is yours, and it is megabytes — so the link carries the *recipe* instead:
+
+```
+#/do/axonometric                        open the studio with this tool queued
+#/do/axonometric?from=elev-rendered.jpg …and start from this bundled image
+```
+
+The second shape is the one that spreads: it lands a stranger on the exact
+prepared result, with no key, no upload and no account, and *Try it on your own
+image* is the button under it. The first shape is what a link to your own result
+becomes — the tool is queued and says so, so the recipient's first drop goes
+straight to the answer in one click instead of two.
+
+`from` is validated against the assets actually shipped, and every malformed
+shape — an unknown tool, a text-only tool, an asset that was renamed — lands on
+the drop zone rather than a blank screen. That matters more here than anywhere
+else in the app: a shared URL is the one address nobody can fix by hand.
+
+Link previews are a real file, not a promise: `qa/makeOgCard.cjs` renders
+`public/og.jpg` from `plan-input.jpg` and the isometric this app made from it,
+reading the name and the tool count out of the source so the card cannot claim
+something the registry no longer supports.
 
 ## The tools
 

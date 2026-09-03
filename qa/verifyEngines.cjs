@@ -995,6 +995,132 @@ const check = (name, ok, detail = '') => {
   check('with the network still untouched', demoCalls === 0, `${demoCalls} call(s)`);
   await demo.close();
 
+  // 24. Remix links. A shared URL carries the transformation, and the app has to
+  //     honour it without the sender's image — which it does not have and must
+  //     never pretend to.
+  const link = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+  const lp = await link.newPage();
+  let linkCalls = 0;
+  await lp.route('**generativelanguage.googleapis.com/**', (r) => {
+    linkCalls += 1;
+    return r.fulfill({ status: 200, headers: CORS, body: '{}' });
+  });
+  await lp.route('**api.kie.ai/**', (r) => {
+    linkCalls += 1;
+    return r.fulfill({ status: 200, headers: CORS, body: '{}' });
+  });
+
+  // Every remix hop is a FULL load. `page.goto` to a URL that differs only in
+  // the hash is a same-document navigation, so the store — and the previous
+  // link's image — would survive into the next case and make it pass for the
+  // wrong reason. Bouncing through about:blank forces a real document load with
+  // the hash already in place, which is also what a recipient actually does.
+  const openLink = async (hash) => {
+    await lp.goto('about:blank');
+    await lp.goto(`${BASE}${hash}`, { waitUntil: 'domcontentloaded' });
+  };
+
+  // (a) A link that names an image AND a tool is the whole point: the recipient
+  //     lands on the finished result having clicked nothing.
+  await openLink('#/do/axonometric?from=elev-rendered.jpg');
+  await lp.waitForTimeout(2000);
+  check('a remix link lands on a finished result with no clicks', (await lp.locator('[data-studio-result]').count()) === 1);
+  check('and it is the prepared one', (await lp.locator('[data-studio-prepared]').count()) === 1);
+  check('costing nothing', linkCalls === 0, `${linkCalls} call(s)`);
+  check('and asking for no key', (await lp.locator('[data-key-gate]').count()) === 0);
+  check(
+    'the link consumes itself rather than re-firing',
+    lp.url().endsWith('#/studio'),
+    lp.url(),
+  );
+
+  // (b) A link to a user's own result cannot carry the image, so it carries the
+  //     tool. The recipient's first drop must then go STRAIGHT to it.
+  await openLink('#/do/interior');
+  await lp.waitForTimeout(700);
+  check('a tool-only link lands on the drop zone', (await lp.locator('[data-studio-drop]').count()) === 1);
+  check('and says what is queued', (await lp.locator('[data-studio-queued="interior"]').count()) === 1);
+  await lp.locator('[data-sample="room"]').click();
+  await lp.waitForTimeout(1400);
+  check('one click then reaches the result, not the card grid', (await lp.locator('[data-studio-result]').count()) === 1);
+  check('and it is the queued tool that ran', /Restyle|stage|interior/i.test(await lp.locator('main').innerText()));
+
+  // (c) The queued tool is an offer, never a trap.
+  await openLink('#/do/interior');
+  await lp.waitForTimeout(700);
+  await lp.locator('[data-studio-unqueue]').click();
+  await lp.waitForTimeout(300);
+  check('the queued tool can be dismissed', (await lp.locator('[data-studio-queued]').count()) === 0);
+  await lp.locator('[data-sample="room"]').click();
+  await lp.waitForTimeout(1200);
+  check('after which a sample goes to the cards as usual', (await lp.locator('[data-card]').count()) > 0);
+
+  // (d) Links age badly and nobody can edit one they were sent. Every malformed
+  //     shape has to land somewhere usable rather than on a blank screen.
+  for (const [hash, why] of [
+    ['#/do/notatool', 'an unknown tool'],
+    ['#/do/massing', 'a tool that takes no image'],
+    ['#/do/render?from=deleted.jpg', 'an asset that no longer ships'],
+  ]) {
+    await openLink(hash);
+    await lp.waitForTimeout(700);
+    check(`${why} still lands on the front door`, (await lp.locator('[data-studio-drop]').count()) === 1, hash);
+  }
+  check('a stale asset name keeps the tool it named', (await lp.locator('[data-studio-queued="render"]').count()) === 1);
+  await link.close();
+
+  // 25. The share card. Composed in the browser from the actual pair, so this
+  //     asserts the picture that would travel — not just that a button exists.
+  const shareCtx = await browser.newContext({
+    viewport: { width: 1280, height: 900 },
+    permissions: ['clipboard-read', 'clipboard-write'],
+  });
+  const shp = await shareCtx.newPage();
+  // Headless Chromium has no share sheet, so the file path would never be
+  // exercised. Stubbing the OS hand-off is the only way to see what it is
+  // actually handed — and decoding the file proves the canvas really composed.
+  await shp.addInitScript(() => {
+    window.__shared = null;
+    navigator.canShare = () => true;
+    navigator.share = async (data) => {
+      const f = data.files[0];
+      const url = URL.createObjectURL(f);
+      const img = new Image();
+      await new Promise((res) => {
+        img.onload = res;
+        img.onerror = res;
+        img.src = url;
+      });
+      window.__shared = { name: f.name, type: f.type, size: f.size, w: img.naturalWidth, h: img.naturalHeight, text: data.text };
+    };
+  });
+  await shp.goto(BASE, { waitUntil: 'domcontentloaded' });
+  await shp.waitForTimeout(500);
+  await shp.locator('[data-sample="plan"]').click();
+  await shp.waitForTimeout(900);
+  await shp.locator('[data-card="render"]').click();
+  await shp.waitForTimeout(1200);
+  check('a result offers to be shared', (await shp.locator('[data-share]').count()) === 1);
+  await shp.locator('[data-share]').click();
+  await shp.waitForTimeout(2500);
+  const shared = await shp.evaluate(() => window.__shared);
+  check('sharing hands over a real image file', Boolean(shared) && shared.type === 'image/jpeg', JSON.stringify(shared));
+  check('composed square, at card size', shared?.w === 1080 && shared?.h === 1080, `${shared?.w}×${shared?.h}`);
+  check('with actual pixels in it', (shared?.size ?? 0) > 20000, `${shared?.size} bytes`);
+  check(
+    'and the message carries the remix link',
+    (shared?.text ?? '').includes('#/do/render?from=plan-input.jpg'),
+    shared?.text,
+  );
+
+  // The link on its own is the other half — some people paste a URL, not a JPEG.
+  await shp.locator('[data-share-link]').click();
+  await shp.waitForTimeout(600);
+  const clip = await shp.evaluate(() => navigator.clipboard.readText());
+  check('copy link puts the remix URL on the clipboard', clip.includes('#/do/render?from=plan-input.jpg'), clip);
+  check('and says so', (await shp.locator('[data-share-link]').innerText()).includes('Link copied'));
+  await shareCtx.close();
+
   check('no page crashes', perr.length === 0, perr.slice(0, 2).join(' | '));
   await browser.close();
   const failed = results.filter((r) => !r.ok).length;

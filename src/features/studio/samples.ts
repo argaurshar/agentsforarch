@@ -26,6 +26,12 @@ export const STUDIO_SAMPLES: StudioSample[] = [
   { file: 'elev-rendered.jpg', label: 'A building', kind: 'building' },
 ];
 
+/** Where a bundled example lives once deployed. One function, because a remix
+ *  link names an asset by basename and has no `StudioSample` to hand. */
+export function assetUrl(file: string): string {
+  return `${import.meta.env.BASE_URL}examples/${file}`;
+}
+
 export function sampleUrl(sample: StudioSample): string {
-  return `${import.meta.env.BASE_URL}examples/${sample.file}`;
+  return assetUrl(sample.file);
 }
