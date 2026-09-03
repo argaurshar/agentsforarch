@@ -6,18 +6,18 @@ redesigns and material boards.
 
 **▶ Live app:** https://argaurshar.github.io/agentsforarch/ — a fully functional
 tool. It needs one of your own API keys to generate: a Google **Gemini** key
-(Nano Banana Pro) **or** a kie.ai key (Nano Banana 2). Connect it from the key
-button in the top bar — on desktop that panel also opens by itself on the first
-visit; on a phone it does not, so the dashboard and its worked examples land
-first. Both are free to get, stay in your browser, and are never sent
-anywhere but Google / kie.ai.
+(Nano Banana Pro) **or** a kie.ai key (Nano Banana 2). You are asked for it at
+your first generation, not on arrival, and it is remembered afterwards. Both are
+free to get, stay in your browser, and are never sent anywhere but Google /
+kie.ai. The key button in the top bar is there if you would rather set it up
+first, or switch engines.
 
 Built to the internal build spec (`build.mb`).
 
 ## Quick start
 
 The app generates **real** output only — there is no demo/placeholder engine.
-Bring a Gemini or kie.ai key and add it in **Settings** on first run.
+Bring a Gemini or kie.ai key; it is asked for the first time you generate.
 
 ```bash
 npm install
@@ -36,13 +36,18 @@ npm run qa         # static gates — no browser, no API calls, no cost
 npm run qa:e2e     # browser suite against `npm run preview`, network mocked
 ```
 
+`qa:e2e` carries the one assertion the front door exists to satisfy: **from an
+empty page, two clicks reach a result.** It counts the clicks rather than
+describing the flow, because a flow description stays true while the count
+doubles.
+
 `npm run qa` is what CI runs, and it exists because **TypeScript cannot see a
 changed prompt string**. Five gates, each catching something the others cannot:
 
 | Gate | Catches |
 |---|---|
 | `designLint` | design-system drift — an unregistered type size, a squared-off panel, a zeroed radius or shadow scale, a suppressed focus ring |
-| `registryLint` | a tool that is incomplete, unreachable, or missing from a derived table |
+| `registryLint` | a tool that is incomplete, unreachable, missing from a derived table, or offered for an image it cannot read |
 | `verifyContracts` | a tool whose own default prompt no longer satisfies the contract it declares |
 | `promptSnapshot` | any prompt whose wording changed, across every enumerated variant |
 | `promptContradictions` | a prompt that asks for a thing and forbids it in the same breath |
@@ -52,16 +57,43 @@ app has shipped were both self-contradictory prompts, not missing ones — a
 prompt can satisfy every contract and pass the snapshot while instructing the
 model to do and not do the same thing.
 
+## Two clicks
+
+The app opens on a drop zone, and that is the whole front door. Drop a plan, a
+sketch or a photo of a room — or paste one, shoot one, or tap a sample — and it
+shows you what that image can become. Tap one of those. That is the result.
+
+```
+drop / paste / shoot          →  "This is a…"  →  "Make it…"  →  the result
+(or tap a bundled sample)        one chip row     a shortlist    + what's next
+```
+
+The chip is a **guess**, made from the pixels — ink on white is a drawing, a
+bright top edge is outside, flat and green-grey is satellite — and it is one tap
+to correct. It costs nothing and calls nothing; the alternative was a paid
+vision request on every drop, to decide something the user already knows.
+
+The shortlist is **derived**. Every tool declares which kinds of image it can
+read (`inputKind` on its registry entry), so dropping a floor plan filters
+thirty tools to seven without anyone navigating a taxonomy. A new tool joins the
+right shortlists by declaring what it reads — the same property that makes the
+nav rows and the prompt snapshot derived rather than maintained.
+
+Your **API key is asked once**, at your first generation, in the slot where the
+result will appear — not by a drawer that opens itself before you have seen the
+app. It is remembered by default, so coming back costs nothing. There is a
+switch to turn that off for a shared machine.
+
 ## The tools
 
-Thirty generation tools, grouped by the stage of the job they belong to. Pick a
-category in the sidebar and you get its **tool rail**: tick as many tools as you
-want, drop **one** image, and press **Synthesize** — they all run on it, one at a
-time, each with its own settings. Nothing is ever locked, disabled or gated
-behind another tool.
+Thirty generation tools, also grouped by the stage of the job they belong to.
+**All tools** in the sidebar is the full list: pick a category and you get its
+**tool rail** — tick as many tools as you want, drop **one** image, and press
+**Synthesize** — they all run on it, one at a time, each with its own settings.
 
 Each tool also has its own screen (`Open for full settings`, or `#/<tool>`) where
-its controls live and where it can be run on its own.
+every control lives, including the prompt. The front door and the tool screen run
+the same code and share the same output: tapping a card *is* running that tool.
 
 | Category | Tools |
 |---|---|

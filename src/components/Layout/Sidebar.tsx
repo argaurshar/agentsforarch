@@ -1,4 +1,4 @@
-import { Images, LayoutDashboard } from 'lucide-react';
+import { Images, LayoutDashboard, Sparkles } from 'lucide-react';
 import { CATEGORIES, featureDef } from '../../features/registry';
 import type { LucideIcon } from 'lucide-react';
 import { categoryFromTab, isFeatureKind } from '../../features/registry/keys';
@@ -26,7 +26,8 @@ interface NavItem {
 // the day its first tool does, rather than sitting here as an empty promise, and
 // a tool is still reachable by existing rather than by being remembered.
 const NAV_ITEMS: NavItem[] = [
-  { key: 'home', name: 'Home', sub: 'Project Dashboard', icon: LayoutDashboard },
+  { key: 'studio', name: 'Start', sub: 'Drop an image, pick what it becomes', icon: Sparkles },
+  { key: 'home', name: 'All tools', sub: 'Every tool, with full controls', icon: LayoutDashboard },
   ...CATEGORIES.map((c) => ({ key: c.tab, name: c.label, sub: c.blurb, icon: c.icon, count: c.features.length })),
   { key: 'gallery', name: 'Gallery', sub: 'All Outputs · Save / Load', icon: Images },
 ];

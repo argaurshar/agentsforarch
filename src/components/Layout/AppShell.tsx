@@ -44,23 +44,14 @@ export function AppShell({ children }: AppShellProps) {
   // dialog (Escape / scrim / focus trap), not a bare toggled popover.
   const confirmRef = useDialog<HTMLDivElement>({ open: confirmNew, onClose: () => setConfirmNew(false) });
 
-  // First-run onboarding, desktop only. The Settings drawer is `w-full max-w-md`:
-  // on a wide screen that is a 448px side panel with the dashboard still readable
-  // behind it, so opening it once usefully points a first-time visitor at the key
-  // field. On a phone the same panel is the whole viewport — a form in front of an
-  // app nobody has seen yet, which is what was reported. There the dashboard lands
-  // first (pipeline cards with sample input → output, the shortcuts, the
-  // getting-started steps), and Settings stays one tap away: the warning-tone
-  // "Connect key" button in the top bar, or step 1 of the getting-started card.
-  // 768px is Tailwind's `md`, the same breakpoint the nav rail collapses at.
-  useEffect(() => {
-    if (engineReady) return;
-    const onDesktop =
-      typeof window.matchMedia === 'function' && window.matchMedia('(min-width: 768px)').matches;
-    if (onDesktop) setSettingsOpen(true);
-    // Run once on mount only.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // The Settings drawer used to open ITSELF on load, modally, whenever no key
+  // was set — so the first thing a visitor saw was a form asking for an engine,
+  // a model ID and a storage preference, in front of an app they had not seen.
+  //
+  // It does not any more. The key is asked at the first generation instead, in
+  // the slot where the result appears, by src/features/studio/KeyGate.tsx — one
+  // field, remembered by default, and the run continues without a second tap.
+  // The button in this bar stays as the way in for anyone who wants it early.
 
   // Warn before leaving when there is unsaved work (project data is in-memory).
   useEffect(() => {

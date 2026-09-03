@@ -7,16 +7,21 @@ import type { TabKey } from '../types';
 // deep-linkable and the browser back/forward buttons move between them. Keeps
 // the in-memory model as the source of truth; the hash is just a mirror.
 //
+// The bare hash is the front door (`studio`), not the dashboard: the app's job
+// is to take an image and change it, and that is the screen that does it. Every
+// older route still resolves — `#/home` is the full tool list, `#/render` is a
+// tool — so links people already have keep working.
+//
 // Two shapes: `#/<tool>` for a tool and `#/c/<category>` for a category. The
 // prefix is what keeps them from ever colliding — "interiors" the category and
 // "interior" the tool are one letter apart today, and at 54 tools a bare
 // namespace would eventually collide for real.
 
-const TOOL_SLUGS: string[] = ['home', ...FEATURE_KEYS, 'gallery'];
+const TOOL_SLUGS: string[] = ['studio', 'home', ...FEATURE_KEYS, 'gallery'];
 
 function hashToTab(hash: string): TabKey | null {
   const slug = hash.replace(/^#\/?/, '');
-  if (slug === '') return 'home';
+  if (slug === '') return 'studio';
   const [head, tail] = slug.split('/');
   if (head === CATEGORY_ROUTE_PREFIX) {
     return (CATEGORY_KEYS as readonly string[]).includes(tail) ? categoryTab(tail as never) : null;

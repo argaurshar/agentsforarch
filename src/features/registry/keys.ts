@@ -78,6 +78,42 @@ export const CATEGORY_BLURB: Record<CategoryKey, string> = {
   boards: 'Explain the project: diagrams, boards and layouts.',
 };
 
+// --- What the user is holding -----------------------------------------------
+//
+// The categories above answer "where in the job is this tool?", which is the
+// studio's question. The front door asks the USER's question instead: "what do
+// you have?" These are the answers, and every tool declares which of them it
+// can take, so dropping an image can filter thirty tools down to the four that
+// apply without anyone navigating a taxonomy.
+//
+// Deliberately six, and deliberately about the INPUT. "Render" is not one of
+// them: a render of a house is a `building` and a render of a lounge is a
+// `room`, and asking the user to distinguish a render from a photograph is
+// asking about provenance when the tools only care about subject.
+
+export const INPUT_KINDS = ['plan', 'sketch', 'room', 'building', 'model', 'map'] as const;
+
+export type InputKind = (typeof INPUT_KINDS)[number];
+
+export const INPUT_KIND_LABEL: Record<InputKind, string> = {
+  plan: 'Floor plan',
+  sketch: 'Sketch',
+  room: 'Room photo',
+  building: 'Building',
+  model: '3D model',
+  map: 'Map or satellite',
+};
+
+/** Second line on the chip row — what each answer covers, in the user's words. */
+export const INPUT_KIND_HINT: Record<InputKind, string> = {
+  plan: 'A 2D plan, drawn or CAD',
+  sketch: 'A hand drawing, on paper or trace',
+  room: 'Inside a room — furnished or empty',
+  building: 'A render or photo of the outside',
+  model: 'A SketchUp, Revit or Rhino viewport',
+  map: 'A top-down Google Earth or Maps grab',
+};
+
 /** `#/c/<key>` — the category route prefix. Kept distinct from tool slugs so a
  *  category and a tool can never collide as the tool count grows. */
 export const CATEGORY_ROUTE_PREFIX = 'c';

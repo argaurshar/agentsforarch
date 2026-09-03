@@ -3,6 +3,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { loadImage } from '../../lib/images';
 
 interface ImageCompareProps {
+  /** Cap on the box height in px. Defaults to the tool-screen size. */
+  maxHeight?: number;
   before: string;
   after: string;
   beforeLabel?: string;
@@ -16,6 +18,10 @@ function clamp(value: number, min: number, max: number): number {
 // Keep the comparison proportional to the page rather than filling it. The box
 // never exceeds this height; its width is derived from the image's aspect ratio
 // (and still shrinks to fit narrow screens).
+//
+// 340 is right where this sits UNDER a two-column tool screen. On the studio's
+// result view the comparison is the hero rather than a footnote, so that caller
+// passes its own — hence the prop, rather than a second copy of this component.
 const MAX_COMPARE_HEIGHT = 340;
 
 /**
@@ -23,7 +29,7 @@ const MAX_COMPARE_HEIGHT = 340;
  * Fidelity to the sketch is a signature moment for architects, so this is
  * pointer- and keyboard-accessible.
  */
-export function ImageCompare({ before, after, beforeLabel = 'Input', afterLabel = 'Output' }: ImageCompareProps) {
+export function ImageCompare({ before, after, beforeLabel = 'Input', afterLabel = 'Output', maxHeight = MAX_COMPARE_HEIGHT }: ImageCompareProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState(50);
   const [dragging, setDragging] = useState(false);
@@ -69,8 +75,8 @@ export function ImageCompare({ before, after, beforeLabel = 'Input', afterLabel 
       className="relative w-full select-none overflow-hidden rounded-card border border-hairline bg-drafting"
       style={
         aspect
-          ? { aspectRatio: String(aspect), maxWidth: `${Math.round(aspect * MAX_COMPARE_HEIGHT)}px` }
-          : { height: MAX_COMPARE_HEIGHT }
+          ? { aspectRatio: String(aspect), maxWidth: `${Math.round(aspect * maxHeight)}px` }
+          : { height: maxHeight }
       }
     >
       <img src={before} alt={beforeLabel} className="absolute inset-0 h-full w-full object-contain" draggable={false} />

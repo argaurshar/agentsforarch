@@ -100,8 +100,20 @@ const check = (name, ok, detail = '') => {
     r.fulfill({ status: 200, headers: { ...CORS, 'content-type': 'image/png' }, body: PNG_1PX }),
   );
 
-  // --- Boot: settings open automatically (no key yet) ------------------------
+  // --- Boot: open Settings from the bar --------------------------------------
+  //
+  // The drawer used to open ITSELF on load whenever no key was set, and this
+  // suite relied on that. It does not any more: the key is asked at the first
+  // generation, in the result slot, by the studio's key gate. So the way in is
+  // the bar button — which is also the only way a user who wants to configure
+  // an engine early can get there, and therefore the thing worth asserting.
   await page.goto(BASE, { waitUntil: 'domcontentloaded' });
+  await page.waitForTimeout(400);
+  check(
+    'the settings drawer does not open itself on first load',
+    (await page.locator('[role="dialog"]').count()) === 0,
+  );
+  await page.getByRole('button', { name: /Connect key|API keys/ }).first().click();
   await page.waitForSelector('[role="dialog"]');
 
   // 1. Engine picker exists with both engines.
@@ -263,10 +275,25 @@ const check = (name, ok, detail = '') => {
   await mob.goto(BASE, { waitUntil: 'domcontentloaded' });
   await mob.waitForTimeout(700);
   check('mobile first run does not auto-open Settings', (await mob.locator('[role="dialog"]').count()) === 0);
+  // The evidence moved with the front door: the bare hash is the studio now, so
+  // what a phone must see first is the drop zone, not the dashboard's pipeline.
+  // The dashboard still exists and is still asserted — one route along.
   check(
-    'mobile first run shows the pipeline use cases',
+    'mobile first run shows the drop zone',
+    (await mob.locator('[data-studio-drop]').count()) === 1,
+  );
+  check(
+    'and offers the samples that need no key',
+    (await mob.locator('[data-sample]').count()) === 4,
+  );
+  await mob.goto(BASE + '#/home', { waitUntil: 'domcontentloaded' });
+  await mob.waitForTimeout(400);
+  check(
+    'the full tool list is still one route away',
     (await mob.getByText('Floor plan → 3D cutaway').count()) > 0,
   );
+  await mob.goto(BASE, { waitUntil: 'domcontentloaded' });
+  await mob.waitForTimeout(300);
   const connect = mob.getByRole('button', { name: /Connect key/ });
   check('mobile top bar offers a visible Connect key button', await connect.isVisible());
   await connect.click();
@@ -803,6 +830,78 @@ const check = (name, ok, detail = '') => {
     'but refine is not blocked by a control refine has removed',
     await page.getByRole('button', { name: /^Generate$/ }).isEnabled(),
   );
+
+  // 21. THE THESIS. From an empty front door, TWO clicks reach a result.
+  //
+  //     This is the one assertion the whole front door exists to satisfy, and
+  //     the only one that fails if someone later adds a step — a confirmation,
+  //     an interstitial, a "choose a category first". It counts clicks
+  //     explicitly rather than describing a flow, because a flow description
+  //     stays true while the click count doubles.
+  await page.goto(BASE, { waitUntil: 'domcontentloaded' });
+  await page.waitForTimeout(500);
+  check('the front door is the drop zone', (await page.locator('[data-studio-drop]').count()) === 1);
+  check('and no tool taxonomy is in the way', (await page.locator('[data-card]').count()) === 0);
+
+  let clicks = 0;
+  await page.locator('[data-sample="plan"]').click();
+  clicks += 1;
+  await page.waitForTimeout(900);
+  check('one click fills the input and shows the shortlist', (await page.locator('[data-card]').count()) > 0);
+  check('the shortlist is a shortlist, not all thirty', (await page.locator('[data-card]').count()) <= 6);
+  check('a floor plan offers Make it 3D', (await page.locator('[data-card="render"]').count()) === 1);
+  check('and does not offer a tool that cannot read a plan', (await page.locator('[data-card="birdsEye"]').count()) === 0);
+
+  const beforeStudio = geminiBodies.length;
+  await page.locator('[data-card="render"]').click();
+  clicks += 1;
+  await page.waitForTimeout(3000);
+  check('two clicks reach a result', (await page.locator('[data-studio-result]').count()) === 1, `clicks: ${clicks}`);
+  check('exactly two', clicks === 2);
+  check('and it actually generated', geminiBodies.length > beforeStudio);
+
+  // The result points onward, from each tool's own declared kinds.
+  check('the result offers a next transformation', (await page.locator('[data-chain]').count()) > 0);
+  check('but never itself', (await page.locator('[data-chain="render"]').count()) === 0);
+
+  // Correcting the guess re-derives the cards rather than filtering a fixed list.
+  await page.locator('[data-replace]').count().then(() => {});
+  await page.getByRole('button', { name: 'Something else' }).click();
+  await page.waitForTimeout(400);
+  await page.locator('[data-kind="room"]').click();
+  await page.waitForTimeout(400);
+  check('changing the kind changes the cards', (await page.locator('[data-card="interior"]').count()) === 1);
+  check('and drops the ones that no longer apply', (await page.locator('[data-card="render"]').count()) === 0);
+
+  // 22. The key is asked at the first generation, not on arrival — and pasting
+  //     it continues the run the user already started, with no second tap.
+  const fresh = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+  const fp = await fresh.newPage();
+  const freshBodies = [];
+  await fp.route('**generativelanguage.googleapis.com/**', (r) => {
+    freshBodies.push(r.request().postData() || '');
+    return r.fulfill({
+      status: 200,
+      headers: CORS,
+      body: JSON.stringify({ candidates: [{ content: { parts: [{ inlineData: { mimeType: 'image/png', data: PNG_1PX.toString('base64') } }] } }] }),
+    });
+  });
+  await fp.goto(BASE, { waitUntil: 'domcontentloaded' });
+  await fp.waitForTimeout(500);
+  check('a keyless visitor still sees the app', (await fp.locator('[data-studio-drop]').count()) === 1);
+  await fp.locator('[data-sample="plan"]').click();
+  await fp.waitForTimeout(900);
+  await fp.locator('[data-card="render"]').click();
+  await fp.waitForTimeout(600);
+  check('the key is asked in the result slot', (await fp.locator('[data-key-gate]').count()) === 1);
+  check('remembering is on by default', await fp.getByRole('switch', { name: /Remember/ }).getAttribute('aria-checked') === 'true');
+  const beforeKey = freshBodies.length;
+  await fp.fill('#studio-key', 'AIza-qa-studio');
+  await fp.getByRole('button', { name: /^Continue$/ }).click();
+  await fp.waitForTimeout(3000);
+  check('pasting the key continues the run with no second tap', freshBodies.length > beforeKey);
+  check('and the result appears', (await fp.locator('[data-studio-result]').count()) === 1);
+  await fresh.close();
 
   check('no page crashes', perr.length === 0, perr.slice(0, 2).join(' | '));
   await browser.close();

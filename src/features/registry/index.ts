@@ -128,7 +128,7 @@ import type {
 } from '../../store/generation';
 import { baseRun } from '../../store/generation';
 import type { FeatureMode } from '../../store/generation';
-import type { CategoryKey, CategoryTab, FeatureKind } from './keys';
+import type { CategoryKey, CategoryTab, FeatureKind, InputKind } from './keys';
 import { CATEGORY_BLURB, CATEGORY_KEYS, CATEGORY_LABEL, FEATURE_KEYS, categoryTab } from './keys';
 
 export * from './keys';
@@ -168,6 +168,24 @@ export interface FeatureDef<S extends FeatureSettings = FeatureSettings> {
   icon: LucideIcon;
   /** URL slug for `#/<slug>`. Defaults to `key` when omitted. */
   slug?: string;
+
+  /**
+   * The action this tool performs, as a verb the user would use. The front door
+   * shows cards, not tool names: "Make it 3D" is what somebody holding a plan
+   * is trying to do, where "Isometric" is what the studio calls the output.
+   * `name` stays for the nav, the gallery and the tool screen's own heading.
+   */
+  verb: string;
+  /**
+   * Which kinds of dropped image this tool can work on. Empty means it takes no
+   * image at all, so it never appears among the cards for one.
+   *
+   * This is what turns thirty tools into a shortlist without anyone navigating
+   * a category: the user answers "what do you have?" once, and every tool that
+   * cannot take it disappears. Order does not matter; nav order still comes
+   * from FEATURE_KEYS.
+   */
+  inputKind: InputKind[];
 
   inputMode: InputMode;
   /** Extra reference images allowed beyond the primary input. */
@@ -325,6 +343,8 @@ const massing: FeatureDef<MassingSettings> = {
   category: 'concept',
   name: 'Massing Study',
   blurb: 'Brief to White Model',
+  verb: 'Model the brief',
+  inputKind: [],
   icon: Boxes,
   // The first tool with NO image input. Everything an uploaded drawing would
   // have told the model has to be said in words instead, which is why this
@@ -365,6 +385,8 @@ const sketchRender: FeatureDef<SketchRenderSettings> = {
   category: 'concept',
   name: 'Sketch to Render',
   blurb: 'Hand Sketch to Finished Image',
+  verb: 'Finish the sketch',
+  inputKind: ['sketch'],
   icon: Wand2,
   inputMode: 'image',
   maxReferences: 0,
@@ -404,6 +426,8 @@ const render: FeatureDef<RenderSettings> = {
   category: 'drawings',
   name: 'Isometric',
   blurb: 'Floor Plan to 3D',
+  verb: 'Make it 3D',
+  inputKind: ['plan'],
   icon: PencilRuler,
   inputMode: 'image',
   maxReferences: 1,
@@ -452,6 +476,8 @@ const sketchPlan: FeatureDef<SketchPlanSettings> = {
   category: 'drawings',
   name: 'Sketch to CAD Plan',
   blurb: 'Napkin Sketch to Drawing',
+  verb: 'Draw it up',
+  inputKind: ['sketch', 'plan'],
   icon: PenLine,
   inputMode: 'image',
   maxReferences: 0,
@@ -491,6 +517,8 @@ const cadElevation: FeatureDef<CadElevationSettings> = {
   category: 'drawings',
   name: 'CAD Elevation',
   blurb: '3D Model to Line Drawing',
+  verb: 'Measure an elevation',
+  inputKind: ['model', 'building'],
   icon: Ruler,
   inputMode: 'image',
   maxReferences: 0,
@@ -534,6 +562,8 @@ const section: FeatureDef<SectionSettings> = {
   category: 'drawings',
   name: 'Section',
   blurb: 'Cut Through the Building',
+  verb: 'Cut a section',
+  inputKind: ['plan', 'model', 'building'],
   icon: SquareSplitVertical,
   inputMode: 'image',
   maxReferences: 0,
@@ -577,6 +607,8 @@ const renderToPlan: FeatureDef<RenderToPlanSettings> = {
   category: 'drawings',
   name: 'Render to Plan',
   blurb: '3D View Back to Plan',
+  verb: 'Get the floor plan',
+  inputKind: ['building', 'model', 'room'],
   icon: Undo2,
   inputMode: 'image',
   maxReferences: 0,
@@ -620,6 +652,8 @@ const elevation: FeatureDef<ElevationSettings> = {
   category: 'drawings',
   name: 'Elevation',
   blurb: 'Sketch to Elevation',
+  verb: 'Render an elevation',
+  inputKind: ['sketch', 'model'],
   icon: Building2,
   inputMode: 'image',
   maxReferences: 1,
@@ -696,6 +730,8 @@ const axonometric: FeatureDef<AxonSettings> = {
   category: 'drawings',
   name: 'Axonometric',
   blurb: 'Elevation or 3D to Axonometric',
+  verb: 'Turn it axonometric',
+  inputKind: ['building', 'model'],
   icon: Box,
   inputMode: 'image',
   maxReferences: 1,
@@ -761,6 +797,8 @@ const watercolour: FeatureDef<WatercolourSettings> = {
   category: 'visualization',
   name: 'Watercolour Sketch',
   blurb: 'Render to Painted Illustration',
+  verb: 'Paint it',
+  inputKind: ['building', 'room', 'sketch'],
   icon: Brush,
   inputMode: 'image',
   maxReferences: 0,
@@ -796,6 +834,8 @@ const interior: FeatureDef<InteriorSettings> = {
   category: 'interiors',
   name: 'Interior',
   blurb: 'Room Photo to Design',
+  verb: 'Redesign it',
+  inputKind: ['room'],
   icon: PaintRoller,
   inputMode: 'image',
   maxReferences: 1,
@@ -855,6 +895,8 @@ const declutter: FeatureDef<DeclutterSettings> = {
   category: 'interiors',
   name: 'Declutter',
   blurb: 'Messy Room to Empty Shell',
+  verb: 'Empty it',
+  inputKind: ['room'],
   icon: Eraser,
   inputMode: 'image',
   maxReferences: 0,
@@ -891,6 +933,8 @@ const placeObject: FeatureDef<PlaceObjectSettings> = {
   category: 'interiors',
   name: 'Place Object',
   blurb: 'Product Shot into Room',
+  verb: 'Place a product',
+  inputKind: ['room'],
   icon: Armchair,
   // The first tool that genuinely needs two images: the room, and the product.
   inputMode: 'images',
@@ -933,6 +977,8 @@ const targetedSwap: FeatureDef<TargetedSwapSettings> = {
   category: 'interiors',
   name: 'Targeted Edit',
   blurb: 'Change One Thing Only',
+  verb: 'Swap one thing',
+  inputKind: ['room'],
   icon: Replace,
   inputMode: 'image',
   maxReferences: 0,
@@ -980,6 +1026,8 @@ const specSheet: FeatureDef<SpecSheetSettings> = {
   category: 'interiors',
   name: 'FF&E Spec Sheet',
   blurb: 'Room to Component List',
+  verb: 'List the furniture',
+  inputKind: ['room'],
   icon: ClipboardList,
   inputMode: 'image',
   maxReferences: 0,
@@ -1025,6 +1073,8 @@ const birdsEye: FeatureDef<BirdsEyeSettings> = {
   category: 'site',
   name: "Bird's Eye View",
   blurb: 'Satellite to Aerial Photo',
+  verb: 'Fly over it',
+  inputKind: ['map'],
   icon: Plane,
   inputMode: 'image',
   maxReferences: 0,
@@ -1068,6 +1118,8 @@ const urbanContext: FeatureDef<UrbanContextSettings> = {
   category: 'site',
   name: 'Urban Context',
   blurb: 'Isolated Building into a Street',
+  verb: 'Put it in a street',
+  inputKind: ['building'],
   icon: Building,
   inputMode: 'image',
   maxReferences: 0,
@@ -1107,6 +1159,8 @@ const wireframeRender: FeatureDef<WireframeRenderSettings> = {
   category: 'visualization',
   name: 'Wireframe to Render',
   blurb: '3D Model to Photoreal',
+  verb: 'Render the model',
+  inputKind: ['model'],
   icon: Camera,
   inputMode: 'image',
   maxReferences: 1,
@@ -1141,6 +1195,8 @@ const renderRefine: FeatureDef<RenderRefineSettings> = {
   category: 'visualization',
   name: 'Render Refinement',
   blurb: 'Draft to Portfolio Quality',
+  verb: 'Finish the render',
+  inputKind: ['building', 'room'],
   icon: Gem,
   inputMode: 'image',
   maxReferences: 0,
@@ -1175,6 +1231,8 @@ const atmosphere: FeatureDef<AtmosphereSettings> = {
   category: 'visualization',
   name: 'Atmosphere & Light',
   blurb: 'Re-light an Existing Render',
+  verb: 'Change the light',
+  inputKind: ['building'],
   icon: Sun,
   inputMode: 'image',
   maxReferences: 0,
@@ -1209,6 +1267,8 @@ const facadeMaterial: FeatureDef<FacadeMaterialSettings> = {
   category: 'visualization',
   name: 'Facade Material Study',
   blurb: 'Same Building, New Material',
+  verb: 'Re-clad it',
+  inputKind: ['building'],
   icon: Layers,
   inputMode: 'image',
   maxReferences: 0,
@@ -1251,6 +1311,8 @@ const humanScale: FeatureDef<HumanScaleSettings> = {
   category: 'visualization',
   name: 'Add Human Scale',
   blurb: 'People, Vehicles, Planting',
+  verb: 'Add people',
+  inputKind: ['building'],
   icon: Users,
   inputMode: 'image',
   maxReferences: 0,
@@ -1285,6 +1347,8 @@ const multiView: FeatureDef<MultiViewSettings> = {
   category: 'visualization',
   name: 'Multi-View Sheet',
   blurb: 'One Building, Several Views',
+  verb: 'Make a sheet',
+  inputKind: ['building', 'model'],
   icon: LayoutPanelTop,
   inputMode: 'image',
   maxReferences: 0,
@@ -1332,6 +1396,8 @@ const reflection: FeatureDef<ReflectionSettings> = {
   category: 'visualization',
   name: 'Reflection Control',
   blurb: 'Tune What the Glass Does',
+  verb: 'Fix the glass',
+  inputKind: ['building'],
   icon: Sparkle,
   inputMode: 'image',
   maxReferences: 0,
@@ -1366,6 +1432,8 @@ const upscale: FeatureDef<UpscaleSettings> = {
   category: 'visualization',
   name: 'Upscale for Print',
   blurb: 'Approved Image to Print Master',
+  verb: 'Upscale for print',
+  inputKind: ['plan', 'sketch', 'room', 'building', 'model', 'map'],
   icon: Maximize2,
   inputMode: 'image',
   maxReferences: 0,
@@ -1410,6 +1478,8 @@ const floorAnalysis: FeatureDef<FloorAnalysisSettings> = {
   category: 'boards',
   name: 'Floor Analysis',
   blurb: 'Plan to Analysis Diagram',
+  verb: 'Analyse the plan',
+  inputKind: ['plan'],
   icon: Route,
   inputMode: 'image',
   maxReferences: 0,
@@ -1445,6 +1515,8 @@ const programDiagram: FeatureDef<ProgramDiagramSettings> = {
   category: 'boards',
   name: 'Program Diagram',
   blurb: 'Building to Labelled Floors',
+  verb: 'Break down the floors',
+  inputKind: ['building', 'model'],
   icon: Rows3,
   inputMode: 'image',
   maxReferences: 0,
@@ -1483,6 +1555,8 @@ const explodedAxon: FeatureDef<ExplodedAxonSettings> = {
   category: 'boards',
   name: 'Exploded Axonometric',
   blurb: 'Building to Assembly Diagram',
+  verb: 'Explode it',
+  inputKind: ['building', 'model'],
   icon: Layers3,
   inputMode: 'image',
   maxReferences: 0,
@@ -1519,6 +1593,8 @@ const annotation: FeatureDef<AnnotationSettings> = {
   category: 'boards',
   name: 'Annotation Sketch',
   blurb: 'Image to Explained Diagram',
+  verb: 'Annotate it',
+  inputKind: ['plan', 'sketch', 'room', 'building', 'model'],
   icon: PenTool,
   inputMode: 'image',
   maxReferences: 0,
@@ -1561,6 +1637,8 @@ const moodboard: FeatureDef<MoodboardSettings> = {
   category: 'boards',
   name: 'Mood Board',
   blurb: 'Image → Material Board',
+  verb: 'Board it',
+  inputKind: ['plan', 'sketch', 'room', 'building'],
   icon: Palette,
   inputMode: 'image',
   maxReferences: 0,
@@ -1710,6 +1788,23 @@ export function categoryDef(key: CategoryKey): CategoryDef | undefined {
  *  is only in CATEGORIES because a tool put it there. */
 export function categoryOf(feature: FeatureKind): CategoryDef {
   return CATEGORIES.find((c) => c.key === REGISTRY[feature].category) as CategoryDef;
+}
+
+/**
+ * Every tool that can work on this kind of image, in registry order.
+ *
+ * Derived, like everything else here: a tool joins a shortlist by declaring the
+ * kind, not by being added to a list somewhere. That is the property that makes
+ * the front door survive the next twenty tools — the same reason the nav rows
+ * and the prompt snapshot are derived rather than maintained.
+ */
+export function toolsForKind(kind: InputKind): FeatureDef<FeatureSettings>[] {
+  return ALL_FEATURES.filter((f) => f.inputKind.includes(kind));
+}
+
+/** Tools that take no image at all — the only ones reachable before a drop. */
+export function toolsWithoutImage(): FeatureDef<FeatureSettings>[] {
+  return ALL_FEATURES.filter((f) => f.inputKind.length === 0);
 }
 
 /**

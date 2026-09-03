@@ -64,7 +64,7 @@ check('every key has a registry definition', missingDefs.length === 0, missingDe
 
 // Every definition must carry the fields the shell reads but TS gives defaults
 // to (optional fields it would happily leave undefined).
-const REQUIRED = ['ui:', 'toOptions:', 'buildPrompt:', 'promptContracts:', 'poolLabel:', 'galleryLabel:'];
+const REQUIRED = ['ui:', 'toOptions:', 'buildPrompt:', 'promptContracts:', 'poolLabel:', 'galleryLabel:', 'verb:', 'inputKind:'];
 // There is deliberately no rule against re-adding the derived `ui.index`. The
 // `ui` type is closed and every definition is a directly-annotated object
 // literal, so tsc rejects it with TS2353 — verified. A lint rule here would
@@ -85,6 +85,72 @@ const noContracts = defBlocks
   .filter((b) => /promptContracts: \[\s*\]/.test(b))
   .map((b) => b.match(/key: '([^']+)'/)?.[1] ?? '?');
 check('every tool has at least one prompt contract', noContracts.length === 0, noContracts.join(', '));
+
+// --- 1b. The front door's shortlists are derived, and none is empty ---------
+//
+// The studio filters thirty tools down to the handful that read what the user
+// dropped. Two ways that goes wrong, and only one of them is visible: a chip
+// with no tools behind it is a dead end the user can tap, and a hand-written
+// list of cards is how the next tool ships invisible — the same failure the
+// nav rows and the category rail already have guards for.
+
+const kindsSrc = (stripComments(keysFile?.text ?? '').match(/INPUT_KINDS = \[([^\]]+)\]/)?.[1] ?? '')
+  .split(',')
+  .map((k) => k.trim().replace(/^['"]|['"]$/g, ''))
+  .filter(Boolean);
+check('input kinds are declared', kindsSrc.length > 0, kindsSrc.join(', '));
+
+// Every kind a tool claims must be one of the declared kinds — a typo here is
+// silent, because the value only ever reaches an .includes().
+const declaredInKinds = [];
+for (const b of defBlocks) {
+  const key = b.match(/key: '([^']+)'/)?.[1] ?? '?';
+  const list = b.match(/inputKind: \[([^\]]*)\]/)?.[1] ?? '';
+  for (const raw of list.split(',')) {
+    const k = raw.trim().replace(/^['"]|['"]$/g, '');
+    if (k) declaredInKinds.push({ key, kind: k });
+  }
+}
+const strayKinds = declaredInKinds.filter((d) => !kindsSrc.includes(d.kind));
+check(
+  'every declared input kind exists',
+  strayKinds.length === 0,
+  strayKinds.map((d) => `${d.key}: ${d.kind}`).join(', '),
+);
+
+const emptyKinds = kindsSrc.filter((k) => !declaredInKinds.some((d) => d.kind === k));
+check(
+  'no input kind is offered with nothing behind it',
+  emptyKinds.length === 0,
+  `${emptyKinds.join(', ')} — a chip the user can tap that yields no cards`,
+);
+
+// `inputKind` and `inputMode` have to agree. A text-only tool with kinds would
+// appear among the cards for an image it cannot read; an image tool with none
+// is unreachable from the front door entirely — invisible, because every other
+// rule here still passes. Caught exactly that: a bad edit left the massing
+// study claiming to read maps and the aerial tool claiming to read nothing,
+// and the suite stayed green.
+const kindModeMismatch = [];
+for (const b of defBlocks) {
+  const key = b.match(/key: '([^']+)'/)?.[1] ?? '?';
+  const mode = b.match(/inputMode: '([^']+)'/)?.[1] ?? '?';
+  const kinds = (b.match(/inputKind: \[([^\]]*)\]/)?.[1] ?? '').trim();
+  if (mode === 'text' && kinds !== '') kindModeMismatch.push(`${key}: text-only but declares ${kinds}`);
+  if (mode !== 'text' && kinds === '') kindModeMismatch.push(`${key}: takes an image but no kind offers it`);
+}
+check(
+  'every tool\'s input kinds match how it takes input',
+  kindModeMismatch.length === 0,
+  kindModeMismatch.join('; '),
+);
+
+const studio = files.find((f) => f.rel.endsWith(path.join('studio', 'ToolPicker.tsx')));
+check(
+  'the front door derives its cards from the registry',
+  /toolsForKind\(/.test(studio?.text ?? ''),
+  'a hand-listed card grid is how the next tool ships unreachable',
+);
 
 // --- 2. Layering: prompt text must not live in the transport layer -----------
 //
