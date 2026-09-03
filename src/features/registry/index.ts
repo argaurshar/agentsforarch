@@ -198,8 +198,15 @@ export interface FeatureDef<S extends FeatureSettings = FeatureSettings> {
 
   defaultSettings: S;
   buildPrompt: (settings: S, ctx: PromptContext) => string;
-  /** Which SceneControls rows this tool's prompt actually reads. */
-  sceneShow: Record<string, boolean>;
+  // `sceneShow` used to sit here: a Record<string, boolean> that thirty tools
+  // filled in and NOTHING read. The screens that show scene controls pass their
+  // own `show` object to <SceneControls> — sketchRender stated the same five
+  // flags twice, once here and once in its component — so the registry copy was
+  // a claim with no effect, free to drift from what the screen actually renders.
+  // The alternative was wiring the shell to render SceneControls from this
+  // field; that needs a runtime narrowing for the six tools whose settings carry
+  // a `scene` and would reorder six screens, so it is a change of its own rather
+  // than a side effect of deleting a lie.
   /**
    * Pinned output ratio, when the transformation implies one. Typed to the
    * union the engines actually accept, so an illegal ratio is a build error
@@ -326,7 +333,6 @@ const massing: FeatureDef<MassingSettings> = {
   maxReferences: 0,
   defaultSettings: { brief: '', siteSize: '', density: 'medium', storeys: '', context: '' },
   buildPrompt: (s) => buildMassingPrompt(s),
-  sceneShow: {},
   // A massing model is photographed three-quarter aerial, which is a landscape
   // composition whatever the plot shape — there is no input canvas to inherit.
   aspectRatio: () => '3:2',
@@ -361,10 +367,9 @@ const sketchRender: FeatureDef<SketchRenderSettings> = {
   blurb: 'Hand Sketch to Finished Image',
   icon: Wand2,
   inputMode: 'image',
-  maxReferences: 1,
+  maxReferences: 0,
   defaultSettings: { medium: 'illustration', subject: '', scene: defaultScene() },
   buildPrompt: (s) => buildSketchRenderPrompt({ ...s.scene, medium: s.medium, subject: s.subject }),
-  sceneShow: { archStyle: true, materials: true, lighting: true, context: true, entourage: true },
   // Deliberately unpinned. The sketch's own crop IS the composition the
   // architect drew, and the prompt locks the viewpoint to it — pinning a ratio
   // here would fight the instruction three sentences later.
@@ -385,12 +390,7 @@ const sketchRender: FeatureDef<SketchRenderSettings> = {
     compare: { before: 'Sketch', after: 'Resolved' },
   },
   blockedReason: (_s, hasInput) => (hasInput ? null : 'Upload a sketch to begin.'),
-  toOptions: (s, ctx) => ({
-    style: s.medium,
-    variations: 1,
-    refine: ctx.refine || undefined,
-    referenceImages: ctx.referenceImages,
-  }),
+  toOptions: (_s, ctx) => plainOptions(ctx),
   promptContracts: [
     { name: 'sketch-render locks the drawing', pattern: /LOCK THE DRAWING/ },
     { name: 'sketch-render forbids invented geometry', pattern: /no extra wing, tower, canopy, balcony, storey or second building/ },
@@ -409,7 +409,6 @@ const render: FeatureDef<RenderSettings> = {
   maxReferences: 1,
   defaultSettings: { style: 'isometric', variations: 1, scene: defaultScene() },
   buildPrompt: (s, ctx) => buildRenderPrompt({ style: s.style, useStyleRef: ctx.useStyleRef, ...s.scene }),
-  sceneShow: { archStyle: true },
   // An isometric of ANY plan is a ~4:3 landscape composition (the plan's own
   // width:depth cancels in the projection), so inheriting a portrait plan's
   // canvas pressured the model to compact the footprint. plan2d stays unpinned
@@ -458,7 +457,6 @@ const sketchPlan: FeatureDef<SketchPlanSettings> = {
   maxReferences: 0,
   defaultSettings: { annotation: 'none', units: 'metric', furnished: false },
   buildPrompt: (s) => buildSketchPlanPrompt(s),
-  sceneShow: {},
   // A drawn-up plan follows the sketch's own proportions — pinning a ratio here
   // would be the isometric bug in reverse, squeezing a long plan into a square.
   sendTargets: ['render', 'section'],
@@ -502,7 +500,6 @@ const cadElevation: FeatureDef<CadElevationSettings> = {
       : undefined,
   defaultSettings: { face: 'front', annotation: 'none', units: 'metric', hatch: true },
   buildPrompt: (s) => buildCadElevationPrompt(s),
-  sceneShow: {},
   // The input is a 3D viewport of any shape; the output is one flat facade.
   // Inheriting the screenshot's canvas is the pressure that squashed L-shaped
   // plans into the isometric frame, pointed at an elevation instead.
@@ -546,7 +543,6 @@ const section: FeatureDef<SectionSettings> = {
       : 'Nothing here says how tall the building is — a plan cannot show it and one view rarely can, so the storey heights and roof form are the model’s guess. Fill in "Storeys and levels" to pin them down.',
   defaultSettings: { axis: 'longitudinal', style: 'line', levels: '', entourage: true, annotation: 'none', units: 'metric' },
   buildPrompt: (s) => buildSectionPrompt(s),
-  sceneShow: {},
   // A section is a wide drawing whatever the building — it spans the full length
   // or width and is only ever a couple of storeys tall.
   aspectRatio: () => '3:2',
@@ -590,7 +586,6 @@ const renderToPlan: FeatureDef<RenderToPlanSettings> = {
     'A plan reverse-engineered from one view is part measurement, part inference. Everything the image could not see is the model’s plainest guess — check it against the real thing before drawing on it.',
   defaultSettings: { annotation: 'none', units: 'metric', furnished: false },
   buildPrompt: (s) => buildRenderToPlanPrompt(s),
-  sceneShow: {},
   // Same reason: a plan derived from a 16:9 render must not be generated into a
   // 16:9 frame, because the building's footprint has nothing to do with the
   // camera the render used.
@@ -648,7 +643,6 @@ const elevation: FeatureDef<ElevationSettings> = {
       useMoodboard: ctx.useMoodboard,
       useStyleRef: ctx.useStyleRef,
     }),
-  sceneShow: { lighting: true, mood: true },
   sendTargets: ['axonometric'],
   poolLabel: 'Elevations',
   galleryLabel: 'Elevation',
@@ -716,11 +710,10 @@ const axonometric: FeatureDef<AxonSettings> = {
       : undefined,
   // Deliberately none: this is a pure conversion of an already-rendered image,
   // so it must preserve the input's materials rather than restyle them.
-  sceneShow: {},
   sendTargets: [],
   poolLabel: 'Axonometrics',
   galleryLabel: 'Axonometric',
-  stage: { what: 'Elevation → 3D view' },
+  stage: { what: 'Elevation or 3D → axonometric' },
   labelsFor: (req) => {
     const viewpoints = req.options.viewpoints?.length ? req.options.viewpoints : ['NE'];
     return viewpoints.map((vp) => `${vp} axonometric${req.options.section ? ' — section' : ''}`);
@@ -770,10 +763,9 @@ const watercolour: FeatureDef<WatercolourSettings> = {
   blurb: 'Render to Painted Illustration',
   icon: Brush,
   inputMode: 'image',
-  maxReferences: 1,
+  maxReferences: 0,
   defaultSettings: { palette: 'warm', loose: true, keepLines: true },
   buildPrompt: (s) => buildWatercolourPrompt(s),
-  sceneShow: {},
   sendTargets: ['moodboard'],
   poolLabel: 'Watercolours',
   galleryLabel: 'Watercolour',
@@ -791,12 +783,7 @@ const watercolour: FeatureDef<WatercolourSettings> = {
     compare: { before: 'Render', after: 'Watercolour' },
   },
   blockedReason: (_s, hasInput) => (hasInput ? null : 'Upload an image to begin.'),
-  toOptions: (s, ctx) => ({
-    style: s.palette,
-    variations: 1,
-    refine: ctx.refine || undefined,
-    referenceImages: ctx.referenceImages,
-  }),
+  toOptions: (_s, ctx) => plainOptions(ctx),
   promptContracts: [
     { name: 'watercolour changes only the medium', pattern: /LOCK EVERYTHING EXCEPT the medium it is painted in/ },
     { name: 'watercolour keeps looseness off the geometry', pattern: /looseness is a property of the paint, not of the building/ },
@@ -829,7 +816,6 @@ const interior: FeatureDef<InteriorSettings> = {
       useStyleRef: ctx.useStyleRef,
       mood: s.scene.mood,
     }),
-  sceneShow: { mood: true },
   sendTargets: [],
   poolLabel: 'Interiors',
   galleryLabel: 'Interior',
@@ -874,7 +860,6 @@ const declutter: FeatureDef<DeclutterSettings> = {
   maxReferences: 0,
   defaultSettings: { keepBuiltIns: true },
   buildPrompt: (s) => buildDeclutterPrompt(s),
-  sceneShow: {},
   sendTargets: ['interior'],
   poolLabel: 'Cleared rooms',
   galleryLabel: 'Declutter',
@@ -916,7 +901,6 @@ const placeObject: FeatureDef<PlaceObjectSettings> = {
   ],
   defaultSettings: { kind: 'furniture', placement: 'replace', target: '' },
   buildPrompt: (s) => buildPlaceObjectPrompt(s),
-  sceneShow: {},
   sendTargets: [],
   poolLabel: 'Placed objects',
   galleryLabel: 'Place object',
@@ -957,7 +941,6 @@ const targetedSwap: FeatureDef<TargetedSwapSettings> = {
   marker: 'optional',
   defaultSettings: { element: '', replacement: '' },
   buildPrompt: (s, ctx) => buildTargetedSwapPrompt({ ...s, marked: ctx.hasMarker }),
-  sceneShow: {},
   sendTargets: [],
   poolLabel: 'Targeted edits',
   galleryLabel: 'Targeted edit',
@@ -974,8 +957,11 @@ const targetedSwap: FeatureDef<TargetedSwapSettings> = {
     emptyDescription: 'Upload an image, name the element and its replacement, then Generate.',
     compare: { before: 'Before', after: 'After' },
   },
-  blockedReason: (s, hasInput) => {
+  blockedReason: (s, hasInput, mode) => {
     if (!hasInput) return 'Upload an image to begin.';
+    // Refine replaces these controls with the refine panel, so a settings-based
+    // block here would disable Generate with no field on screen to satisfy it.
+    if (mode === 'refine') return null;
     if (!s.element.trim()) return 'Name the element to change.';
     if (!s.replacement.trim()) return 'Say what it should become.';
     return null;
@@ -999,7 +985,6 @@ const specSheet: FeatureDef<SpecSheetSettings> = {
   maxReferences: 0,
   defaultSettings: { roomLabel: '' },
   buildPrompt: (s) => buildSpecSheetPrompt(s),
-  sceneShow: {},
   aspectRatio: () => '4:5',
   sendTargets: [],
   poolLabel: 'Spec sheets',
@@ -1042,10 +1027,9 @@ const birdsEye: FeatureDef<BirdsEyeSettings> = {
   blurb: 'Satellite to Aerial Photo',
   icon: Plane,
   inputMode: 'image',
-  maxReferences: 1,
+  maxReferences: 0,
   defaultSettings: { light: 'golden', context: '' },
   buildPrompt: (s) => buildBirdsEyePrompt(s),
-  sceneShow: {},
   // A drone shot is a landscape composition whatever shape the screenshot was
   // cropped to, and the input crop carries no compositional intent — it is
   // wherever the user happened to stop dragging.
@@ -1071,12 +1055,7 @@ const birdsEye: FeatureDef<BirdsEyeSettings> = {
     compare: { before: 'Satellite', after: 'Aerial' },
   },
   blockedReason: (_s, hasInput) => (hasInput ? null : 'Upload a satellite or map screenshot to begin.'),
-  toOptions: (s, ctx) => ({
-    style: s.light,
-    variations: 1,
-    refine: ctx.refine || undefined,
-    referenceImages: ctx.referenceImages,
-  }),
+  toOptions: (_s, ctx) => plainOptions(ctx),
   promptContracts: [
     { name: "bird's-eye strips the map interface", pattern: /map pins, the search bar, zoom controls/ },
     { name: "bird's-eye refuses a flat ground plane", pattern: /The ground must never look flat/ },
@@ -1091,10 +1070,9 @@ const urbanContext: FeatureDef<UrbanContextSettings> = {
   blurb: 'Isolated Building into a Street',
   icon: Building,
   inputMode: 'image',
-  maxReferences: 1,
+  maxReferences: 0,
   defaultSettings: { density: 'mid', city: '', entourage: true },
   buildPrompt: (s) => buildUrbanContextPrompt(s),
-  sceneShow: {},
   // Unpinned on purpose: the prompt's second instruction is that the camera does
   // not move, and a pinned ratio is a re-crop, which is a camera move.
   accuracyWarning: () =>
@@ -1116,12 +1094,7 @@ const urbanContext: FeatureDef<UrbanContextSettings> = {
     compare: { before: 'Isolated', after: 'In context' },
   },
   blockedReason: (_s, hasInput) => (hasInput ? null : 'Upload a render of the building to begin.'),
-  toOptions: (s, ctx) => ({
-    style: s.density,
-    variations: 1,
-    refine: ctx.refine || undefined,
-    referenceImages: ctx.referenceImages,
-  }),
+  toOptions: (_s, ctx) => plainOptions(ctx),
   promptContracts: [
     { name: 'urban context locks the building first', pattern: /LOCK THE BUILDING/ },
     { name: 'urban context builds the street only after', pattern: /ONLY THEN BUILD THE CONTEXT/ },
@@ -1139,7 +1112,6 @@ const wireframeRender: FeatureDef<WireframeRenderSettings> = {
   maxReferences: 1,
   defaultSettings: { keepBackground: false, scene: defaultScene() },
   buildPrompt: (s) => buildWireframeRenderPrompt({ ...s.scene, keepBackground: s.keepBackground }),
-  sceneShow: { materials: true, lighting: true, season: true, mood: true, entourage: true },
   sendTargets: ['atmosphere', 'humanScale', 'upscale'],
   poolLabel: 'Renders',
   galleryLabel: 'Render',
@@ -1174,7 +1146,6 @@ const renderRefine: FeatureDef<RenderRefineSettings> = {
   maxReferences: 0,
   defaultSettings: { level: 'finish', fixPeople: true, fixMaterials: true },
   buildPrompt: (s) => buildRenderRefinePrompt(s),
-  sceneShow: {},
   sendTargets: ['upscale', 'humanScale'],
   poolLabel: 'Refined renders',
   galleryLabel: 'Refined render',
@@ -1209,7 +1180,6 @@ const atmosphere: FeatureDef<AtmosphereSettings> = {
   maxReferences: 0,
   defaultSettings: { lighting: 'golden-hour', season: 'none', mood: 'none', keepPeople: true },
   buildPrompt: (s) => buildAtmospherePrompt(s),
-  sceneShow: {},
   sendTargets: ['upscale', 'humanScale'],
   poolLabel: 'Re-lit renders',
   galleryLabel: 'Atmosphere',
@@ -1244,7 +1214,6 @@ const facadeMaterial: FeatureDef<FacadeMaterialSettings> = {
   maxReferences: 0,
   defaultSettings: { materials: 'brick-timber', customMaterials: '', scope: 'whole', target: '' },
   buildPrompt: (s) => buildFacadeMaterialPrompt(s),
-  sceneShow: {},
   sendTargets: ['atmosphere', 'upscale'],
   poolLabel: 'Material studies',
   galleryLabel: 'Material study',
@@ -1261,8 +1230,11 @@ const facadeMaterial: FeatureDef<FacadeMaterialSettings> = {
     emptyDescription: 'Upload a facade, pick a material and press Generate.',
     compare: { before: 'Original', after: 'Re-clad' },
   },
-  blockedReason: (s, hasInput) => {
+  blockedReason: (s, hasInput, mode) => {
     if (!hasInput) return 'Upload a facade to begin.';
+    // Refine replaces these controls with the refine panel, so a settings-based
+    // block here would disable Generate with no field on screen to satisfy it.
+    if (mode === 'refine') return null;
     if (s.materials === 'custom' && !s.customMaterials.trim()) return 'Describe the material to use.';
     if (s.scope === 'named' && !s.target.trim()) return 'Name the element to re-clad.';
     return null;
@@ -1284,7 +1256,6 @@ const humanScale: FeatureDef<HumanScaleSettings> = {
   maxReferences: 0,
   defaultSettings: { density: 'some', setting: 'residential', vehicles: false, planting: false },
   buildPrompt: (s) => buildHumanScalePrompt(s),
-  sceneShow: {},
   sendTargets: ['atmosphere', 'upscale'],
   poolLabel: 'Populated renders',
   galleryLabel: 'Human scale',
@@ -1323,7 +1294,6 @@ const multiView: FeatureDef<MultiViewSettings> = {
     'Check the panels against each other before you use this — count storeys and windows in each. Generating several views of one building is the hardest thing this app asks, and a sheet of four near-misses looks convincing at a glance.',
   defaultSettings: { views: ['front', 'threequarter', 'side', 'aerial'], layout: '2x2' },
   buildPrompt: (s) => buildMultiViewPrompt(s),
-  sceneShow: {},
   // A sheet is a landscape composition whatever the building.
   aspectRatio: () => '3:2',
   sendTargets: ['upscale'],
@@ -1341,8 +1311,11 @@ const multiView: FeatureDef<MultiViewSettings> = {
     emptyTitle: 'No sheet yet',
     emptyDescription: 'Upload the building, pick the views and press Generate.',
   },
-  blockedReason: (s, hasInput) => {
+  blockedReason: (s, hasInput, mode) => {
     if (!hasInput) return 'Upload the building to begin.';
+    // Refine replaces these controls with the refine panel, so a settings-based
+    // block here would disable Generate with no field on screen to satisfy it.
+    if (mode === 'refine') return null;
     if (s.views.length < 2) return 'Pick at least two views.';
     return null;
   },
@@ -1364,7 +1337,6 @@ const reflection: FeatureDef<ReflectionSettings> = {
   maxReferences: 0,
   defaultSettings: { mode: 'balanced', reflect: '' },
   buildPrompt: (s) => buildReflectionPrompt(s),
-  sceneShow: {},
   sendTargets: ['upscale', 'atmosphere'],
   poolLabel: 'Glazing studies',
   galleryLabel: 'Reflection',
@@ -1399,7 +1371,6 @@ const upscale: FeatureDef<UpscaleSettings> = {
   maxReferences: 0,
   defaultSettings: { resolution: '2K', sharpen: true },
   buildPrompt: (s) => buildUpscalePrompt(s),
-  sceneShow: {},
   sendTargets: [],
   poolLabel: 'Print masters',
   galleryLabel: 'Print master',
@@ -1444,7 +1415,6 @@ const floorAnalysis: FeatureDef<FloorAnalysisSettings> = {
   maxReferences: 0,
   defaultSettings: { layer: 'circulation', labels: true },
   buildPrompt: (s) => buildFloorAnalysisPrompt(s),
-  sceneShow: {},
   sendTargets: [],
   poolLabel: 'Analysis diagrams',
   galleryLabel: 'Floor analysis',
@@ -1462,7 +1432,7 @@ const floorAnalysis: FeatureDef<FloorAnalysisSettings> = {
     compare: { before: 'Plan', after: 'Analysis' },
   },
   blockedReason: (_s, hasInput) => (hasInput ? null : 'Upload a floor plan to begin.'),
-  toOptions: (s, ctx) => ({ style: s.layer, variations: 1, refine: ctx.refine || undefined }),
+  toOptions: (_s, ctx) => plainOptions(ctx),
   promptContracts: [
     { name: 'floor analysis keeps the plan underneath', pattern: /KEEP THE PLAN UNDERNEATH/ },
     { name: 'floor analysis draws exactly one layer', pattern: /Overlay exactly one analysis/ },
@@ -1480,7 +1450,6 @@ const programDiagram: FeatureDef<ProgramDiagramSettings> = {
   maxReferences: 0,
   defaultSettings: { levels: '', orientation: 'vertical' },
   buildPrompt: (s) => buildProgramDiagramPrompt(s),
-  sceneShow: {},
   // A separated stack is tall whichever way you cut it; an isometric explosion
   // spreads sideways as well, so it gets a squarer frame.
   aspectRatio: (s) => (s.orientation === 'vertical' ? '4:5' : '4:3'),
@@ -1501,7 +1470,7 @@ const programDiagram: FeatureDef<ProgramDiagramSettings> = {
     compare: { before: 'Building', after: 'Program' },
   },
   blockedReason: (_s, hasInput) => (hasInput ? null : 'Upload the building to begin.'),
-  toOptions: (s, ctx) => ({ style: s.orientation, variations: 1, refine: ctx.refine || undefined }),
+  toOptions: (_s, ctx) => plainOptions(ctx),
   promptContracts: [
     { name: 'program diagram names the output', pattern: /PROGRAM BREAKDOWN/ },
     { name: 'program diagram separates without redesigning', pattern: /SEPARATE, DO NOT REDESIGN/ },
@@ -1519,7 +1488,6 @@ const explodedAxon: FeatureDef<ExplodedAxonSettings> = {
   maxReferences: 0,
   defaultSettings: { axis: 'vertical', labels: true },
   buildPrompt: (s) => buildExplodedAxonPrompt(s),
-  sceneShow: {},
   aspectRatio: (s) => (s.axis === 'vertical' ? '4:5' : '4:3'),
   sendTargets: [],
   poolLabel: 'Exploded views',
@@ -1538,7 +1506,7 @@ const explodedAxon: FeatureDef<ExplodedAxonSettings> = {
     compare: { before: 'Building', after: 'Exploded' },
   },
   blockedReason: (_s, hasInput) => (hasInput ? null : 'Upload the building to begin.'),
-  toOptions: (s, ctx) => ({ style: s.axis, variations: 1, refine: ctx.refine || undefined }),
+  toOptions: (_s, ctx) => plainOptions(ctx),
   promptContracts: [
     { name: 'exploded axon names the output', pattern: /EXPLODED AXONOMETRIC/ },
     { name: 'exploded axon holds true axonometric projection', pattern: /parallel lines stay parallel, no vanishing point/ },
@@ -1556,7 +1524,6 @@ const annotation: FeatureDef<AnnotationSettings> = {
   maxReferences: 0,
   defaultSettings: { subject: 'circulation', custom: '', labels: true },
   buildPrompt: (s) => buildAnnotationPrompt(s),
-  sceneShow: {},
   sendTargets: [],
   poolLabel: 'Annotated diagrams',
   galleryLabel: 'Annotation',
@@ -1573,12 +1540,15 @@ const annotation: FeatureDef<AnnotationSettings> = {
     emptyDescription: 'Upload an image, choose what to explain and press Generate.',
     compare: { before: 'Image', after: 'Annotated' },
   },
-  blockedReason: (s, hasInput) => {
+  blockedReason: (s, hasInput, mode) => {
     if (!hasInput) return 'Upload an image to begin.';
+    // Refine replaces these controls with the refine panel, so a settings-based
+    // block here would disable Generate with no field on screen to satisfy it.
+    if (mode === 'refine') return null;
     if (s.subject === 'custom' && !s.custom.trim()) return 'Describe what the diagram should explain.';
     return null;
   },
-  toOptions: (s, ctx) => ({ style: s.subject, variations: 1, refine: ctx.refine || undefined }),
+  toOptions: (_s, ctx) => plainOptions(ctx),
   promptContracts: [
     { name: 'annotation locks the base image', pattern: /LOCK THE BASE IMAGE/ },
     { name: 'annotation draws over rather than redraws', pattern: /You are drawing ON it, not redrawing it/ },
@@ -1596,7 +1566,6 @@ const moodboard: FeatureDef<MoodboardSettings> = {
   maxReferences: 0,
   defaultSettings: { aspect: '4:5' },
   buildPrompt: () => buildMoodboardPrompt(),
-  sceneShow: {},
   aspectRatio: (s) => s.aspect,
   sendTargets: [],
   poolLabel: 'Material boards',

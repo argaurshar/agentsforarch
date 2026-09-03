@@ -15,6 +15,9 @@
 
 import { LIGHTING, MATERIAL_PRESETS, MOODS, SEASONS } from '../scene';
 import { NO_TEXT } from './clauses';
+import type { WatercolourPalette } from '../../store/generation';
+
+export type { WatercolourPalette };
 import type {
   LightingKey,
   MaterialsKey,
@@ -450,8 +453,6 @@ export function buildUpscalePrompt(a: { sharpen: boolean }): string {
 }
 
 // --- Watercolour ------------------------------------------------------------
-
-export type WatercolourPalette = 'warm' | 'cool' | 'muted' | 'monochrome';
 
 const PALETTE_CLAUSE: Record<WatercolourPalette, string> = {
   warm: 'a warm palette — ochres, siennas, soft terracotta and warm greys, with a low warm sun in the washes',

@@ -14,6 +14,8 @@ try {
   ({ chromium } = require('/opt/node22/lib/node_modules/playwright'));
 }
 const path = require('path');
+const os = require('os');
+const { execFileSync } = require('child_process');
 const fs = require('fs');
 
 const BASE = process.env.QA_BASE_URL || 'http://localhost:4173/';
@@ -675,26 +677,40 @@ const check = (name, ok, detail = '') => {
   await page.waitForTimeout(2500);
   check('the upscaler still runs on an engine without it', geminiBodies.length > beforeUp);
 
-  // 18. The eight tools from the client mockups. Section 12 already proves each
-  //     one is REACHABLE; this proves each one is the tool it claims to be, by
-  //     reading the instruction it would be useless without out of its own live
-  //     prompt box.
-  const MOCKUP_TOOLS = [
-    ['sketchRender', [/LOCK THE DRAWING/, /do not rebalance the massing/]],
-    ['birdsEye', [/The ground must never look flat/, /map pins, the search bar, zoom controls/]],
-    ['urbanContext', [/LOCK THE BUILDING/, /the context serves the building, not the other way round/]],
-    ['watercolour', [/looseness is a property of the paint, not of the building/]],
-    ['floorAnalysis', [/KEEP THE PLAN UNDERNEATH/, /Overlay exactly one analysis/]],
-    ['programDiagram', [/PROGRAM BREAKDOWN/, /A stack of generic slabs/]],
-    ['explodedAxon', [/EXPLODED AXONOMETRIC/, /parallel lines stay parallel/]],
-    ['annotation', [/You are drawing ON it, not redrawing it/]],
-  ];
-  for (const [key, patterns] of MOCKUP_TOOLS) {
-    await navTo(key);
-    const box = page.locator(`#${key}-prompt`);
-    check(`${key} is reachable and has its prompt box`, (await box.count()) === 1);
-    const text = (await box.count()) ? await box.inputValue() : '';
-    for (const re of patterns) check(`${key} prompt carries ${re.source.slice(0, 42)}`, re.test(text));
+  // 18. Every tool's DECLARED contracts, asserted against its LIVE prompt box.
+  //
+  //     This was a fifth hand-typed table of regexes copied off the registry —
+  //     in the same change that added qa/verifyContracts.cjs to delete exactly
+  //     that. Two of the copies had already drifted shorter than the contracts
+  //     they mirrored, so the live gate asserted less than the static one while
+  //     looking like it asserted more.
+  //
+  //     Reading the contracts from the registry instead makes this the same kind
+  //     of check as section 12: a new tool is covered by existing. It is not
+  //     redundant with verifyContracts — that one evaluates the builder's return
+  //     value, this one evaluates what actually reaches the textarea, and a
+  //     shell that dropped buildPrompt would pass the first and fail this.
+  const contractsBundle = path.join(os.tmpdir(), `and-e2e-contracts-${process.pid}.cjs`);
+  execFileSync(
+    'npx',
+    ['esbuild', '--bundle', '--platform=node', '--format=cjs', '--log-level=error',
+     path.join(__dirname, 'dumpContracts.ts'), `--outfile=${contractsBundle}`],
+    { cwd: path.join(__dirname, '..'), stdio: ['ignore', 'ignore', 'inherit'] },
+  );
+  const declared = JSON.parse(
+    execFileSync('node', [contractsBundle], { cwd: path.join(__dirname, '..'), encoding: 'utf8', maxBuffer: 32 * 1024 * 1024 }),
+  );
+  fs.unlinkSync(contractsBundle);
+
+  for (const tool of declared) {
+    await navTo(tool.key);
+    const box = page.locator(`#${tool.key}-prompt`);
+    const present = (await box.count()) === 1;
+    check(`${tool.key} is reachable and has its prompt box`, present);
+    const text = present ? await box.inputValue() : '';
+    for (const c of tool.contracts) {
+      check(`${tool.key} live prompt: ${c.name}`, new RegExp(c.source, c.flags).test(text));
+    }
   }
 
   // Diagrams & Boards is the first category where text on the output is the
@@ -744,6 +760,49 @@ const check = (name, ok, detail = '') => {
   check('from a model it reads the depth off the image', /read them off the image and reproduce them/.test(fromModel));
   check('and stops inventing one', !/INFER THE DEPTH/.test(fromModel));
   check('both branches still forbid a flat elevation', /do NOT reproduce a flat, front-on elevation/.test(fromModel));
+
+  // 20. Output labels, and the refine block that had no escape.
+  //
+  //     Both are regressions the eight mockup tools shipped with. Every one of
+  //     them passed an internal settings axis as `options.style`, which defeats
+  //     the derived galleryLabel fallback in providers/labels.ts — so a Program
+  //     Diagram set to "isometric" was labelled "Isometric", the name of a
+  //     different tool, in the grid, the pool and the gallery.
+  await navTo('programDiagram');
+  await page.setInputFiles('input[type=file]', PLAN);
+  await page.waitForTimeout(400);
+  await page.getByRole('button', { name: 'Exploded isometric' }).click();
+  await page.waitForTimeout(300);
+  await page.getByRole('button', { name: /^Generate$/ }).click();
+  await page.waitForTimeout(2500);
+  const pdText = await mainText();
+  check('a boards tool labels its outputs with its own name', /Program diagram/i.test(pdText));
+  check('and not with another tool\'s name', !/\bIsometric\b/.test(pdText));
+
+  //     A settings-based block must not survive into refine mode: the refine
+  //     panel REPLACES the tool's controls, so the field that would satisfy it
+  //     is no longer on screen and Generate is disabled with no way out.
+  await navTo('annotation');
+  await page.setInputFiles('input[type=file]', PLAN);
+  await page.waitForTimeout(400);
+  // navTo only changes the hash, so this is a same-document navigation and the
+  // store survives it — section 19 left this tool on the blank custom subject.
+  await page.getByRole('button', { name: 'Circulation' }).first().click();
+  await page.waitForTimeout(300);
+  await page.getByRole('button', { name: /^Generate$/ }).click();
+  await page.waitForTimeout(2500);
+  await page.getByRole('button', { name: 'Something else' }).click();
+  await page.waitForTimeout(300);
+  check(
+    'an undescribed custom subject still blocks compose',
+    !(await page.getByRole('button', { name: /^Generate$/ }).isEnabled()),
+  );
+  await page.getByRole('button', { name: 'Refine this image' }).first().click();
+  await page.waitForTimeout(400);
+  check(
+    'but refine is not blocked by a control refine has removed',
+    await page.getByRole('button', { name: /^Generate$/ }).isEnabled(),
+  );
 
   check('no page crashes', perr.length === 0, perr.slice(0, 2).join(' | '));
   await browser.close();

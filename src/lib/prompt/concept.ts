@@ -10,6 +10,9 @@
 import { CONTEXTS, LIGHTING, archStyleClause, materialsClause } from '../scene';
 import type { SceneOptions } from '../../store/generation';
 import { NO_TEXT } from './clauses';
+import type { SketchMedium } from '../../store/generation';
+
+export type { SketchMedium };
 
 export type MassingDensity = 'low' | 'medium' | 'high';
 
@@ -65,12 +68,6 @@ export function buildMassingPrompt(a: {
 }
 
 // --- Sketch → render --------------------------------------------------------
-
-/**
- * How resolved the output is. Not a quality ladder — three different drawings
- * an architect uses at three different moments.
- */
-export type SketchMedium = 'illustration' | 'photoreal' | 'hybrid';
 
 const MEDIUM_CLAUSE: Record<SketchMedium, string> = {
   illustration:

@@ -13,6 +13,9 @@
 // instruction rather than left to chance.
 
 import { NO_TEXT } from './clauses';
+import type { AerialLight, AnalysisLayer, UrbanDensity } from '../../store/generation';
+
+export type { AerialLight, AnalysisLayer, UrbanDensity };
 
 /** Interface furniture a screenshot carries and the output must not. */
 const STRIP_UI =
@@ -21,8 +24,6 @@ const STRIP_UI =
   'them from your output. None of that furniture appears in the finished image.';
 
 // --- Bird's eye view --------------------------------------------------------
-
-export type AerialLight = 'golden' | 'overcast' | 'midday';
 
 const AERIAL_LIGHT: Record<AerialLight, string> = {
   golden:
@@ -70,8 +71,6 @@ export function buildBirdsEyePrompt(a: { light: AerialLight; context: string }):
 
 // --- Urban context ----------------------------------------------------------
 
-export type UrbanDensity = 'low' | 'mid' | 'dense';
-
 const DENSITY_CLAUSE: Record<UrbanDensity, string> = {
   low: 'a low-density setting — two and three storey neighbours, gardens and street trees, generous gaps between plots',
   mid: 'a mid-rise city setting — four to eight storey neighbours forming a continuous street wall, active ground floors',
@@ -100,7 +99,8 @@ export function buildUrbanContextPrompt(a: { density: UrbanDensity; city: string
       '. Neighbouring buildings sit on plausible plot lines, meet the street the way real buildings do, and are lit by ' +
       'the same sun as the subject — same direction, same softness, same colour temperature.',
     'Continue the ground plane out from the building: pavement, kerbs, road surface, street trees, parked cars, ' +
-      'signage and lighting columns, all at correct scale against the building.',
+      'signage boards and lighting columns, all at correct scale against the building. Any lettering on that signage ' +
+      'stays illegible at this distance — a shape where a sign would be, not words to read.',
     a.entourage
       ? 'Populate the street with people at correct scale, occupied and not looking at the camera.'
       : 'No people.',
@@ -114,17 +114,21 @@ export function buildUrbanContextPrompt(a: { density: UrbanDensity; city: string
 
 // --- Floor analysis ---------------------------------------------------------
 
-export type AnalysisLayer = 'circulation' | 'zoning' | 'daylight' | 'structure';
-
 const LAYER_CLAUSE: Record<AnalysisLayer, string> = {
   circulation:
     'CIRCULATION. Trace the route a person takes through the plan: entry, hallways, the stair or lift core, and the ' +
     'door-to-door path into every room. Draw it as a bold coloured flow line with direction arrows, thicker on the ' +
     'primary route and thinner on secondary ones. Mark the entry point with a distinct symbol',
+  // The legend deliberately is NOT here. It was, and it made every labels-off
+  // zoning run ask for a keyed legend and forbid all text in the same prompt —
+  // the exact bug class this app's contradiction gate exists for, shipped
+  // because the gate's rule was keyed on a phrase pair that could never
+  // co-occur. Anything that puts words on the image now lives in the labels
+  // branch and nowhere else.
   zoning:
     'ZONING. Group the rooms by how they are used — living and social, private and sleeping, service and wet areas, ' +
     'circulation — and fill each group with its own flat translucent colour so the plan reads as coloured territories. ' +
-    'Add a small keyed legend naming each zone',
+    'Distinguish the zones by colour alone, so the drawing still works with no words on it',
   daylight:
     'DAYLIGHT. Show where light enters: mark every window and glazed opening, and cast a soft graduated wash into each ' +
     'room from its own openings, strongest at the glass and fading with depth. Rooms with no opening are left visibly ' +
@@ -157,7 +161,9 @@ export function buildFloorAnalysisPrompt(a: { layer: AnalysisLayer; labels: bool
       'photorealism, viewed from directly overhead.',
     a.labels
       ? 'Label each room with a small, plain, correctly spelled name, and title the diagram with the name of the ' +
-          'analysis. Spell every word correctly. No dimensions, no north arrow, no scale bar, no title block.'
+          'analysis.' +
+          (a.layer === 'zoning' ? ' Add a small keyed legend naming each zone.' : '') +
+          ' Spell every word correctly. No dimensions, no north arrow, no scale bar, no title block.'
       : NO_TEXT,
     'Before you finish, check the plan under the overlay: same outline, same rooms in the same places. If the ' +
       'underlying plan has changed, redraw it — an analysis of a different plan is worthless.',

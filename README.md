@@ -41,7 +41,7 @@ changed prompt string**. Five gates, each catching something the others cannot:
 
 | Gate | Catches |
 |---|---|
-| `designLint` | design-system drift — raw hex, ad-hoc spacing, unlisted radii |
+| `designLint` | design-system drift — an unregistered type size, a squared-off panel, a zeroed radius or shadow scale, a suppressed focus ring |
 | `registryLint` | a tool that is incomplete, unreachable, or missing from a derived table |
 | `verifyContracts` | a tool whose own default prompt no longer satisfies the contract it declares |
 | `promptSnapshot` | any prompt whose wording changed, across every enumerated variant |
