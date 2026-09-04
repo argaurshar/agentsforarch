@@ -48,11 +48,26 @@ export function onlyChange(what: string): { read: string; lock: string; check: s
     // and a carve-out afterwards is not a fix: the lock has to only name things
     // that are genuinely fixed for every caller. Tools whose materials really
     // are fixed say so themselves, below.
+    // The roof sentence is NOT redundant with "the roof form" in the read step
+    // or "a different roofline" in the check, and live evidence says so. Live
+    // run W1 relit this building to night and returned its flat overhanging roof
+    // as a hipped, pyramidal one, with both of those clauses already present.
+    // Facade Material passed the identical lock in daylight (run 14), so the
+    // difference is how much of the image the change forces to be re-rendered:
+    // under a dark sky the roof silhouette is the least constrained thing in the
+    // frame, and the model falls back on the commonest roof it knows.
+    //
+    // What works is naming the failure rather than the property. Exploded
+    // Axonometric had exactly this drift, was given exactly this prohibition,
+    // and V2 confirmed the flat roof came back flat. This is that clause,
+    // promoted to the lock all seven visualization tools share.
     lock:
       `STEP 2 — LOCK EVERYTHING EXCEPT ${what}. This is not a re-render and not a redesign. The building, its geometry, ` +
       'its openings and its proportions come through completely unchanged, and so do the camera position, the focal ' +
       'length, the composition and the crop. Do not move, add, remove, widen, narrow or reshape any part of the ' +
-      'building. Do not shift the viewpoint, not even slightly.',
+      'building. Do not shift the viewpoint, not even slightly. THE ROOF IS THE PART THAT DRIFTS: a flat roof stays ' +
+      'flat and keeps its overhangs and its fascias, a stepped roof keeps every step, and you must not give this ' +
+      'building a pitched, hipped or gabled roof unless the input already has one.',
     check:
       `Before you finish, compare your output against the input everywhere except ${what}. A moved window, a different ` +
       'roofline, an extra storey, a shifted camera or a re-cropped frame is a mistake, not an improvement — redo it.',

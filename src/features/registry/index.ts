@@ -1653,6 +1653,11 @@ const atmosphere: FeatureDef<AtmosphereSettings> = {
   toOptions: (_s, ctx) => plainOptions(ctx),
   promptContracts: [
     { name: 'atmosphere locks all but the light', pattern: /LOCK EVERYTHING EXCEPT the light, the sky and the season/ },
+    // Live run W1: night + winter + dramatic returned the flat overhanging roof
+    // as a hipped one, with "the roof form" and "a different roofline" both
+    // already in the prompt. Naming the failure, not the property, is what
+    // worked on Exploded Axonometric (V2), so the shared lock now carries it.
+    { name: 'atmosphere forbids inventing a pitched roof', pattern: /THE ROOF IS THE PART THAT DRIFTS/ },
     { name: 'atmosphere recomputes what follows from the light', pattern: /Recompute everything that follows from that light/ },
   ],
 };

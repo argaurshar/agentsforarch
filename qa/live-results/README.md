@@ -195,3 +195,92 @@ were both in tools nobody expected to fail.
 The two blocked ones cannot be tested until their fixtures exist. Those are the
 only tools in the app whose live behaviour is entirely unknown *and* unknowable
 from here.
+
+---
+
+# Round 3 — the tools round 1 skipped
+
+Six runs, 2026-09-04, same model. **5 PASS · 1 FAIL, then that failure fixed and
+re-run.** Reproduce with `node qa/liveRuns.ts --skipped`.
+
+Round 1 skipped six tools on the argument that each repeated a prompt shape an
+earlier run had already exercised. These runs test that argument, using the
+NON-DEFAULT, riskiest setting of each rather than the variant most likely to
+look fine.
+
+**Bird's Eye is not among them, and is not "skipped".** Its `inputKind` is
+`['map']` and its own hint reads "a top-down satellite or Maps screenshot". It
+is blocked on the satellite fixture, alongside Place Object and Wireframe to
+Render. It had previously been listed as testable, from memory, without reading
+its `inputKind`. **Three tools are blocked, not two.**
+
+| # | Tool | Riskiest setting tested | Verdict |
+|---|---|---|---|
+| W1 | Atmosphere & Light | night + winter + dramatic | **FAIL — roof drift** |
+| W2 | Add Human Scale | busy + commercial + vehicles + planting | **PASS** |
+| W3 | Reflection Control | mirror | **PASS** |
+| W4 | Render Refinement | finish (the strongest level) | **PASS** |
+| W5 | Program Diagram | isometric, with levels named | **PASS** |
+| W6 | Atmosphere & Light | W1 again, after the fix | **PASS — fix confirmed** |
+
+## The skip reasoning was right four times out of five
+
+W2, W3, W4 and W5 all held, which is what "this repeats a shape run 14 proved"
+predicted. W1 did not, and it matters that the one failure was in the tool
+making the LARGEST change — the argument was about prompt shape and took no
+account of how much of the image a setting forces to be re-rendered.
+
+W3 is worth singling out: mirror glazing kept every frame and mullion in place,
+with the reflection breaking at each one, and the building's geometry was
+untouched down to the tree-branch shadow on the garage door.
+
+## W1 — and why the obvious diagnosis was wrong
+
+Relit to night, the flat overhanging roof came back hipped and pyramidal, and
+the dark grey volume turned pale.
+
+The obvious reading is a missing roof clause. It is not: the prompt already said
+"the roof form" in its READ step and "a different roofline" in its closing
+check. **Facade Material passes with the identical lock** (run 14, geometry
+perfect). Both come from the same `onlyChange()` helper, so the clauses are
+byte-identical.
+
+The difference is how much the change forces to be re-rendered. A material swap
+in daylight leaves the roof silhouette fully constrained by the existing image.
+A relight to night re-renders every pixel, and under a dark sky the roof
+outline is the least constrained thing in the frame — so the model falls back on
+the commonest roof it knows.
+
+What fixes that is naming the failure rather than the property. Exploded
+Axonometric had precisely this drift, was given precisely this prohibition, and
+V2 confirmed the flat roof came back flat. That clause is now promoted into
+`onlyChange()`, so it protects **all seven** visualization tools that share the
+lock — Render Refinement, Atmosphere, Facade Material, Human Scale, Reflection,
+Upscale and Watercolour.
+
+**W6 confirms it.** The same night/winter/dramatic run returns a flat roof with
+its overhangs and fascias in all three tiers, while the relight still does its
+job: warm interior glow, soffit downlights, bare winter trees, frost underfoot.
+`run-W1-output.png` and `run-W6-output.png` are both kept.
+
+## Running total
+
+**28 paid generations across three rounds.** Five prompt bugs found; all five
+fixed and all five confirmed by re-running the case that failed.
+
+**23 of 30 tools** have now been run live here, plus four more (Isometric,
+Elevation, Axonometric, Mood Board) in earlier sessions — **27 of 30**.
+
+**The three that remain are exactly the three blocked on fixtures**, and nothing
+else:
+
+| Tool | Needs |
+|---|---|
+| Bird's Eye View | a top-down satellite or Maps screenshot |
+| Wireframe to Render | a SketchUp or 3D viewport screenshot |
+| Place Object | a product shot on plain ground (its *second* image; it takes a room photo as its first) |
+
+Every tool that can be tested from this environment has been. These three cannot
+be, until those files exist — I cannot fetch them (the egress proxy blocks image
+hosts) and generating them would make the fixtures too clean to be a real test,
+which is the mistake that let the original squared-off isometric through.

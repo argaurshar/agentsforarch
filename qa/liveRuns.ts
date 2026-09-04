@@ -193,6 +193,79 @@ const VERIFY: Run[] = [
   },
 ];
 
+/**
+ * Round 3: the tools round 1 deliberately skipped.
+ *
+ * Each was skipped because it repeats a prompt shape an earlier run exercised.
+ * That reasoning is only worth as much as the evidence behind it, so these run
+ * the NON-DEFAULT, riskiest setting of each — the variant most likely to break
+ * the lock, not the one most likely to look fine.
+ *
+ * Bird's Eye is NOT here and is not skipped: `inputKind: ['map']` and its own
+ * hint reads "a top-down satellite or Maps screenshot". It is blocked on the
+ * satellite fixture, like Place Object and Wireframe to Render. Running it on a
+ * floor plan would test nothing and still cost money. I had previously listed it
+ * as testable, from memory, without reading its inputKind.
+ */
+const SKIPPED: Run[] = [
+  {
+    id: 'W1', tool: 'atmosphere', input: 'elev-rendered.jpg',
+    settings: { lighting: 'night', season: 'winter', mood: 'dramatic', keepPeople: true },
+    title: 'Night AND winter AND dramatic — the largest change this tool can make at once.',
+    verdicts: [
+      'PASS — same building, same camera, relit for night; windows lit from within, winter ground',
+      'FAIL — geometry or camera moves, or the light is unchanged',
+    ],
+  },
+  {
+    id: 'W2', tool: 'humanScale', input: 'elev-rendered.jpg',
+    settings: { density: 'busy', setting: 'commercial', vehicles: true, planting: true },
+    title: 'Busy, with vehicles and planting. Are the figures the right SIZE, and are they ignoring us?',
+    verdicts: [
+      'PASS — figures scale correctly against the door, nobody posing at the camera, building untouched',
+      'FAIL — giant or doll-sized people, faces to camera, or the building altered to fit them',
+    ],
+  },
+  {
+    id: 'W3', tool: 'reflection', input: 'elev-rendered.jpg',
+    settings: { mode: 'mirror', reflect: '' },
+    title: 'Mirror glazing. Does the reflection break at the mullions, or dissolve the frames?',
+    verdicts: [
+      'PASS — every frame and mullion still in place, reflection interrupted by each one',
+      'FAIL — one continuous mirror sheet across the frames, or frames gone',
+    ],
+  },
+  {
+    id: 'W4', tool: 'renderRefine', input: 'elev-rendered.jpg',
+    settings: { level: 'finish', fixPeople: true, fixMaterials: true },
+    title: 'The strongest refinement level on an already-clean render. Does it redesign?',
+    verdicts: [
+      'PASS — the same building, better executed; nothing added, moved or restyled',
+      'FAIL — a more interesting building than the one submitted',
+    ],
+  },
+  // W6 is W1 again, after the roof clause was promoted into the shared lock.
+  // Separate id so the failing night render stays beside the fixed one.
+  {
+    id: 'W6', tool: 'atmosphere', input: 'elev-rendered.jpg',
+    settings: { lighting: 'night', season: 'winter', mood: 'dramatic', keepPeople: true },
+    title: 'FIX CHECK — the roof clause is now in the lock all seven visualization tools share.',
+    verdicts: [
+      'PASS — flat overhanging roof survives the relight; night and winter still applied',
+      'FAIL — a pitched or hipped roof again, or the relight stopped working',
+    ],
+  },
+  {
+    id: 'W5', tool: 'programDiagram', input: 'elev-rendered.jpg',
+    settings: { levels: 'Ground: garage and entry. First: living and kitchen. Second: bedrooms.', orientation: 'isometric' },
+    title: 'Isometric, not the default. Does it use THIS building, or generic stacked slabs?',
+    verdicts: [
+      'PASS — this building separated by level, its own massing and openings legible',
+      'FAIL — anonymous stacked boxes that could be any building',
+    ],
+  },
+];
+
 function dataUrl(file: string): string {
   const buf = fs.readFileSync(path.isAbsolute(file) ? file : path.join(EXAMPLES, file));
   const mime = file.endsWith('.png') ? 'image/png' : 'image/jpeg';
@@ -215,7 +288,11 @@ function dataUrl(file: string): string {
   let spent = 0;
   let planned = 0;
 
-  const set = process.argv.includes('--verify') ? VERIFY : RUNS;
+  const set = process.argv.includes('--skipped')
+    ? SKIPPED
+    : process.argv.includes('--verify')
+      ? VERIFY
+      : RUNS;
   for (const run of set) {
     if (only.length && !only.includes(run.id)) continue;
     const def = featureDef(run.tool);
@@ -284,7 +361,11 @@ function dataUrl(file: string): string {
     console.log(`\n${planned} API call(s) would be billed. Nothing was sent.`);
     return;
   }
-  const reportName = process.argv.includes('--verify') ? 'report-verify.json' : 'report.json';
+  const reportName = process.argv.includes('--skipped')
+    ? 'report-skipped.json'
+    : process.argv.includes('--verify')
+      ? 'report-verify.json'
+      : 'report.json';
   fs.writeFileSync(path.join(OUT, reportName), JSON.stringify({ runs: report, generations: spent }, null, 2));
   console.log(`\n${spent} generation(s) attempted. Results in qa/live-results/`);
 })();
