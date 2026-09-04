@@ -1,0 +1,30 @@
+{
+  "runs": [
+    {
+      "id": "W6",
+      "tool": "atmosphere",
+      "input": "elev-rendered.jpg",
+      "settings": {
+        "lighting": "night",
+        "season": "winter",
+        "mood": "dramatic",
+        "keepPeople": true
+      },
+      "title": "FIX CHECK — the roof clause is now in the lock all seven visualization tools share.",
+      "verdicts": [
+        "PASS — flat overhanging roof survives the relight; night and winter still applied",
+        "FAIL — a pitched or hipped roof again, or the relight stopped working"
+      ],
+      "status": "generated",
+      "calls": 1,
+      "labels": [
+        "Atmosphere"
+      ],
+      "files": [
+        "run-W6-output.png"
+      ],
+      "failures": []
+    }
+  ],
+  "generations": 1
+}

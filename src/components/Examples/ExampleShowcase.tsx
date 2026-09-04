@@ -16,6 +16,19 @@ interface ExampleShowcaseProps {
   defaultOpen?: boolean;
 }
 
+// A worked example is the one image in the app that must not be cropped: it is
+// the whole answer to "what does this tool do". `object-cover` in a fixed 4:3
+// box was fine while the only examples were the original five, which are all
+// near-4:3 — it silently took 27% off every 3:2 output and 40% off the portrait
+// FF&E sheet once twenty-two more landed, cutting the ends off a section drawing
+// and half the items off a spec sheet.
+//
+// So: keep the fixed box, because two panels that line up read as a pair, but
+// CONTAIN rather than cover. Letterboxing on a neutral ground is honest; a
+// cropped drawing is a different drawing.
+const CASE_IMG =
+  'aspect-[4/3] w-full rounded-control border border-hairline bg-drafting object-contain';
+
 /** One worked run: the input, an arrow, and what came back. */
 function CasePanel({ example }: { example: ExampleCase }) {
   return (
@@ -33,7 +46,7 @@ function CasePanel({ example }: { example: ExampleCase }) {
               src={example.input}
               alt={example.inputLabel ?? 'Example input'}
               loading="lazy"
-              className="aspect-[4/3] w-full rounded-control border border-hairline bg-drafting object-cover"
+              className={CASE_IMG}
             />
           </div>
           <ArrowRight size={18} strokeWidth={1.75} className="shrink-0 text-ochre" aria-hidden="true" />
@@ -43,7 +56,7 @@ function CasePanel({ example }: { example: ExampleCase }) {
               src={example.output}
               alt={example.outputLabel ?? 'Example output'}
               loading="lazy"
-              className="aspect-[4/3] w-full rounded-control border border-hairline bg-drafting object-cover"
+              className={CASE_IMG}
             />
           </div>
         </div>
@@ -136,11 +149,19 @@ export function ExampleShowcase({ feature, defaultOpen = false }: ExampleShowcas
       </div>
 
       {open ? (
-        <div className="grid gap-4 border-t border-hairline p-5 sm:grid-cols-2">
+        // Two columns only when there is something to put in both. Twenty-two
+        // tools have exactly one worked example, and a single case in a
+        // two-column grid renders at half width — the smallest possible version
+        // of the one image that answers "what does this tool do".
+        <div
+          className={`grid gap-4 border-t border-hairline p-5 ${
+            set.cases.length > 1 ? 'sm:grid-cols-2' : 'sm:grid-cols-1'
+          }`}
+        >
           {set.cases.map((example) => (
             <CasePanel key={example.label} example={example} />
           ))}
-          <p className="text-caption leading-relaxed text-mist sm:col-span-2">
+          <p className="text-caption leading-relaxed text-mist sm:col-span-full">
             Real runs from this app on Nano&nbsp;Banana&nbsp;Pro — shown from bundled images, so browsing them costs
             nothing. Your own results will differ with your inputs and settings.
           </p>

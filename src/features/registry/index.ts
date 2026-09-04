@@ -1163,6 +1163,17 @@ const declutter: FeatureDef<DeclutterSettings> = {
   icon: Eraser,
   inputMode: 'image',
   maxReferences: 0,
+  // Live run 12: the strip-out itself was flawless — every movable object gone,
+  // the radiator, the skirting and even the wall blemishes preserved — but the
+  // camera swung to straight-on and a single casement came back as three panes.
+  // The prompt already carries the strongest lock language in the app ("keep
+  // the camera position, the lens and the crop exactly as shown", and a closing
+  // opening-by-opening re-check). It was not enough. Writing MORE lock language
+  // is not the fix; saying so on the output is, because a user comparing a
+  // before and after needs to know the geometry is not evidence.
+  accuracyWarning: () =>
+    'Check the shell against your photo before you rely on this. Emptying a room is reliable; holding the camera and '
+    + 'the window sizes exactly is not, and a cleared room that quietly gained a wider window still looks convincing.',
   defaultSettings: { keepBuiltIns: true },
   quick: [
     {
@@ -1196,6 +1207,15 @@ const declutter: FeatureDef<DeclutterSettings> = {
     { name: 'declutter locks the shell', pattern: /LOCK THE SHELL/ },
     { name: 'declutter repairs surfaces rather than inventing them', pattern: /Do not invent a new floor or a feature wall/ },
     { name: 'declutter audits the openings at the end', pattern: /opening by opening/ },
+    // Order, not just presence. Live run 12 failed because the closing audit
+    // checked openings and never mentioned the camera — and a moved camera is
+    // what forces the walls to be redrawn in the first place. This asserts the
+    // camera is checked FIRST and the openings only after it matches, so a later
+    // edit cannot quietly demote it back to an also-ran.
+    {
+      name: 'declutter audits the camera BEFORE the openings',
+      pattern: /FIRST, the camera[\s\S]*SECOND, and only once the camera matches[\s\S]*opening by opening/,
+    },
   ],
 };
 
@@ -1633,6 +1653,11 @@ const atmosphere: FeatureDef<AtmosphereSettings> = {
   toOptions: (_s, ctx) => plainOptions(ctx),
   promptContracts: [
     { name: 'atmosphere locks all but the light', pattern: /LOCK EVERYTHING EXCEPT the light, the sky and the season/ },
+    // Live run W1: night + winter + dramatic returned the flat overhanging roof
+    // as a hipped one, with "the roof form" and "a different roofline" both
+    // already in the prompt. Naming the failure, not the property, is what
+    // worked on Exploded Axonometric (V2), so the shared lock now carries it.
+    { name: 'atmosphere forbids inventing a pitched roof', pattern: /THE ROOF IS THE PART THAT DRIFTS/ },
     { name: 'atmosphere recomputes what follows from the light', pattern: /Recompute everything that follows from that light/ },
   ],
 };
@@ -1919,6 +1944,11 @@ const upscale: FeatureDef<UpscaleSettings> = {
   promptContracts: [
     { name: 'upscale resolves rather than invents', pattern: /resolve detail, do not invent it/ },
     { name: 'upscale refuses to improve the design', pattern: /your job is to make it printable, not better/ },
+    // `outputKind: 'same'` promises, in the registry's own words, that "an
+    // upscale of a plan is still a plan". Live run V6 broke that promise: a line
+    // elevation came back as a photoreal render with sky, lawn and driveway.
+    { name: 'upscale keeps the input medium', pattern: /a line drawing stays a line drawing|A line drawing stays a line drawing/ },
+    { name: 'upscale never converts a drawing to a render', pattern: /Never convert a drawing into a render/ },
   ],
 };
 
@@ -2050,6 +2080,13 @@ const explodedAxon: FeatureDef<ExplodedAxonSettings> = {
   icon: Layers3,
   inputMode: 'image',
   maxReferences: 0,
+  // Live run 08: layer labels were spelled correctly on their leader lines and
+  // the facade kept the input's garage, stone and glazed stair — but the flat
+  // overhanging roof came back hipped and pitched. Separating a building into
+  // layers means rebuilding each one, and the roof is the layer that drifts.
+  accuracyWarning: () =>
+    'Check the roof form against your input. Exploding a building means redrawing every layer, and the roof is the '
+    + 'one that comes back changed most often — a flat roof can return pitched without the rest of the diagram moving.',
   defaultSettings: { axis: 'vertical', labels: true },
   quick: [
     {
@@ -2093,6 +2130,15 @@ const explodedAxon: FeatureDef<ExplodedAxonSettings> = {
     { name: 'exploded axon names the output', pattern: /EXPLODED AXONOMETRIC/ },
     { name: 'exploded axon holds true axonometric projection', pattern: /parallel lines stay parallel, no vanishing point/ },
     { name: 'exploded axon keeps every layer on the same building', pattern: /Every separated layer belongs to THIS building/ },
+    // Live run 08 returned a flat overhanging roof as a hipped one. "Every layer
+    // belongs to THIS building" listed footprint, proportions, materials and
+    // openings — never roof form — so the one layer that drifted was the one
+    // nothing named. This pins the clause that now names it.
+    { name: 'exploded axon locks the roof form specifically', pattern: /ROOF LAYER IS THE ONE THAT DRIFTS/ },
+    {
+      name: 'exploded axon forbids inventing a pitched roof',
+      pattern: /Do not give this building a pitched, hipped or gabled roof unless the input already has one/,
+    },
   ],
 };
 

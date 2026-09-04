@@ -754,6 +754,26 @@ const check = (name, ok, detail = '') => {
   );
   fs.unlinkSync(contractsBundle);
 
+  // A (sample, tool) pair with NO prepared result — DERIVED, not named. Two
+  // sections below depend on the GENERATED path, and both were hard-coded to
+  // "the plan sample plus Floor Analysis" until Floor Analysis gained a worked
+  // example from that same plan and the pair became instant.
+  const unpreparedBundle = path.join(os.tmpdir(), `and-e2e-unprepared-${process.pid}.cjs`);
+  execFileSync(
+    'npx',
+    // examples.ts and samples.ts resolve asset paths through
+    // `import.meta.env.BASE_URL`, which does not exist outside Vite - so unlike
+    // dumpContracts (registry only) this bundle has to define it.
+    ['esbuild', '--bundle', '--platform=node', '--format=cjs', '--log-level=error',
+     '--define:import.meta.env.BASE_URL="/"',
+     path.join(__dirname, 'dumpUnpreparedPair.ts'), `--outfile=${unpreparedBundle}`],
+    { cwd: path.join(__dirname, '..'), stdio: ['ignore', 'ignore', 'inherit'] },
+  );
+  const unprepared = JSON.parse(
+    execFileSync('node', [unpreparedBundle], { cwd: path.join(__dirname, '..'), encoding: 'utf8' }),
+  );
+  fs.unlinkSync(unpreparedBundle);
+
   for (const tool of declared) {
     await navTo(tool.key);
     const box = page.locator(`#${tool.key}-prompt`);
@@ -902,11 +922,12 @@ const check = (name, ok, detail = '') => {
   check('a floor plan offers Make it 3D', (await page.locator('[data-card="render"]').count()) === 1);
   check('and does not offer a tool that cannot read a plan', (await page.locator('[data-card="birdsEye"]').count()) === 0);
 
-  // Deliberately NOT `render`: the plan sample plus Make it 3D is a prepared
-  // pair now, and this section is about the generated path. Floor analysis is
-  // in the same shortlist and has no prepared result behind it.
+  // This section is about the GENERATED path, so its tool must be one with no
+  // prepared result — otherwise the front door correctly answers instantly, no
+  // request is sent, and "it actually generated" fails on a working app. Named
+  // literally until adding examples made the named tool instant; derived now.
   const beforeStudio = geminiBodies.length;
-  await page.locator('[data-card="floorAnalysis"]').click();
+  await page.locator(`[data-card="${unprepared.feature}"]`).click();
   clicks += 1;
   await page.waitForTimeout(3000);
   check('two clicks reach a result', (await page.locator('[data-studio-result]').count()) === 1, `clicks: ${clicks}`);
@@ -945,11 +966,14 @@ const check = (name, ok, detail = '') => {
   await fp.goto(BASE, { waitUntil: 'domcontentloaded' });
   await fp.waitForTimeout(500);
   check('a keyless visitor still sees the app', (await fp.locator('[data-studio-drop]').count()) === 1);
-  await fp.locator('[data-sample="plan"]').click();
+  await fp.locator(`[data-sample="${unprepared.sampleKind}"]`).click();
   await fp.waitForTimeout(900);
-  await fp.locator('[data-card="floorAnalysis"]').click();
+  await fp.locator(`[data-card="${unprepared.feature}"]`).click();
   await fp.waitForTimeout(600);
-  check('the key is asked in the result slot', (await fp.locator('[data-key-gate]').count()) === 1);
+  check(
+    `the key is asked in the result slot (${unprepared.sampleKind} -> ${unprepared.feature})`,
+    (await fp.locator('[data-key-gate]').count()) === 1,
+  );
   check('remembering is on by default', await fp.getByRole('switch', { name: /Remember/ }).getAttribute('aria-checked') === 'true');
   const beforeKey = freshBodies.length;
   await fp.fill('#studio-key', 'AIza-qa-studio');

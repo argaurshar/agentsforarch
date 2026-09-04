@@ -132,12 +132,27 @@ export function buildExplodedAxonPrompt(a: { axis: ExplodeAxis; labels: boolean 
     a.axis === 'vertical'
       ? 'STEP 2 — EXPLODE UPWARD. Separate those layers along a single vertical axis, evenly spaced, each one directly ' +
           'above the one it sits on, so the assembly reads bottom to top.'
-      : 'STEP 2 — EXPLODE OUTWARD. Separate the envelope from the structure from the floor plates along a consistent ' +
-          'diagonal axis, so each layer is fully visible and the order of assembly is legible.',
+      : // Live run 08 with this branch selected returned essentially the vertical
+        // stack: "outward" alone was too weak to displace the default. It now
+        // says what NOT to do, and gives the direction a concrete description.
+        'STEP 2 — EXPLODE OUTWARD, NOT UPWARD. Peel the layers apart SIDEWAYS along a consistent diagonal, each one ' +
+          'offset down-and-to-the-left of the one behind it, as though the building were being unpacked towards the ' +
+          'viewer. This is explicitly NOT a vertical stack: do not place the layers one directly above another, and do ' +
+          'not separate them along a vertical axis. The horizontal offset between neighbouring layers must be at least ' +
+          'as large as the vertical one, so each layer is fully visible and the order of assembly is legible.',
     'Draw it in true axonometric projection: parallel lines stay parallel, no vanishing point, no foreshortening, seen ' +
       'from a three-quarter viewpoint above.',
-    'Every separated layer belongs to THIS building — the same footprint, the same proportions, the same materials and ' +
-      'the same openings as the input.',
+    // ROOF FORM used to be missing from this list — footprint, proportions,
+    // materials and openings were locked, the roof was not. Live run 08 returned
+    // a flat overhanging roof as a hipped, pitched one while every other layer
+    // stayed faithful. The roof is the layer most exposed here, because
+    // exploding a building means redrawing each layer standalone and a roof
+    // drawn standalone reverts to the commonest roof the model knows.
+    'Every separated layer belongs to THIS building — the same footprint, the same proportions, the same storey count, ' +
+      'the same materials and the same openings as the input.',
+    'The ROOF LAYER IS THE ONE THAT DRIFTS, so read it off the input before you draw it: its pitch or its flatness, ' +
+      'its overhang or its lack of one, its parapets, its fascias and how it steps. A flat roof stays flat and keeps ' +
+      'its overhangs. Do not give this building a pitched, hipped or gabled roof unless the input already has one.',
     // The guide lines have to run along whichever axis the layers were pulled
     // apart on. Pinned vertical, they contradicted the diagonal explode: either
     // the model reverted to a vertical stack or it drew leaders joining nothing.

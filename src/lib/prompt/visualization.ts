@@ -48,11 +48,26 @@ export function onlyChange(what: string): { read: string; lock: string; check: s
     // and a carve-out afterwards is not a fix: the lock has to only name things
     // that are genuinely fixed for every caller. Tools whose materials really
     // are fixed say so themselves, below.
+    // The roof sentence is NOT redundant with "the roof form" in the read step
+    // or "a different roofline" in the check, and live evidence says so. Live
+    // run W1 relit this building to night and returned its flat overhanging roof
+    // as a hipped, pyramidal one, with both of those clauses already present.
+    // Facade Material passed the identical lock in daylight (run 14), so the
+    // difference is how much of the image the change forces to be re-rendered:
+    // under a dark sky the roof silhouette is the least constrained thing in the
+    // frame, and the model falls back on the commonest roof it knows.
+    //
+    // What works is naming the failure rather than the property. Exploded
+    // Axonometric had exactly this drift, was given exactly this prohibition,
+    // and V2 confirmed the flat roof came back flat. This is that clause,
+    // promoted to the lock all seven visualization tools share.
     lock:
       `STEP 2 — LOCK EVERYTHING EXCEPT ${what}. This is not a re-render and not a redesign. The building, its geometry, ` +
       'its openings and its proportions come through completely unchanged, and so do the camera position, the focal ' +
       'length, the composition and the crop. Do not move, add, remove, widen, narrow or reshape any part of the ' +
-      'building. Do not shift the viewpoint, not even slightly.',
+      'building. Do not shift the viewpoint, not even slightly. THE ROOF IS THE PART THAT DRIFTS: a flat roof stays ' +
+      'flat and keeps its overhangs and its fascias, a stepped roof keeps every step, and you must not give this ' +
+      'building a pitched, hipped or gabled roof unless the input already has one.',
     check:
       `Before you finish, compare your output against the input everywhere except ${what}. A moved window, a different ` +
       'roofline, an extra storey, a shifted camera or a re-cropped frame is a mistake, not an improvement — redo it.',
@@ -435,9 +450,28 @@ export function buildUpscalePrompt(a: { sharpen: boolean }): string {
     'You are producing a high-resolution print master of the architectural image in the input.',
     lock.read,
     lock.lock,
-    'STEP 3 — ONLY THEN RESOLVE IT. Render the same image at much higher fidelity: real material texture where the ' +
-      'input only suggests it, crisp edges on frames, reveals and mullions, legible detail in the middle distance, and ' +
-      'clean gradients in the sky and on flat surfaces. Remove compression artefacts, banding and noise.',
+    // MEDIUM LOCK. Live run V6 fed this a black-and-white line elevation and got
+    // back a photorealistic render: blue sky, lawn, driveway, trees reflected in
+    // the glazing. Three clauses caused it, and all three assumed the input was
+    // a photograph — "real material texture where the input only suggests it"
+    // (a drawing only suggests material everywhere), "clean gradients in the
+    // sky" (a drawing has no sky, so this asks for one), and the PHOTO_FINISH
+    // tail flatly declaring the output a photorealistic photograph.
+    //
+    // The registry says `inputKind` is all six kinds and `outputKind: 'same'`.
+    // The prompt was contradicting the tool's own declared contract, and
+    // promptContradictions could not see it: the conflict is not between two
+    // clauses, it is between a clause and the INPUT TYPE.
+    'STEP 3 — KEEP THE MEDIUM. The output is the same KIND of image as the input, and this outranks every rendering ' +
+      'instruction below. A line drawing stays a line drawing — no sky, no colour, no materials, no lighting, no ' +
+      'ground, no context, no shading that is not already drawn. A flat 2D plan stays a flat 2D plan. A watercolour ' +
+      'stays a watercolour. A photograph or a photorealistic render stays photorealistic. Never convert a drawing ' +
+      'into a render: if the input is line art on white, the output is line art on white.',
+    'STEP 4 — ONLY THEN RESOLVE IT. Render the same image at much higher fidelity IN ITS OWN MEDIUM: cleaner and ' +
+      'truer edges on frames, reveals and mullions, linework that stays crisp and unbroken at size, legible detail ' +
+      'wherever the input already carries it, and smooth gradients only where the input already has them. Where the ' +
+      'input already shows a real material, resolve its true texture; where it does not, leave the surface as the ' +
+      'input draws it. Remove compression artefacts, banding and noise.',
     // The rule that makes an upscaler useful rather than merely impressive.
     'CRITICAL — resolve detail, do not invent it. Every element in the output is the same element that is in the ' +
       'input, only better resolved. Do not add an architectural feature, a plant, a person, a vehicle or a reflection ' +
@@ -446,7 +480,12 @@ export function buildUpscalePrompt(a: { sharpen: boolean }): string {
     a.sharpen
       ? 'Finish with restrained output sharpening suitable for large-format print — no halos, no crunchy edges.'
       : 'No output sharpening; leave the result naturally soft where the input is soft.',
-    PHOTO_FINISH,
+    // PHOTO_FINISH used to sit here unconditionally, which is what turned a line
+    // drawing into a photograph. The finish now names the medium as the input's
+    // own rather than asserting one.
+    'Reproduce the input’s own medium faithfully at high resolution, with its existing colour treatment, its existing ' +
+      'lighting or lack of it, and its existing level of abstraction — ultra-detailed within that medium, never ' +
+      'translated out of it.',
     lock.check,
     NO_TEXT,
   ].join(' ');
