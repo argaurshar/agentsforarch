@@ -180,6 +180,17 @@ const VERIFY: Run[] = [
     title: 'Does an upscale resolve detail, or hallucinate detail that was never there?',
     verdicts: ['PASS — the same drawing, cleaner, with nothing added', 'FAIL — invented linework, or a redesigned drawing'],
   },
+  // V7 is V6 again, after the medium lock. Kept as a SEPARATE id rather than a
+  // re-run of V6 so the failing image stays on disk next to the fixed one —
+  // a before and after is the only honest way to show a prompt fix worked.
+  {
+    id: 'V7', tool: 'upscale', input: 'elev-line.jpg',
+    title: 'FIX CHECK — the medium lock. Does a line drawing stay a line drawing?',
+    verdicts: [
+      'PASS — line art on white, no sky, no lawn, no materials, no lighting',
+      'FAIL — any render, sky, ground, colour or material the input did not have',
+    ],
+  },
 ];
 
 function dataUrl(file: string): string {

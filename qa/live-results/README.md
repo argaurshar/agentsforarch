@@ -94,7 +94,7 @@ that need them are untested live.
 
 # Round 2 — verifying the fixes, and two questions the first fifteen never asked
 
-Six more runs, 2026-09-04, same model. **5 PASS · 1 FAIL.** Reproduce with
+Seven runs, 2026-09-04, same model. **6 PASS · 1 FAIL, then that failure fixed and re-run.** Reproduce with
 `node qa/liveRuns.ts --verify`; the marker fixture comes from
 `node qa/makeMarker.cjs`.
 
@@ -108,7 +108,8 @@ that proof, plus the red-marker question the plan named as its biggest unknown.
 | V3 | Declutter | Does the camera hold now it is audited first? | **PASS — regression gone** |
 | V4 | Interior (stage) | Did the shared-clause rewrite break staging? | **PASS — blast radius safe** |
 | V5 | Targeted Edit | **Is a red rectangle an instruction or a picture?** | **PASS** |
-| V6 | Upscale for Print | Resolve detail, or invent it? | **FAIL — new bug, fixed** |
+| V6 | Upscale for Print | Resolve detail, or invent it? | **FAIL — new bug** |
+| V7 | Upscale for Print | Re-run after the medium lock | **PASS — fix confirmed** |
 
 ## V5 settles the plan's biggest open question
 
@@ -144,8 +145,14 @@ Fixed with an explicit medium lock ranked above every rendering instruction, and
 a finish that names the input's own medium instead of asserting one.
 `promptContradictions` gains the pair `do not invent it` + `Photorealistic
 architectural photograph`, which was watched failing against the old prompt —
-so the gate that missed this now catches it. **The fix itself is not yet
-verified live.**
+so the gate that missed this now catches it.
+
+**V7 confirms the fix.** The same line elevation came back as line art on white:
+no sky, no lawn, no driveway, no materials, no lighting, and the garage door
+restored to its glazed 4x5 grid from the solid timber panel V6 invented. Both
+images are kept — `run-V6-output.png` is the failure, `run-V7-output.png` the
+fix — because a before and after is the only honest way to show a prompt change
+worked.
 
 ## What still holds after eleven more images
 
@@ -157,3 +164,34 @@ verified live.**
   slightly lower, and the input's left-edge bookcase returned as a door
   architrave. V4 lost the input's ceiling pendant. The `accuracyWarning` on
   these tools stays earned.
+
+---
+
+# Coverage: what has and has not been run live
+
+**18 of 30 tools** were run live in these two rounds. Four more — Isometric,
+Elevation, Axonometric and Mood Board — were live-tested in earlier sessions
+(the original five features, before the registry existed).
+
+**Eight have never been run live at all:**
+
+| Tool | Why it has not been run |
+|---|---|
+| Place Object | **Blocked** — needs a product shot on plain ground |
+| Wireframe to Render | **Blocked** — needs a 3D viewport screenshot |
+| Bird's Eye View | Testable. A viewpoint change; runs 02 and 03 both showed viewpoint reconstruction works |
+| Render Refinement | Testable. "Keep the building, change one thing" — the shape run 14 proved holds |
+| Atmosphere & Light | Testable. Same shape as above |
+| Add Human Scale | Testable. Same shape as above |
+| Reflection Control | Testable. Same shape as above |
+| Program Diagram | Testable. Coloured zones plus a keyed legend — the shape run 07 proved |
+
+The six testable ones were deliberately skipped, not overlooked: each repeats a
+prompt shape that a round-1 run already exercised, so paying for them buys
+confirmation rather than information. That is a judgement, not a guarantee —
+every failure this session was found by running something, and the two partials
+were both in tools nobody expected to fail.
+
+The two blocked ones cannot be tested until their fixtures exist. Those are the
+only tools in the app whose live behaviour is entirely unknown *and* unknowable
+from here.
