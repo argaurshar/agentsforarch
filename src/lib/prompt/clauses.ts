@@ -78,7 +78,21 @@ export const NO_NEW_DRAPERY =
   'Treat window treatments as architecture, not as décor: if a window has no curtain, blind or shade in the input photo, ' +
   'leave it bare. Only restyle a curtain or blind that is already there.';
 
+// The closing audit, and therefore the instruction the model weights most
+// heavily. It used to check OPENINGS ONLY. Live run 12 emptied a room perfectly
+// and then handed back a straight-on view whose single casement had become three
+// panes — the camera lock was in SHELL_LOCK, buried mid-prompt, and nothing at
+// the end asked the model to check it. That ordering matters, because the two
+// failures are almost certainly one failure: move the camera and the window wall
+// has to be re-rendered from a new angle, at which point the window gets rebuilt
+// from scratch. So the camera is now audited FIRST and named as the thing that
+// causes the rest.
 export const SHELL_CHECK =
-  'Before you finish, compare your output against the input photo opening by opening. If any window or door has appeared, ' +
-  'vanished, moved or changed size, or if a wall that was blank now carries a window, a glazed panel or a curtain, ' +
-  'rebuild it — matching the room’s existing architecture matters more than any styling instruction above.';
+  'Before you finish, run two checks against the input photo. FIRST, the camera: stand exactly where the input photo ' +
+  'was taken from. If your view is wider, tighter, straighter-on or shifted to either side — if any wall, corner or ' +
+  'opening sits at a different angle or a different place in the frame than it does in the input — you have moved, and ' +
+  'you must rebuild the shot from the original position before anything else. Moving the camera forces you to redraw ' +
+  'the walls, and redrawn walls are where invented windows come from. SECOND, and only once the camera matches, ' +
+  'compare opening by opening. If any window or door has appeared, vanished, moved or changed size or its number of ' +
+  'panes, or if a wall that was blank now carries a window, a glazed panel or a curtain, rebuild it — matching the ' +
+  'room’s existing architecture matters more than any styling instruction above.';

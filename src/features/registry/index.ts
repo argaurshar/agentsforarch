@@ -1207,6 +1207,15 @@ const declutter: FeatureDef<DeclutterSettings> = {
     { name: 'declutter locks the shell', pattern: /LOCK THE SHELL/ },
     { name: 'declutter repairs surfaces rather than inventing them', pattern: /Do not invent a new floor or a feature wall/ },
     { name: 'declutter audits the openings at the end', pattern: /opening by opening/ },
+    // Order, not just presence. Live run 12 failed because the closing audit
+    // checked openings and never mentioned the camera — and a moved camera is
+    // what forces the walls to be redrawn in the first place. This asserts the
+    // camera is checked FIRST and the openings only after it matches, so a later
+    // edit cannot quietly demote it back to an also-ran.
+    {
+      name: 'declutter audits the camera BEFORE the openings',
+      pattern: /FIRST, the camera[\s\S]*SECOND, and only once the camera matches[\s\S]*opening by opening/,
+    },
   ],
 };
 
@@ -2111,6 +2120,15 @@ const explodedAxon: FeatureDef<ExplodedAxonSettings> = {
     { name: 'exploded axon names the output', pattern: /EXPLODED AXONOMETRIC/ },
     { name: 'exploded axon holds true axonometric projection', pattern: /parallel lines stay parallel, no vanishing point/ },
     { name: 'exploded axon keeps every layer on the same building', pattern: /Every separated layer belongs to THIS building/ },
+    // Live run 08 returned a flat overhanging roof as a hipped one. "Every layer
+    // belongs to THIS building" listed footprint, proportions, materials and
+    // openings — never roof form — so the one layer that drifted was the one
+    // nothing named. This pins the clause that now names it.
+    { name: 'exploded axon locks the roof form specifically', pattern: /ROOF LAYER IS THE ONE THAT DRIFTS/ },
+    {
+      name: 'exploded axon forbids inventing a pitched roof',
+      pattern: /Do not give this building a pitched, hipped or gabled roof unless the input already has one/,
+    },
   ],
 };
 
