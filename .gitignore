@@ -13,4 +13,10 @@ dist-ssr
 .idea
 *.log
 npm-debug.log*
-qa/live-results/
+# `qa/live-results/` used to be ignored, back when it held throwaway screenshots
+# from the browser harness. It now holds the Phase 7 evidence: fifteen images
+# that cost real money, cannot be regenerated for free, and are the only way to
+# check the claims in qa/live-results/README.md. Ignoring that is ignoring the
+# deliverable. Outputs and prompts are committed; nothing here is read at build
+# time, and no input images are copied in — the fixtures already ship in
+# public/examples/ and report.json names the one each run used.

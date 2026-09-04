@@ -1,0 +1,138 @@
+{
+  "runs": [
+    {
+      "id": "09",
+      "tool": "annotation",
+      "input": "elev-rendered.jpg",
+      "title": "The one tool that MUST write on the image. Is the text real words?",
+      "verdicts": [
+        "PASS — arrows and legible, correctly spelled labels",
+        "FAIL — gibberish label-shapes, or no labels at all"
+      ],
+      "status": "generated",
+      "calls": 1,
+      "labels": [
+        "Annotation"
+      ],
+      "files": [
+        "run-09-output.png"
+      ],
+      "failures": []
+    },
+    {
+      "id": "10",
+      "tool": "sketchPlan",
+      "input": "sketch-input.jpg",
+      "title": "Does a rough sketch become a CAD-style plan without inventing rooms?",
+      "verdicts": [
+        "PASS — clean linework whose layout matches the sketch",
+        "FAIL — an invented plan, or the sketch barely changed"
+      ],
+      "status": "generated",
+      "calls": 1,
+      "labels": [
+        "CAD plan"
+      ],
+      "files": [
+        "run-10-output.png"
+      ],
+      "failures": []
+    },
+    {
+      "id": "11",
+      "tool": "sketchRender",
+      "input": "sketch-input.jpg",
+      "title": "Does the render keep the sketch's masses, or replace them?",
+      "verdicts": [
+        "PASS — same viewpoint and masses, resolved into a finished image",
+        "FAIL — a handsome building that is not the one drawn"
+      ],
+      "status": "generated",
+      "calls": 1,
+      "labels": [
+        "Sketch render"
+      ],
+      "files": [
+        "run-11-output.png"
+      ],
+      "failures": []
+    },
+    {
+      "id": "12",
+      "tool": "declutter",
+      "input": "room-input.jpg",
+      "title": "Does a strip-out keep the architecture and remove only the movable?",
+      "verdicts": [
+        "PASS — same room, same windows and camera, emptied",
+        "FAIL — the shell changed, or furniture remains"
+      ],
+      "status": "generated",
+      "calls": 1,
+      "labels": [
+        "Cleared room"
+      ],
+      "files": [
+        "run-12-output.png"
+      ],
+      "failures": []
+    },
+    {
+      "id": "13",
+      "tool": "specSheet",
+      "input": "room-input.jpg",
+      "title": "A knolling flat-lay must not become a mood board — and it carries text.",
+      "verdicts": [
+        "PASS — items from THIS room, flat on white, spelled correctly",
+        "FAIL — a collage of similar products, or gibberish labels"
+      ],
+      "status": "generated",
+      "calls": 1,
+      "labels": [
+        "FF&E spec sheet"
+      ],
+      "files": [
+        "run-13-output.png"
+      ],
+      "failures": []
+    },
+    {
+      "id": "14",
+      "tool": "facadeMaterial",
+      "input": "elev-rendered.jpg",
+      "title": "Does a material swap leave the geometry completely alone?",
+      "verdicts": [
+        "PASS — identical building, different facade material",
+        "FAIL — geometry moved with the material, or nothing changed"
+      ],
+      "status": "generated",
+      "calls": 1,
+      "labels": [
+        "Material study"
+      ],
+      "files": [
+        "run-14-output.png"
+      ],
+      "failures": []
+    },
+    {
+      "id": "15",
+      "tool": "watercolour",
+      "input": "elev-rendered.jpg",
+      "title": "Does a stylised pass keep the building, or reinvent it?",
+      "verdicts": [
+        "PASS — the same building, rendered as a watercolour",
+        "FAIL — a different building, or an unchanged photo"
+      ],
+      "status": "generated",
+      "calls": 1,
+      "labels": [
+        "Watercolour"
+      ],
+      "files": [
+        "run-15-output.png"
+      ],
+      "failures": []
+    }
+  ],
+  "generations": 7
+}
