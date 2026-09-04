@@ -11,10 +11,15 @@
 // what the substrate is and orders it preserved before describing the overlay.
 
 import { NO_TEXT } from './clauses';
+// Imported, not re-declared — the rule drawings.ts states and prompts.ts
+// records the cost of: a prompt module's private copy of a settings union
+// drifted, and structural typing hid it until something far away stopped
+// assigning. These files kept four such copies.
+import type { AnnotationSubject, ExplodeAxis, ProgramOrientation } from '../../store/generation';
+
+export type { AnnotationSubject, ExplodeAxis, ProgramOrientation };
 
 // --- Annotation sketch ------------------------------------------------------
-
-export type AnnotationSubject = 'circulation' | 'ventilation' | 'sun' | 'program' | 'structure' | 'custom';
 
 const SUBJECT_CLAUSE: Record<AnnotationSubject, string> = {
   circulation: 'how people move through and around the building — entry, routes, cores and thresholds',
@@ -22,7 +27,10 @@ const SUBJECT_CLAUSE: Record<AnnotationSubject, string> = {
   sun: 'how the sun works on the building — path, angle of incidence, what is shaded and what is exposed',
   program: 'what happens where — the functional zones and how they stack or adjoin',
   structure: 'how the building stands up — the load path from roof to ground',
-  custom: 'the concept described below',
+  // Reached only when the user picks "Something else" and types nothing. It has
+  // to read as a complete instruction on its own: the previous wording promised
+  // a description ("the concept described below") that nothing ever supplied.
+  custom: 'the single idea this drawing exists to communicate, read from the image itself',
 };
 
 /**
@@ -70,8 +78,15 @@ export function buildAnnotationPrompt(a: {
  * asked to "explode" a building will happily generate a stack of generic slabs
  * that share a colour scheme, which explains nothing about the project.
  */
-export function buildProgramDiagramPrompt(a: { levels: string; orientation: 'vertical' | 'isometric' }): string {
-  const levels = a.levels.trim();
+export function buildProgramDiagramPrompt(a: { levels: string; orientation: ProgramOrientation }): string {
+  // The field is a textarea, so this arrives newline-separated. Interpolated
+  // raw it put hard line breaks mid-sentence in the prompt — and in the prompt
+  // snapshot, whose one-entry-per-block parser they broke.
+  const levels = a.levels
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .join(', ');
   return [
     'Produce a clean architectural PROGRAM BREAKDOWN of the building shown in the input: its floors separated from one ' +
       'another and labelled with what each one is for.',
@@ -86,21 +101,21 @@ export function buildProgramDiagramPrompt(a: { levels: string; orientation: 'ver
       : 'Arrange the floors as an exploded isometric stack, offset along a consistent axis so each floor plate is ' +
           'visible, in their real order with the ground floor at the bottom.',
     levels
-      ? `Take the program as given, bottom to top: ${levels}. Label each floor exactly with the name supplied.`
+      ? `Take the program as given, bottom to top: ${levels}. These are BANDS, not storeys: a band may cover several ` +
+          'floors, so group the consecutive storeys that share a use and label the group once with the name supplied. ' +
+          'Use every name given, in the order given, and add none of your own.'
       : 'Infer a plausible program from the building type and label each floor accordingly — parking or retail at the ' +
           'base, primary accommodation above, shared or amenity space at the top.',
     'Annotation: place each floor’s name in a small clean sans-serif inside a minimal frame, connected to its slab by ' +
       'a thin precise leader line. Strict alignment, no overlap, high readability. Spell every word correctly.',
     'Light neutral background, soft ambient lighting, no dramatic shadows. Minimal and instructional — an architectural ' +
       'explainer for a client presentation. No people, no clutter, no context.',
-    'Before you finish, count the separated floors against the storeys in the input. If the counts differ, or if a ' +
-      'floor’s facade does not match its storey, rebuild it.',
+    'Before you finish, account for every storey in the input: each one belongs to exactly one separated band, no ' +
+      'storey is dropped and none is invented. If a band’s facade does not match the storeys it covers, rebuild it.',
   ].join(' ');
 }
 
 // --- Exploded axonometric ---------------------------------------------------
-
-export type ExplodeAxis = 'vertical' | 'layered';
 
 /**
  * A building or room → its components pulled apart along one axis.
@@ -122,7 +137,14 @@ export function buildExplodedAxonPrompt(a: { axis: ExplodeAxis; labels: boolean 
     'Draw it in true axonometric projection: parallel lines stay parallel, no vanishing point, no foreshortening, seen ' +
       'from a three-quarter viewpoint above.',
     'Every separated layer belongs to THIS building — the same footprint, the same proportions, the same materials and ' +
-      'the same openings as the input. Add thin vertical guide lines between the layers so the eye reassembles them.',
+      'the same openings as the input.',
+    // The guide lines have to run along whichever axis the layers were pulled
+    // apart on. Pinned vertical, they contradicted the diagonal explode: either
+    // the model reverted to a vertical stack or it drew leaders joining nothing.
+    a.axis === 'vertical'
+      ? 'Add thin vertical guide lines between the layers, running along the explode axis so the eye reassembles them.'
+      : 'Add thin guide lines between the layers, running along the same diagonal as the explode so the eye ' +
+          'reassembles them.',
     'Keep the original materials and design character rather than reducing everything to grey: this is a presentation ' +
       'diagram, not an engineering drawing.',
     a.labels

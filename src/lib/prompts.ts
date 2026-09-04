@@ -413,9 +413,19 @@ export function buildAxonometricPrompt(a: { section: boolean; style: string; sou
     );
   }
   if (a.section) {
+    // The model branch forbids inventing anything, and an exterior viewport
+    // screenshot contains no interior — so asking it to reveal floor plates and
+    // rooms was unsatisfiable. The elevation branch already carries a carve-out
+    // ("everything you invent sits behind it"); this is the same carve-out,
+    // stated for the one thing a section genuinely has to infer.
     parts.push(
       'Additionally cut it as a section-axonometric: slice through the volume to reveal interior floor plates, structure ' +
         'and rooms, with solid poché-filled cut surfaces.',
+      a.source === 'model'
+        ? 'The interior is the one exception to the rule above: the input shows the outside only, so infer the floor ' +
+            'levels and room divisions from the storey heights and window positions you CAN see. Infer nothing else — ' +
+            'the envelope, the massing and every opening still come straight off the image.'
+        : 'Derive the floor levels and room divisions from the storey lines and window positions in the elevation.',
     );
   }
   parts.push('Keep the whole model centred and fully inside the frame.', NO_TEXT);

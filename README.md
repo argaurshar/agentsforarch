@@ -1,23 +1,29 @@
-# AND Studio — Internal Visualization Platform
+# AND Studio — one image in, thirty drawings out
 
-A single-page tool for AND Studio's architects and interior designers: turn
-sketches and models into renders, elevations, axonometric views, interior
-redesigns and material boards.
+Drop a plan, a sketch or a photo of a room. Two clicks later you have the
+isometric, the elevation, the section, the diagram or the material board.
+Thirty architectural transformations, all of them running in your browser.
+
+The name and the promise live in exactly one file, `src/lib/brand.ts`, and the
+tool count in them is read from the registry rather than typed. The static
+`<meta>` tags in `index.html` are the one surface that cannot import it — a
+crawler reads them before any JavaScript runs — so `registryLint` recomputes
+them and fails when they drift.
 
 **▶ Live app:** https://argaurshar.github.io/agentsforarch/ — a fully functional
 tool. It needs one of your own API keys to generate: a Google **Gemini** key
-(Nano Banana Pro) **or** a kie.ai key (Nano Banana 2). Connect it from the key
-button in the top bar — on desktop that panel also opens by itself on the first
-visit; on a phone it does not, so the dashboard and its worked examples land
-first. Both are free to get, stay in your browser, and are never sent
-anywhere but Google / kie.ai.
+(Nano Banana Pro) **or** a kie.ai key (Nano Banana 2). You are asked for it at
+your first generation, not on arrival, and it is remembered afterwards. Both are
+free to get, stay in your browser, and are never sent anywhere but Google /
+kie.ai. The key button in the top bar is there if you would rather set it up
+first, or switch engines.
 
 Built to the internal build spec (`build.mb`).
 
 ## Quick start
 
 The app generates **real** output only — there is no demo/placeholder engine.
-Bring a Gemini or kie.ai key and add it in **Settings** on first run.
+Bring a Gemini or kie.ai key; it is asked for the first time you generate.
 
 ```bash
 npm install
@@ -34,15 +40,21 @@ npm run typecheck  # type-check only
 npm run preview    # preview the production build
 npm run qa         # static gates — no browser, no API calls, no cost
 npm run qa:e2e     # browser suite against `npm run preview`, network mocked
+node qa/makeOgCard.cjs  # regenerate public/og.jpg (committed; run after a rename)
 ```
+
+`qa:e2e` carries the one assertion the front door exists to satisfy: **from an
+empty page, two clicks reach a result.** It counts the clicks rather than
+describing the flow, because a flow description stays true while the count
+doubles.
 
 `npm run qa` is what CI runs, and it exists because **TypeScript cannot see a
 changed prompt string**. Five gates, each catching something the others cannot:
 
 | Gate | Catches |
 |---|---|
-| `designLint` | design-system drift — raw hex, ad-hoc spacing, unlisted radii |
-| `registryLint` | a tool that is incomplete, unreachable, or missing from a derived table |
+| `designLint` | design-system drift — an unregistered type size, a squared-off panel, a zeroed radius or shadow scale, a suppressed focus ring |
+| `registryLint` | a tool that is incomplete, unreachable, missing from a derived table, or offered for an image it cannot read |
 | `verifyContracts` | a tool whose own default prompt no longer satisfies the contract it declares |
 | `promptSnapshot` | any prompt whose wording changed, across every enumerated variant |
 | `promptContradictions` | a prompt that asks for a thing and forbids it in the same breath |
@@ -52,16 +64,112 @@ app has shipped were both self-contradictory prompts, not missing ones — a
 prompt can satisfy every contract and pass the snapshot while instructing the
 model to do and not do the same thing.
 
+## Two clicks
+
+The app opens on a drop zone, and that is the whole front door. Drop a plan, a
+sketch or a photo of a room — or paste one, shoot one, or tap a sample — and it
+shows you what that image can become. Tap one of those. That is the result.
+
+```
+drop / paste / shoot          →  "This is a…"  →  "Make it…"  →  the result
+(or tap a bundled sample)        one chip row     a shortlist    + what's next
+```
+
+What a result can become next comes from what its tool **produces**, not what
+went into it (`outputKind`): a rendered elevation made from a sketch is a
+*building*, so it is offered the building tools rather than the sketch tools it
+has already been through. Tools whose output the app has no input kind for — a
+section, a sheet, a diagram, a board — say so by ending the chain rather than
+pretending.
+
+The chip is a **guess**, made from the pixels — ink on white is a drawing, a
+bright top edge is outside, flat and green-grey is satellite — and it is one tap
+to correct. It costs nothing and calls nothing; the alternative was a paid
+vision request on every drop, to decide something the user already knows.
+
+The shortlist is **derived**. Every tool declares which kinds of image it can
+read (`inputKind` on its registry entry), so dropping a floor plan filters
+thirty tools to seven without anyone navigating a taxonomy. A new tool joins the
+right shortlists by declaring what it reads — the same property that makes the
+nav rows and the prompt snapshot derived rather than maintained.
+
+Your **API key is asked once**, at your first generation, in the slot where the
+result will appear — not by a drawer that opens itself before you have seen the
+app. It is remembered by default, so coming back costs nothing. There is a
+switch to turn that off for a shared machine.
+
+### The samples need no key at all
+
+This app ships twenty-one real input→output pairs it produced itself. So when
+the input **is** one of those bundled images and the tool **is** the one that
+made the pair, the result already exists: the card is marked *No key needed* and
+tapping it hands the finished image over instantly, with no request and no cost.
+
+Two of those chain and stay free:
+
+```
+a sketch  →  Render an elevation  →  Turn it axonometric
+a room    →  Redesign it          →  Board it
+```
+
+Every result served this way says so on screen — *"This one was prepared
+earlier… your own image runs for real"* — and offers **Try it on your own
+image** as its primary action. A demo that lets someone believe their own file
+came back in 200ms for free is a lie, not a feature, so `qa:e2e` asserts the
+wording as well as the behaviour.
+
+The map is **derived from the worked examples**, not hand-written: a new example
+becomes a new instant path by existing, and a renamed asset cannot leave a
+dangling filename behind. `registryLint` checks every referenced asset is
+actually shipped, and that every sample on the drop zone has at least one tool
+that can answer it for free.
+
+### Sharing a result
+
+A result is the only thing here worth sending someone, and it can travel two
+ways.
+
+**The picture.** *Share* composes a square before/after card in a canvas — the
+pair, the verb, the name, the address — and hands it to the OS share sheet.
+Where there is no share sheet it goes to the clipboard as a PNG; where the
+clipboard is refused it downloads. Three paths, tried in order, because no one
+of them exists everywhere and the feature detections lie: desktop Chrome defines
+`navigator.share` and then rejects files.
+
+**The link.** A result made from your own image cannot travel in a URL — the
+image is yours, and it is megabytes — so the link carries the *recipe* instead:
+
+```
+#/do/axonometric                        open the studio with this tool queued
+#/do/axonometric?from=elev-rendered.jpg …and start from this bundled image
+```
+
+The second shape is the one that spreads: it lands a stranger on the exact
+prepared result, with no key, no upload and no account, and *Try it on your own
+image* is the button under it. The first shape is what a link to your own result
+becomes — the tool is queued and says so, so the recipient's first drop goes
+straight to the answer in one click instead of two.
+
+`from` is validated against the assets actually shipped, and every malformed
+shape — an unknown tool, a text-only tool, an asset that was renamed — lands on
+the drop zone rather than a blank screen. That matters more here than anywhere
+else in the app: a shared URL is the one address nobody can fix by hand.
+
+Link previews are a real file, not a promise: `qa/makeOgCard.cjs` renders
+`public/og.jpg` from `plan-input.jpg` and the isometric this app made from it,
+reading the name and the tool count out of the source so the card cannot claim
+something the registry no longer supports.
+
 ## The tools
 
-Thirty generation tools, grouped by the stage of the job they belong to. Pick a
-category in the sidebar and you get its **tool rail**: tick as many tools as you
-want, drop **one** image, and press **Synthesize** — they all run on it, one at a
-time, each with its own settings. Nothing is ever locked, disabled or gated
-behind another tool.
+Thirty generation tools, also grouped by the stage of the job they belong to.
+**All tools** in the sidebar is the full list: pick a category and you get its
+**tool rail** — tick as many tools as you want, drop **one** image, and press
+**Synthesize** — they all run on it, one at a time, each with its own settings.
 
 Each tool also has its own screen (`Open for full settings`, or `#/<tool>`) where
-its controls live and where it can be run on its own.
+every control lives, including the prompt. The front door and the tool screen run
+the same code and share the same output: tapping a card *is* running that tool.
 
 | Category | Tools |
 |---|---|

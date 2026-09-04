@@ -98,11 +98,6 @@ const PAIRS = [
   // a mode's clause cancelled by a blanket clause appended after it. There the
   // blanket clause was "no shading"; here it is the no-text guard every other
   // category ends with.
-  [
-    'Spell every word correctly',
-    'Do not add any watermark, signature, caption or stray text',
-    'a prompt cannot demand correct spelling and forbid text in the same breath',
-  ],
   // The axonometric is one tool reading its input two ways: from an elevation
   // the depth is absent and must be invented, from a modelled viewport it is
   // present and inventing one means ignoring the image. The branches share
@@ -112,6 +107,37 @@ const PAIRS = [
     'read them off the image and reproduce them',
     'a depth cannot be both invented and read off the input',
   ],
+];
+
+/**
+ * One clause that excludes a whole family of others.
+ *
+ * A PAIR compares two specific phrases, which is right when the bug was two
+ * specific phrases — but it is the wrong shape for a clause that is
+ * incompatible with a CATEGORY of instructions. The first attempt at guarding
+ * the boards tools was a pair: "Spell every word correctly" against the no-text
+ * guard. Those two strings are the two arms of one ternary in every builder
+ * that has them, so they could never co-occur and the rule could never fire.
+ * It passed 787 variants while a real instance shipped one file away, where the
+ * zoning layer demanded a keyed legend from OUTSIDE the labels branch.
+ *
+ * So the rule is stated the way the invariant actually is: if a prompt carries
+ * the no-text guard, nothing anywhere in it may ask for words on the image.
+ */
+const EXCLUSIVE = [
+  {
+    clause: 'Do not add any watermark, signature, caption or stray text',
+    excludes: [
+      'Spell every word correctly',
+      'keyed legend',
+      'Label each',
+      'title the diagram',
+      'correctly spelled name',
+      'sans-serif caption',
+      'annotation labels',
+    ],
+    why: 'a prompt that forbids text cannot also ask for words on the image',
+  },
 ];
 
 /**
@@ -159,6 +185,21 @@ for (const [asks, forbids, why] of PAIRS) {
     `no variant both asks "${asks.slice(0, 34)}" and states "${forbids.slice(0, 34)}"`,
     hits.length === 0,
     hits.length ? `${hits.length} variant(s), e.g. ${hits.slice(0, 3).join(', ')}\n      → ${why}` : '',
+  );
+}
+
+for (const rule of EXCLUSIVE) {
+  const hits = [];
+  for (const [key, body] of variants) {
+    if (!body.includes(rule.clause)) continue;
+    for (const asks of rule.excludes) {
+      if (body.includes(asks)) hits.push(`${key} — "${asks}"`);
+    }
+  }
+  check(
+    `no variant carries the no-text guard and still asks for text`,
+    hits.length === 0,
+    hits.length ? `${hits.length} instance(s), e.g. ${hits.slice(0, 3).join('; ')}\n      → ${rule.why}` : '',
   );
 }
 

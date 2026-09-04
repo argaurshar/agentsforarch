@@ -2,6 +2,7 @@
 // "I closed the tab and lost my work". The file embeds every image as a dataURL,
 // so one .json round-trips the whole project between machines and sessions.
 
+import { BRAND } from './brand';
 import type { Brand, Project } from '../types';
 
 const FILE_KIND = 'and-studio-project';
@@ -46,7 +47,7 @@ export function parseProjectFile(text: string): Project {
   }
   const file = data as Partial<ProjectFile>;
   if (file.kind !== FILE_KIND || typeof file.version !== 'number' || !file.project) {
-    throw new Error('That file is not an AND Studio project export.');
+    throw new Error(`That file is not a ${BRAND.name} project export.`);
   }
   const p = file.project as Partial<Project> & Record<string, unknown>;
   if (typeof p.id !== 'string' || typeof p.name !== 'string' || !Array.isArray(p.assets) || !Array.isArray(p.uploads)) {

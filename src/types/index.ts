@@ -12,7 +12,7 @@ export type { FeatureKind, GeneratedImage };
  * scanning at eleven and this app is heading for ~54), and one page per TOOL,
  * still deep-linkable and still where a tool's own settings live.
  */
-export type TabKey = FeatureKind | 'home' | 'gallery' | CategoryTab;
+export type TabKey = FeatureKind | 'studio' | 'home' | 'gallery' | CategoryTab;
 
 /**
  * The studio/client's brand colours, stamped onto the artefacts the app renders

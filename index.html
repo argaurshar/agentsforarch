@@ -3,7 +3,45 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>AND Studio — Internal Visualization Platform</title>
+
+    <!--
+      These tags are the one place the promise cannot be derived: they are read
+      by crawlers before any JavaScript runs, so `BRAND` in src/lib/brand.ts
+      cannot reach them. `qa/registryLint.cjs` closes the gap — it recomputes
+      the title and description from brand.ts and the registry's own tool count
+      and fails when they disagree with the literals below. Change one, change
+      the other, or CI says so.
+    -->
+    <title>AND Studio — One image in, 30 drawings out.</title>
+    <meta
+      name="description"
+      content="Drop a plan, a sketch or a photo of a room. Two clicks later: the isometric, the elevation, the section, the material board. Every transformation runs in your browser, with your own API key."
+    />
+    <meta name="theme-color" content="#111111" />
+    <link rel="canonical" href="https://argaurshar.github.io/agentsforarch/" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="AND Studio" />
+    <meta property="og:title" content="AND Studio — One image in, 30 drawings out." />
+    <meta
+      property="og:description"
+      content="Drop a plan, a sketch or a photo of a room. Two clicks later: the isometric, the elevation, the section, the material board. Every transformation runs in your browser, with your own API key."
+    />
+    <meta property="og:url" content="https://argaurshar.github.io/agentsforarch/" />
+    <!-- Absolute, because a crawler resolves this against nothing. -->
+    <meta property="og:image" content="https://argaurshar.github.io/agentsforarch/og.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="A floor plan beside the 3D isometric view drawn from it." />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="AND Studio — One image in, 30 drawings out." />
+    <meta
+      name="twitter:description"
+      content="Drop a plan, a sketch or a photo of a room. Two clicks later: the isometric, the elevation, the section, the material board. Every transformation runs in your browser, with your own API key."
+    />
+    <meta name="twitter:image" content="https://argaurshar.github.io/agentsforarch/og.jpg" />
+
     <link rel="icon" type="image/svg+xml" href="favicon.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />

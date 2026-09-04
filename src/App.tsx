@@ -21,6 +21,7 @@ import { PlaceObjectFeature } from './features/interiors/PlaceObjectFeature';
 import { SpecSheetFeature } from './features/interiors/SpecSheetFeature';
 import { TargetedSwapFeature } from './features/interiors/TargetedSwapFeature';
 import { MoodboardFeature } from './features/moodboard/MoodboardFeature';
+import { StudioScreen } from './features/studio/StudioScreen';
 import { BirdsEyeFeature } from './features/site/BirdsEyeFeature';
 import { UrbanContextFeature } from './features/site/UrbanContextFeature';
 import { AtmosphereFeature } from './features/visualization/AtmosphereFeature';
@@ -42,7 +43,8 @@ import type { FeatureKind } from './types';
 // Tool screens. Category destinations are not in here — there is one screen for
 // all of them, parameterised by which category, so a new category needs no entry
 // anywhere: it exists because a tool declared it.
-const FEATURES: Record<FeatureKind | 'home' | 'gallery', ComponentType> = {
+const FEATURES: Record<FeatureKind | 'studio' | 'home' | 'gallery', ComponentType> = {
+  studio: StudioScreen,
   home: DashboardFeature,
   massing: MassingFeature,
   sketchRender: SketchRenderFeature,
@@ -81,7 +83,7 @@ export default function App() {
   useHashRoute();
   const tab = useProjectStore((s) => s.tab);
   const category = categoryFromTab(tab);
-  const ActiveFeature = category ? null : FEATURES[tab as FeatureKind | 'home' | 'gallery'];
+  const ActiveFeature = category ? null : FEATURES[tab as FeatureKind | 'studio' | 'home' | 'gallery'];
 
   return (
     <AppShell>

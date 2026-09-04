@@ -1,4 +1,5 @@
-import { Images, LayoutDashboard } from 'lucide-react';
+import { BRAND } from '../../lib/brand';
+import { Images, LayoutDashboard, Sparkles } from 'lucide-react';
 import { CATEGORIES, featureDef } from '../../features/registry';
 import type { LucideIcon } from 'lucide-react';
 import { categoryFromTab, isFeatureKind } from '../../features/registry/keys';
@@ -26,7 +27,8 @@ interface NavItem {
 // the day its first tool does, rather than sitting here as an empty promise, and
 // a tool is still reachable by existing rather than by being remembered.
 const NAV_ITEMS: NavItem[] = [
-  { key: 'home', name: 'Home', sub: 'Project Dashboard', icon: LayoutDashboard },
+  { key: 'studio', name: 'Start', sub: 'Drop an image, pick what it becomes', icon: Sparkles },
+  { key: 'home', name: 'All tools', sub: 'Every tool, with full controls', icon: LayoutDashboard },
   ...CATEGORIES.map((c) => ({ key: c.tab, name: c.label, sub: c.blurb, icon: c.icon, count: c.features.length })),
   { key: 'gallery', name: 'Gallery', sub: 'All Outputs · Save / Load', icon: Images },
 ];
@@ -47,7 +49,7 @@ export function Sidebar({ onNavigate }: SidebarProps = {}) {
       className="flex w-64 shrink-0 flex-col bg-gradient-to-b from-ink-raised to-ink text-bone"
     >
       {/* Brand lockup — echoes andstudio.in. To use the exact logo, replace the
-          "AND" wordmark block below with:  <img src="/logo.svg" alt="AND Studio"
+          "AND" wordmark block below with:  <img src="/logo.svg" alt={BRAND.name}
           className="h-8 w-auto" />  (drop the SVG/PNG into /public).
           h-16 so the lockup shares a baseline with the top bar. */}
       <div className="flex h-16 shrink-0 items-center px-5">
@@ -56,9 +58,9 @@ export function Sidebar({ onNavigate }: SidebarProps = {}) {
             A
           </span>
           <span className="flex flex-col leading-tight">
-            <span className="font-display text-title text-bone">AND Studio</span>
+            <span className="font-display text-title text-bone">{BRAND.name}</span>
             {/* On ink, alpha below ~60% drops under AA. */}
-            <span className="text-caption text-bone/65">Visualization Platform</span>
+            <span className="text-caption text-bone/65">{BRAND.promise}</span>
           </span>
         </div>
       </div>
@@ -110,7 +112,11 @@ export function Sidebar({ onNavigate }: SidebarProps = {}) {
       </ul>
 
       <div className="mt-auto px-5 pb-5 pt-4">
-        <p className="text-caption text-bone/60">Internal tool · single studio</p>
+        {/* This used to read "Internal tool · single studio". It stopped being
+            true the moment a result became shareable: the footer of a page a
+            stranger can land on should tell them where their image goes, not
+            who the app was originally for. */}
+        <p className="text-caption text-bone/60">Runs in your browser · your key, your images</p>
       </div>
     </nav>
   );

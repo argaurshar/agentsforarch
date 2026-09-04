@@ -10,7 +10,6 @@ const STYLE_LABELS: Record<string, string> = {
   plan2d: 'Furnished plan',
   clay: 'Clay model',
   line: 'Line drawing',
-  watercolour: 'Watercolour',
   rendered: 'Rendered',
   shaded: 'Shaded',
   standard: 'Axonometric',

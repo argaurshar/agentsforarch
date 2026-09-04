@@ -13,6 +13,7 @@ import {
 import type { EngineKey } from '../providers/runtimeConfig';
 import { storage } from '../storage';
 import type { Asset, Brand, FeatureKind, GeneratedImage, Project, TabKey } from '../types';
+import type { InputKind } from '../features/registry/keys';
 import { FEATURE_KEYS, featureDef, initialGeneration } from '../features/registry';
 import type { GenerationState, SettingsFor } from '../features/registry';
 import type { FeatureRun, FeatureSettings, SceneOptions, SettingsPatch } from './generation';
@@ -92,6 +93,39 @@ interface ProjectState {
   beginRefine: (feature: FeatureKind, image: GeneratedImage) => void;
   exitRefine: (feature: FeatureKind) => void;
   sendToFeature: (target: FeatureKind, dataURL: string) => void;
+
+  // --- The front door -------------------------------------------------------
+  // One image, one answer to "what is this?", one tool being run on it. The
+  // RESULT is deliberately not here: tapping a card runs the real tool, so the
+  // output lands in `generation[tool]` exactly where the tool screen reads it.
+  // That is what keeps the front door and the Advanced view showing the same
+  // thing instead of two copies that drift.
+  studio: {
+    input: string | null;
+    kind: InputKind | null;
+    tool: FeatureKind | null;
+    /** Basename of the bundled example this input came from, when it did. That
+     *  is what lets a result be served instantly instead of generated — and it
+     *  is null for anything the user supplied, which is every real use. */
+    source: string | null;
+    /** A transformation asked for by the URL (`#/do/<tool>`) and not yet run.
+     *
+     *  Named `pending` rather than applied on arrival because a link can name a
+     *  tool without naming an image: the recipient still has to supply one, and
+     *  when they do the tool runs immediately — so a shared link costs them one
+     *  click, not two. Structural on purpose, so the store does not have to
+     *  import the studio module that parses it. */
+    pending: { feature: FeatureKind; from: string | null } | null;
+  };
+  /** Drop (or clear) the shared image. Clearing resets the whole studio. */
+  setStudioInput: (dataURL: string | null, kind: InputKind | null, source?: string | null) => void;
+  /** Queue (or clear) the transformation a `#/do/…` link asked for. */
+  setStudioPending: (pending: { feature: FeatureKind; from: string | null } | null) => void;
+  /** Correct the guessed kind. Also drops the chosen tool, since the shortlist
+   *  it came from no longer applies. */
+  setStudioKind: (kind: InputKind) => void;
+  /** Choose the transformation, or go back to the cards with null. */
+  setStudioTool: (tool: FeatureKind | null) => void;
 
   setTab: (tab: TabKey) => void;
   renameProject: (name: string) => void;
@@ -232,6 +266,20 @@ export const useProjectStore = create<ProjectState>((set, get) => {
     sendToFeature: (target, dataURL) => {
       get().setFeatureInput(target, dataURL);
       set({ tab: target });
+    },
+
+    studio: { input: null, kind: null, tool: null, source: null, pending: null },
+    setStudioInput: (dataURL, kind, source = null) =>
+      set((st) => ({ studio: { input: dataURL, kind, tool: null, source, pending: st.studio.pending } })),
+    setStudioPending: (pending) => set((st) => ({ studio: { ...st.studio, pending } })),
+    setStudioKind: (kind) => set((st) => ({ studio: { ...st.studio, kind, tool: null } })),
+    setStudioTool: (tool) => {
+      const { studio, setFeatureInput } = get();
+      // The tool reads its input from its OWN slice — that is how the Advanced
+      // view, the refine loop and the gallery all already work. Seeding it here
+      // is what makes "tap a card" and "open the tool" the same run.
+      if (tool && studio.input) setFeatureInput(tool, studio.input);
+      set((st) => ({ studio: { ...st.studio, tool } }));
     },
 
     setTab: (tab) => set({ tab }),

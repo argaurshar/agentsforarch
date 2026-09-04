@@ -112,7 +112,7 @@ export const EXAMPLES: Partial<Record<FeatureKind, ExampleSet>> = {
 
   axonometric: {
     summary:
-      'A flat elevation is rebuilt as a real 3D volume seen from a corner — depth and roof form inferred, your materials preserved exactly.',
+      'A corner view in true parallel projection. From an elevation the depth and roof form are inferred; from a 3D model they are read straight off the image. Your materials are preserved exactly either way.',
     cases: [
       {
         label: 'Realistic axonometric',

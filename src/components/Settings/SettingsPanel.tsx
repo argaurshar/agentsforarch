@@ -114,7 +114,10 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
   const [keyDraft, setKeyDraft] = useState(apiKey ?? '');
   const [modelDraft, setModelDraft] = useState(model);
   const [kieDraft, setKieDraft] = useState(kieApiKey ?? '');
-  const [remember, setRemember] = useState(rememberKey);
+  // Defaults ON for a first-time visitor, matching the studio's key gate. The
+  // key is the user's own and lives in their own browser; the old off-by-default
+  // made every return visit start by re-pasting it.
+  const [remember, setRemember] = useState(rememberKey || apiKey === undefined);
   const [reveal, setReveal] = useState(false);
   const [kieReveal, setKieReveal] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -126,7 +129,7 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
       setKeyDraft(apiKey ?? '');
       setModelDraft(model);
       setKieDraft(kieApiKey ?? '');
-      setRemember(rememberKey);
+      setRemember(rememberKey || apiKey === undefined);
       setSaved(false);
     }
   }, [open, engine, apiKey, model, kieApiKey, rememberKey]);

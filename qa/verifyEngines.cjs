@@ -14,6 +14,8 @@ try {
   ({ chromium } = require('/opt/node22/lib/node_modules/playwright'));
 }
 const path = require('path');
+const os = require('os');
+const { execFileSync } = require('child_process');
 const fs = require('fs');
 
 const BASE = process.env.QA_BASE_URL || 'http://localhost:4173/';
@@ -98,8 +100,20 @@ const check = (name, ok, detail = '') => {
     r.fulfill({ status: 200, headers: { ...CORS, 'content-type': 'image/png' }, body: PNG_1PX }),
   );
 
-  // --- Boot: settings open automatically (no key yet) ------------------------
+  // --- Boot: open Settings from the bar --------------------------------------
+  //
+  // The drawer used to open ITSELF on load whenever no key was set, and this
+  // suite relied on that. It does not any more: the key is asked at the first
+  // generation, in the result slot, by the studio's key gate. So the way in is
+  // the bar button — which is also the only way a user who wants to configure
+  // an engine early can get there, and therefore the thing worth asserting.
   await page.goto(BASE, { waitUntil: 'domcontentloaded' });
+  await page.waitForTimeout(400);
+  check(
+    'the settings drawer does not open itself on first load',
+    (await page.locator('[role="dialog"]').count()) === 0,
+  );
+  await page.getByRole('button', { name: /Connect key|API keys/ }).first().click();
   await page.waitForSelector('[role="dialog"]');
 
   // 1. Engine picker exists with both engines.
@@ -261,10 +275,25 @@ const check = (name, ok, detail = '') => {
   await mob.goto(BASE, { waitUntil: 'domcontentloaded' });
   await mob.waitForTimeout(700);
   check('mobile first run does not auto-open Settings', (await mob.locator('[role="dialog"]').count()) === 0);
+  // The evidence moved with the front door: the bare hash is the studio now, so
+  // what a phone must see first is the drop zone, not the dashboard's pipeline.
+  // The dashboard still exists and is still asserted — one route along.
   check(
-    'mobile first run shows the pipeline use cases',
+    'mobile first run shows the drop zone',
+    (await mob.locator('[data-studio-drop]').count()) === 1,
+  );
+  check(
+    'and offers the samples that need no key',
+    (await mob.locator('[data-sample]').count()) === 4,
+  );
+  await mob.goto(BASE + '#/home', { waitUntil: 'domcontentloaded' });
+  await mob.waitForTimeout(400);
+  check(
+    'the full tool list is still one route away',
     (await mob.getByText('Floor plan → 3D cutaway').count()) > 0,
   );
+  await mob.goto(BASE, { waitUntil: 'domcontentloaded' });
+  await mob.waitForTimeout(300);
   const connect = mob.getByRole('button', { name: /Connect key/ });
   check('mobile top bar offers a visible Connect key button', await connect.isVisible());
   await connect.click();
@@ -675,26 +704,40 @@ const check = (name, ok, detail = '') => {
   await page.waitForTimeout(2500);
   check('the upscaler still runs on an engine without it', geminiBodies.length > beforeUp);
 
-  // 18. The eight tools from the client mockups. Section 12 already proves each
-  //     one is REACHABLE; this proves each one is the tool it claims to be, by
-  //     reading the instruction it would be useless without out of its own live
-  //     prompt box.
-  const MOCKUP_TOOLS = [
-    ['sketchRender', [/LOCK THE DRAWING/, /do not rebalance the massing/]],
-    ['birdsEye', [/The ground must never look flat/, /map pins, the search bar, zoom controls/]],
-    ['urbanContext', [/LOCK THE BUILDING/, /the context serves the building, not the other way round/]],
-    ['watercolour', [/looseness is a property of the paint, not of the building/]],
-    ['floorAnalysis', [/KEEP THE PLAN UNDERNEATH/, /Overlay exactly one analysis/]],
-    ['programDiagram', [/PROGRAM BREAKDOWN/, /A stack of generic slabs/]],
-    ['explodedAxon', [/EXPLODED AXONOMETRIC/, /parallel lines stay parallel/]],
-    ['annotation', [/You are drawing ON it, not redrawing it/]],
-  ];
-  for (const [key, patterns] of MOCKUP_TOOLS) {
-    await navTo(key);
-    const box = page.locator(`#${key}-prompt`);
-    check(`${key} is reachable and has its prompt box`, (await box.count()) === 1);
-    const text = (await box.count()) ? await box.inputValue() : '';
-    for (const re of patterns) check(`${key} prompt carries ${re.source.slice(0, 42)}`, re.test(text));
+  // 18. Every tool's DECLARED contracts, asserted against its LIVE prompt box.
+  //
+  //     This was a fifth hand-typed table of regexes copied off the registry —
+  //     in the same change that added qa/verifyContracts.cjs to delete exactly
+  //     that. Two of the copies had already drifted shorter than the contracts
+  //     they mirrored, so the live gate asserted less than the static one while
+  //     looking like it asserted more.
+  //
+  //     Reading the contracts from the registry instead makes this the same kind
+  //     of check as section 12: a new tool is covered by existing. It is not
+  //     redundant with verifyContracts — that one evaluates the builder's return
+  //     value, this one evaluates what actually reaches the textarea, and a
+  //     shell that dropped buildPrompt would pass the first and fail this.
+  const contractsBundle = path.join(os.tmpdir(), `and-e2e-contracts-${process.pid}.cjs`);
+  execFileSync(
+    'npx',
+    ['esbuild', '--bundle', '--platform=node', '--format=cjs', '--log-level=error',
+     path.join(__dirname, 'dumpContracts.ts'), `--outfile=${contractsBundle}`],
+    { cwd: path.join(__dirname, '..'), stdio: ['ignore', 'ignore', 'inherit'] },
+  );
+  const declared = JSON.parse(
+    execFileSync('node', [contractsBundle], { cwd: path.join(__dirname, '..'), encoding: 'utf8', maxBuffer: 32 * 1024 * 1024 }),
+  );
+  fs.unlinkSync(contractsBundle);
+
+  for (const tool of declared) {
+    await navTo(tool.key);
+    const box = page.locator(`#${tool.key}-prompt`);
+    const present = (await box.count()) === 1;
+    check(`${tool.key} is reachable and has its prompt box`, present);
+    const text = present ? await box.inputValue() : '';
+    for (const c of tool.contracts) {
+      check(`${tool.key} live prompt: ${c.name}`, new RegExp(c.source, c.flags).test(text));
+    }
   }
 
   // Diagrams & Boards is the first category where text on the output is the
@@ -744,6 +787,339 @@ const check = (name, ok, detail = '') => {
   check('from a model it reads the depth off the image', /read them off the image and reproduce them/.test(fromModel));
   check('and stops inventing one', !/INFER THE DEPTH/.test(fromModel));
   check('both branches still forbid a flat elevation', /do NOT reproduce a flat, front-on elevation/.test(fromModel));
+
+  // 20. Output labels, and the refine block that had no escape.
+  //
+  //     Both are regressions the eight mockup tools shipped with. Every one of
+  //     them passed an internal settings axis as `options.style`, which defeats
+  //     the derived galleryLabel fallback in providers/labels.ts — so a Program
+  //     Diagram set to "isometric" was labelled "Isometric", the name of a
+  //     different tool, in the grid, the pool and the gallery.
+  await navTo('programDiagram');
+  await page.setInputFiles('input[type=file]', PLAN);
+  await page.waitForTimeout(400);
+  await page.getByRole('button', { name: 'Exploded isometric' }).click();
+  await page.waitForTimeout(300);
+  await page.getByRole('button', { name: /^Generate$/ }).click();
+  await page.waitForTimeout(2500);
+  const pdText = await mainText();
+  check('a boards tool labels its outputs with its own name', /Program diagram/i.test(pdText));
+  check('and not with another tool\'s name', !/\bIsometric\b/.test(pdText));
+
+  //     A settings-based block must not survive into refine mode: the refine
+  //     panel REPLACES the tool's controls, so the field that would satisfy it
+  //     is no longer on screen and Generate is disabled with no way out.
+  await navTo('annotation');
+  await page.setInputFiles('input[type=file]', PLAN);
+  await page.waitForTimeout(400);
+  // navTo only changes the hash, so this is a same-document navigation and the
+  // store survives it — section 19 left this tool on the blank custom subject.
+  await page.getByRole('button', { name: 'Circulation' }).first().click();
+  await page.waitForTimeout(300);
+  await page.getByRole('button', { name: /^Generate$/ }).click();
+  await page.waitForTimeout(2500);
+  await page.getByRole('button', { name: 'Something else' }).click();
+  await page.waitForTimeout(300);
+  check(
+    'an undescribed custom subject still blocks compose',
+    !(await page.getByRole('button', { name: /^Generate$/ }).isEnabled()),
+  );
+  await page.getByRole('button', { name: 'Refine this image' }).first().click();
+  await page.waitForTimeout(400);
+  check(
+    'but refine is not blocked by a control refine has removed',
+    await page.getByRole('button', { name: /^Generate$/ }).isEnabled(),
+  );
+
+  // 21. THE THESIS. From an empty front door, TWO clicks reach a result.
+  //
+  //     This is the one assertion the whole front door exists to satisfy, and
+  //     the only one that fails if someone later adds a step — a confirmation,
+  //     an interstitial, a "choose a category first". It counts clicks
+  //     explicitly rather than describing a flow, because a flow description
+  //     stays true while the click count doubles.
+  await page.goto(BASE, { waitUntil: 'domcontentloaded' });
+  await page.waitForTimeout(500);
+  check('the front door is the drop zone', (await page.locator('[data-studio-drop]').count()) === 1);
+  check('and no tool taxonomy is in the way', (await page.locator('[data-card]').count()) === 0);
+
+  let clicks = 0;
+  await page.locator('[data-sample="plan"]').click();
+  clicks += 1;
+  await page.waitForTimeout(900);
+  check('one click fills the input and shows the shortlist', (await page.locator('[data-card]').count()) > 0);
+  check('the shortlist is a shortlist, not all thirty', (await page.locator('[data-card]').count()) <= 6);
+  check('a floor plan offers Make it 3D', (await page.locator('[data-card="render"]').count()) === 1);
+  check('and does not offer a tool that cannot read a plan', (await page.locator('[data-card="birdsEye"]').count()) === 0);
+
+  // Deliberately NOT `render`: the plan sample plus Make it 3D is a prepared
+  // pair now, and this section is about the generated path. Floor analysis is
+  // in the same shortlist and has no prepared result behind it.
+  const beforeStudio = geminiBodies.length;
+  await page.locator('[data-card="floorAnalysis"]').click();
+  clicks += 1;
+  await page.waitForTimeout(3000);
+  check('two clicks reach a result', (await page.locator('[data-studio-result]').count()) === 1, `clicks: ${clicks}`);
+  check('exactly two', clicks === 2);
+  check('and it actually generated', geminiBodies.length > beforeStudio);
+
+  // A diagram is honestly an end of the chain: `outputKind: null` means the app
+  // has no input kind for what came out, and offering next steps anyway would
+  // be offering to run tools on something they cannot read. Section 23 asserts
+  // the other side — a tool that DOES produce a chainable kind offers them.
+  check('a diagram offers no next step, because it is an end', (await page.locator('[data-chain]').count()) === 0);
+  check('and never offers itself', (await page.locator('[data-chain="floorAnalysis"]').count()) === 0);
+
+  // Correcting the guess re-derives the cards rather than filtering a fixed list.
+  await page.locator('[data-replace]').count().then(() => {});
+  await page.getByRole('button', { name: 'Something else' }).click();
+  await page.waitForTimeout(400);
+  await page.locator('[data-kind="room"]').click();
+  await page.waitForTimeout(400);
+  check('changing the kind changes the cards', (await page.locator('[data-card="interior"]').count()) === 1);
+  check('and drops the ones that no longer apply', (await page.locator('[data-card="render"]').count()) === 0);
+
+  // 22. The key is asked at the first generation, not on arrival — and pasting
+  //     it continues the run the user already started, with no second tap.
+  const fresh = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+  const fp = await fresh.newPage();
+  const freshBodies = [];
+  await fp.route('**generativelanguage.googleapis.com/**', (r) => {
+    freshBodies.push(r.request().postData() || '');
+    return r.fulfill({
+      status: 200,
+      headers: CORS,
+      body: JSON.stringify({ candidates: [{ content: { parts: [{ inlineData: { mimeType: 'image/png', data: PNG_1PX.toString('base64') } }] } }] }),
+    });
+  });
+  await fp.goto(BASE, { waitUntil: 'domcontentloaded' });
+  await fp.waitForTimeout(500);
+  check('a keyless visitor still sees the app', (await fp.locator('[data-studio-drop]').count()) === 1);
+  await fp.locator('[data-sample="plan"]').click();
+  await fp.waitForTimeout(900);
+  await fp.locator('[data-card="floorAnalysis"]').click();
+  await fp.waitForTimeout(600);
+  check('the key is asked in the result slot', (await fp.locator('[data-key-gate]').count()) === 1);
+  check('remembering is on by default', await fp.getByRole('switch', { name: /Remember/ }).getAttribute('aria-checked') === 'true');
+  const beforeKey = freshBodies.length;
+  await fp.fill('#studio-key', 'AIza-qa-studio');
+  await fp.getByRole('button', { name: /^Continue$/ }).click();
+  await fp.waitForTimeout(3000);
+  check('pasting the key continues the run with no second tap', freshBodies.length > beforeKey);
+  check('and the result appears', (await fp.locator('[data-studio-result]').count()) === 1);
+  await fresh.close();
+
+  // 23. The instant demo. A visitor who has given the app NOTHING gets a real
+  //     result in two clicks, and no request is made on their behalf.
+  //
+  //     This is the ten seconds that decides whether the link gets forwarded,
+  //     so it is asserted as a whole: the badge is on the card before the tap,
+  //     the result says out loud that it was prepared, and the network stayed
+  //     silent. A prepared result that did not say so would pass a weaker
+  //     version of this check and still be a lie.
+  const demo = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+  const dp = await demo.newPage();
+  let demoCalls = 0;
+  await dp.route('**generativelanguage.googleapis.com/**', (r) => {
+    demoCalls += 1;
+    return r.fulfill({ status: 200, headers: CORS, body: '{}' });
+  });
+  await dp.route('**api.kie.ai/**', (r) => {
+    demoCalls += 1;
+    return r.fulfill({ status: 200, headers: CORS, body: '{}' });
+  });
+  await dp.goto(BASE, { waitUntil: 'domcontentloaded' });
+  await dp.waitForTimeout(500);
+
+  let demoClicks = 0;
+  await dp.locator('[data-sample="plan"]').click();
+  demoClicks += 1;
+  await dp.waitForTimeout(900);
+  check('a sample card is marked as needing no key', (await dp.locator('[data-card="render"] [data-instant]').count()) === 1);
+  check('and it is the first card offered', (await dp.locator('[data-card]').first().getAttribute('data-card')) === 'render');
+
+  await dp.locator('[data-card="render"]').click();
+  demoClicks += 1;
+  await dp.waitForTimeout(1200);
+  check('two clicks reach a result with no key at all', (await dp.locator('[data-studio-result]').count()) === 1);
+  check('in exactly two', demoClicks === 2);
+  check('nothing was asked of any engine', demoCalls === 0, `${demoCalls} call(s)`);
+  check('and no key was demanded', (await dp.locator('[data-key-gate]').count()) === 0);
+
+  // Honesty: the result must say what it is, and offer the real thing.
+  const demoText = await dp.locator('main').innerText();
+  check('the result says it was prepared earlier', /prepared earlier/i.test(demoText));
+  check('and says the visitor\'s own image runs for real', /your own image runs for real/i.test(demoText));
+  check('and offers that as the primary action', await dp.getByRole('button', { name: /Try it on your own image/ }).isVisible());
+  check('the prepared result is marked in the DOM', (await dp.locator('[data-studio-prepared]').count()) === 1);
+
+  // A prepared result can chain and stay prepared: sketch → elevation →
+  // axonometric is two free steps, because the elevation it produced is itself
+  // the bundled input of the axonometric pair.
+  await dp.goto(BASE, { waitUntil: 'domcontentloaded' });
+  await dp.waitForTimeout(400);
+  await dp.locator('[data-sample="sketch"]').click();
+  await dp.waitForTimeout(900);
+  await dp.locator('[data-card="elevation"]').click();
+  await dp.waitForTimeout(1200);
+  check('the sketch sample is prepared too', (await dp.locator('[data-studio-prepared]').count()) === 1);
+  check('a rendered elevation offers next steps', (await dp.locator('[data-chain]').count()) > 0);
+  check('from what it PRODUCED, not what went in', (await dp.locator('[data-chain="axonometric"]').count()) === 1);
+  check('and never the sketch tools it came from', (await dp.locator('[data-chain="sketchRender"]').count()) === 0);
+  check('and its result offers a prepared next step', (await dp.locator('[data-chain-instant]').count()) > 0);
+  await dp.locator('[data-chain="axonometric"]').click();
+  await dp.waitForTimeout(1200);
+  check('chaining stays free', (await dp.locator('[data-studio-prepared]').count()) === 1);
+  check('still with no engine call', demoCalls === 0, `${demoCalls} call(s)`);
+
+  // The chain row is capped, so the overflow link has to carry the RESULT
+  // forward — not send you back to the cards for the image that made it.
+  check('a capped chain offers a way to see the rest', (await dp.locator('[data-continue]').count()) === 1);
+  await dp.locator('[data-continue]').click();
+  await dp.waitForTimeout(700);
+  // The axonometric produces a 3D model view, so the list is the model tools —
+  // not the sketch tools three steps back.
+  check('which lists what the RESULT can become', (await dp.locator('[data-card="wireframeRender"]').count()) === 1);
+  check('and not what its first input could', (await dp.locator('[data-card="sketchRender"]').count()) === 0);
+
+  // A user's OWN image is never served a prepared result — that would be
+  // handing them someone else's building and calling it theirs.
+  await dp.goto(BASE, { waitUntil: 'domcontentloaded' });
+  await dp.waitForTimeout(400);
+  await dp.setInputFiles('input[type=file]', PLAN);
+  await dp.waitForTimeout(1400);
+  check('an uploaded image gets no instant badges', (await dp.locator('[data-instant]').count()) === 0);
+  await dp.locator('[data-card]').first().click();
+  await dp.waitForTimeout(700);
+  check('and is asked for a key rather than shown a sample', (await dp.locator('[data-key-gate]').count()) === 1);
+  check('with the network still untouched', demoCalls === 0, `${demoCalls} call(s)`);
+  await demo.close();
+
+  // 24. Remix links. A shared URL carries the transformation, and the app has to
+  //     honour it without the sender's image — which it does not have and must
+  //     never pretend to.
+  const link = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+  const lp = await link.newPage();
+  let linkCalls = 0;
+  await lp.route('**generativelanguage.googleapis.com/**', (r) => {
+    linkCalls += 1;
+    return r.fulfill({ status: 200, headers: CORS, body: '{}' });
+  });
+  await lp.route('**api.kie.ai/**', (r) => {
+    linkCalls += 1;
+    return r.fulfill({ status: 200, headers: CORS, body: '{}' });
+  });
+
+  // Every remix hop is a FULL load. `page.goto` to a URL that differs only in
+  // the hash is a same-document navigation, so the store — and the previous
+  // link's image — would survive into the next case and make it pass for the
+  // wrong reason. Bouncing through about:blank forces a real document load with
+  // the hash already in place, which is also what a recipient actually does.
+  const openLink = async (hash) => {
+    await lp.goto('about:blank');
+    await lp.goto(`${BASE}${hash}`, { waitUntil: 'domcontentloaded' });
+  };
+
+  // (a) A link that names an image AND a tool is the whole point: the recipient
+  //     lands on the finished result having clicked nothing.
+  await openLink('#/do/axonometric?from=elev-rendered.jpg');
+  await lp.waitForTimeout(2000);
+  check('a remix link lands on a finished result with no clicks', (await lp.locator('[data-studio-result]').count()) === 1);
+  check('and it is the prepared one', (await lp.locator('[data-studio-prepared]').count()) === 1);
+  check('costing nothing', linkCalls === 0, `${linkCalls} call(s)`);
+  check('and asking for no key', (await lp.locator('[data-key-gate]').count()) === 0);
+  check(
+    'the link consumes itself rather than re-firing',
+    lp.url().endsWith('#/studio'),
+    lp.url(),
+  );
+
+  // (b) A link to a user's own result cannot carry the image, so it carries the
+  //     tool. The recipient's first drop must then go STRAIGHT to it.
+  await openLink('#/do/interior');
+  await lp.waitForTimeout(700);
+  check('a tool-only link lands on the drop zone', (await lp.locator('[data-studio-drop]').count()) === 1);
+  check('and says what is queued', (await lp.locator('[data-studio-queued="interior"]').count()) === 1);
+  await lp.locator('[data-sample="room"]').click();
+  await lp.waitForTimeout(1400);
+  check('one click then reaches the result, not the card grid', (await lp.locator('[data-studio-result]').count()) === 1);
+  check('and it is the queued tool that ran', /Restyle|stage|interior/i.test(await lp.locator('main').innerText()));
+
+  // (c) The queued tool is an offer, never a trap.
+  await openLink('#/do/interior');
+  await lp.waitForTimeout(700);
+  await lp.locator('[data-studio-unqueue]').click();
+  await lp.waitForTimeout(300);
+  check('the queued tool can be dismissed', (await lp.locator('[data-studio-queued]').count()) === 0);
+  await lp.locator('[data-sample="room"]').click();
+  await lp.waitForTimeout(1200);
+  check('after which a sample goes to the cards as usual', (await lp.locator('[data-card]').count()) > 0);
+
+  // (d) Links age badly and nobody can edit one they were sent. Every malformed
+  //     shape has to land somewhere usable rather than on a blank screen.
+  for (const [hash, why] of [
+    ['#/do/notatool', 'an unknown tool'],
+    ['#/do/massing', 'a tool that takes no image'],
+    ['#/do/render?from=deleted.jpg', 'an asset that no longer ships'],
+  ]) {
+    await openLink(hash);
+    await lp.waitForTimeout(700);
+    check(`${why} still lands on the front door`, (await lp.locator('[data-studio-drop]').count()) === 1, hash);
+  }
+  check('a stale asset name keeps the tool it named', (await lp.locator('[data-studio-queued="render"]').count()) === 1);
+  await link.close();
+
+  // 25. The share card. Composed in the browser from the actual pair, so this
+  //     asserts the picture that would travel — not just that a button exists.
+  const shareCtx = await browser.newContext({
+    viewport: { width: 1280, height: 900 },
+    permissions: ['clipboard-read', 'clipboard-write'],
+  });
+  const shp = await shareCtx.newPage();
+  // Headless Chromium has no share sheet, so the file path would never be
+  // exercised. Stubbing the OS hand-off is the only way to see what it is
+  // actually handed — and decoding the file proves the canvas really composed.
+  await shp.addInitScript(() => {
+    window.__shared = null;
+    navigator.canShare = () => true;
+    navigator.share = async (data) => {
+      const f = data.files[0];
+      const url = URL.createObjectURL(f);
+      const img = new Image();
+      await new Promise((res) => {
+        img.onload = res;
+        img.onerror = res;
+        img.src = url;
+      });
+      window.__shared = { name: f.name, type: f.type, size: f.size, w: img.naturalWidth, h: img.naturalHeight, text: data.text };
+    };
+  });
+  await shp.goto(BASE, { waitUntil: 'domcontentloaded' });
+  await shp.waitForTimeout(500);
+  await shp.locator('[data-sample="plan"]').click();
+  await shp.waitForTimeout(900);
+  await shp.locator('[data-card="render"]').click();
+  await shp.waitForTimeout(1200);
+  check('a result offers to be shared', (await shp.locator('[data-share]').count()) === 1);
+  await shp.locator('[data-share]').click();
+  await shp.waitForTimeout(2500);
+  const shared = await shp.evaluate(() => window.__shared);
+  check('sharing hands over a real image file', Boolean(shared) && shared.type === 'image/jpeg', JSON.stringify(shared));
+  check('composed square, at card size', shared?.w === 1080 && shared?.h === 1080, `${shared?.w}×${shared?.h}`);
+  check('with actual pixels in it', (shared?.size ?? 0) > 20000, `${shared?.size} bytes`);
+  check(
+    'and the message carries the remix link',
+    (shared?.text ?? '').includes('#/do/render?from=plan-input.jpg'),
+    shared?.text,
+  );
+
+  // The link on its own is the other half — some people paste a URL, not a JPEG.
+  await shp.locator('[data-share-link]').click();
+  await shp.waitForTimeout(600);
+  const clip = await shp.evaluate(() => navigator.clipboard.readText());
+  check('copy link puts the remix URL on the clipboard', clip.includes('#/do/render?from=plan-input.jpg'), clip);
+  check('and says so', (await shp.locator('[data-share-link]').innerText()).includes('Link copied'));
+  await shareCtx.close();
 
   check('no page crashes', perr.length === 0, perr.slice(0, 2).join(' | '));
   await browser.close();
