@@ -55,13 +55,19 @@ function ToolCard({ def, input, source, blocked, onRun, onOpen }: ToolCardProps)
     >
       {/* Says out loud that this one needs nothing. Without the badge a visitor
           cannot tell which card will answer for free and which will stop and
-          ask for a key — and finding out by tapping is the wrong way round. */}
+          ask for a key — and finding out by tapping is the wrong way round.
+          On the image it is a MARK, not a sentence: at 390px the full wording
+          spanned most of a card and hid the before/after preview that is the
+          entire reason the card is worth tapping. The words live in the body
+          below, where they cost nothing. */}
       {instant ? (
         <span
           data-instant
+          aria-label="No key needed"
           className="absolute right-2 top-2 z-10 flex items-center gap-1 rounded-full bg-ink/80 px-2 py-1 text-caption font-medium text-bone backdrop-blur-sm"
         >
-          <Zap size={11} strokeWidth={2} /> No key needed
+          <Zap size={11} strokeWidth={2} />
+          <span className="hidden xl:inline">No key needed</span>
         </span>
       ) : null}
       <span className="grid grid-cols-2 gap-px bg-hairline">
@@ -80,6 +86,11 @@ function ToolCard({ def, input, source, blocked, onRun, onOpen }: ToolCardProps)
           <span className="text-label font-medium text-ink">{def.verb}</span>
         </span>
         <span className="text-caption text-mist">{def.blurb}</span>
+        {instant ? (
+          <span className="mt-1 flex items-center gap-1 text-caption font-medium text-ochre-deep">
+            <Zap size={11} strokeWidth={2} /> No key needed
+          </span>
+        ) : null}
         {needsSetup ? <span className="mt-1 text-caption text-graphite">{blocked}</span> : null}
       </span>
     </button>
@@ -133,10 +144,19 @@ export function ToolPicker({ input, kind, guessed, source, onRun, onReplace }: T
   return (
     <div className="flex flex-col gap-6">
       <div className="grid gap-6 lg:grid-cols-[20rem_minmax(0,1fr)]">
-        {/* What you dropped, and what it is. */}
-        <div className="flex flex-col gap-4">
+        {/* What you dropped, and what it is.
+            `min-w-0` on the column and the row below it: a grid item defaults to
+            `min-width: auto`, so the scrollable chip row's min-content width —
+            six chips on one line, ~700px — stretched this column and put a
+            horizontal scrollbar on the whole page. */}
+        <div className="flex min-w-0 flex-col gap-4">
           <div className="relative overflow-hidden rounded-card border border-hairline bg-drafting">
-            <img src={input} alt="Your image" className="max-h-64 w-full object-contain" />
+            {/* Shorter on a phone. At max-h-64 the preview plus a six-chip
+                wrapped kind row pushed the first card past 1,000px — so the
+                one question this screen exists to answer, "make it…", was
+                entirely below the fold on the device most likely to be
+                holding the photo. */}
+            <img src={input} alt="Your image" className="max-h-40 w-full object-contain sm:max-h-64" />
             <button
               type="button"
               onClick={onReplace}
@@ -147,9 +167,16 @@ export function ToolPicker({ input, kind, guessed, source, onRun, onReplace }: T
             </button>
           </div>
 
-          <div className="flex flex-col gap-2">
+          <div className="flex min-w-0 flex-col gap-2">
             <p className="section-heading">{guessed ? 'Looks like a…' : 'This is a…'}</p>
-            <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="What kind of image is this">
+            {/* One scrollable line on a phone, wrapped from `sm` up: six chips
+                wrap to three rows at 390px, and the rows are pure height in
+                front of the cards. */}
+            <div
+              className="-mx-1 flex snap-x gap-2 overflow-x-auto px-1 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0"
+              role="radiogroup"
+              aria-label="What kind of image is this"
+            >
               {INPUT_KINDS.map((k) => {
                 const on = k === kind;
                 return (
@@ -160,7 +187,7 @@ export function ToolPicker({ input, kind, guessed, source, onRun, onReplace }: T
                     aria-checked={on}
                     data-kind={k}
                     onClick={() => setStudioKind(k)}
-                    className={`pill border px-3 py-1.5 text-caption transition-colors ${
+                    className={`pill shrink-0 snap-start border px-3 py-1.5 text-caption transition-colors ${
                       on
                         ? 'border-ochre-deep bg-ochre-deep font-medium text-white'
                         : 'border-hairline bg-paper text-graphite hover:border-mist/40 hover:bg-drafting'

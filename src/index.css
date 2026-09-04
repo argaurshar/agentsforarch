@@ -141,6 +141,26 @@
     border-radius: 9999px;
     transition: all 200ms var(--ease);
   }
+
+  /* A pill is ~30px tall, which is fine under a mouse and short of the 44px
+     every touch guideline asks for. Raised only on a COARSE pointer, so the
+     desktop density this design system is built around is untouched — a global
+     bump would have loosened every chip row on every screen to fix a problem
+     that only exists under a thumb. */
+  @media (pointer: coarse) {
+    .pill {
+      min-height: 44px;
+      display: inline-flex;
+      align-items: center;
+    }
+  }
+
+  /* Clears the home indicator on a notched phone, and collapses to the given
+     padding everywhere else. Paired with `viewport-fit=cover` in index.html,
+     without which the inset always reports 0. */
+  .safe-bottom {
+    padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+  }
 }
 
 /* Motion defaults live in tailwind.config.js (transitionDuration/TimingFunction
@@ -159,14 +179,31 @@
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: none;
   }
 }
 
 /* Each feature screen arrives with a soft rise (replays on tab change via
-   a `key` on the routed wrapper). */
+   a `key` on the routed wrapper).
+   
+   `backwards`, NOT `both`, and the difference is invisible until it is not.
+   `both` holds the FINAL keyframe forever, and a finished transform animation
+   computes to `matrix(1, 0, 0, 1, 0, 0)` — an identity matrix, but still a
+   transform. A transformed ancestor becomes the containing block for every
+   `position: fixed` descendant, so the result screen's phone action bar
+   positioned itself against this wrapper and scrolled away with the page
+   instead of staying under the thumb.
+   
+   Writing `to { transform: none }` does not fix it: the animation interpolates
+   to the equivalent matrix either way. Only dropping the forward fill does.
+   `backwards` still covers the pre-animation frame, and the element's own
+   styles — no transform, full opacity — are already the end state, so the
+   motion is identical.
+   
+   Diagnosed by walking the ancestors' computed styles, after two wrong guesses
+   from reading the CSS. */
 .view-enter {
-  animation: fade-up 0.55s var(--ease) both;
+  animation: fade-up 0.55s var(--ease) backwards;
 }
 
 /* Staggered reveal for composed groups (e.g. the section header). */

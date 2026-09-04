@@ -2,7 +2,10 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- `viewport-fit=cover` is what makes env(safe-area-inset-*) report a real
+         number on a notched phone. Without it the sticky action bar sits under
+         the home indicator and its last row is unreachable. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 
     <!--
       These tags are the one place the promise cannot be derived: they are read
