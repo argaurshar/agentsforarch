@@ -36,6 +36,11 @@ const SNAPSHOT = path.join(__dirname, 'prompt-snapshot.txt');
  */
 const PAIRS = [
   [
+    'signage boards',
+    'stray text',
+    'live run 06: a street asked for signage boards drew legible shopfronts in an image that bans stray text',
+  ],
+  [
     'restrained tonal shading',
     'No shading, no gradients',
     'the Shaded section style is cancelled by the drawing-craft clause that follows it',

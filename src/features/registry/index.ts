@@ -1163,6 +1163,17 @@ const declutter: FeatureDef<DeclutterSettings> = {
   icon: Eraser,
   inputMode: 'image',
   maxReferences: 0,
+  // Live run 12: the strip-out itself was flawless — every movable object gone,
+  // the radiator, the skirting and even the wall blemishes preserved — but the
+  // camera swung to straight-on and a single casement came back as three panes.
+  // The prompt already carries the strongest lock language in the app ("keep
+  // the camera position, the lens and the crop exactly as shown", and a closing
+  // opening-by-opening re-check). It was not enough. Writing MORE lock language
+  // is not the fix; saying so on the output is, because a user comparing a
+  // before and after needs to know the geometry is not evidence.
+  accuracyWarning: () =>
+    'Check the shell against your photo before you rely on this. Emptying a room is reliable; holding the camera and '
+    + 'the window sizes exactly is not, and a cleared room that quietly gained a wider window still looks convincing.',
   defaultSettings: { keepBuiltIns: true },
   quick: [
     {
@@ -2050,6 +2061,13 @@ const explodedAxon: FeatureDef<ExplodedAxonSettings> = {
   icon: Layers3,
   inputMode: 'image',
   maxReferences: 0,
+  // Live run 08: layer labels were spelled correctly on their leader lines and
+  // the facade kept the input's garage, stone and glazed stair — but the flat
+  // overhanging roof came back hipped and pitched. Separating a building into
+  // layers means rebuilding each one, and the roof is the layer that drifts.
+  accuracyWarning: () =>
+    'Check the roof form against your input. Exploding a building means redrawing every layer, and the roof is the '
+    + 'one that comes back changed most often — a flat roof can return pitched without the rest of the diagram moving.',
   defaultSettings: { axis: 'vertical', labels: true },
   quick: [
     {

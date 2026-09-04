@@ -98,9 +98,19 @@ export function buildUrbanContextPrompt(a: { density: UrbanDensity; city: string
       (city ? `, in the architectural character of ${city}` : '') +
       '. Neighbouring buildings sit on plausible plot lines, meet the street the way real buildings do, and are lit by ' +
       'the same sun as the subject — same direction, same softness, same colour temperature.',
-    'Continue the ground plane out from the building: pavement, kerbs, road surface, street trees, parked cars, ' +
-      'signage boards and lighting columns, all at correct scale against the building. Any lettering on that signage ' +
-      'stays illegible at this distance — a shape where a sign would be, not words to read.',
+    // The street furniture list used to include "signage boards", softened by
+    // "any lettering stays illegible at this distance — a shape where a sign
+    // would be, not words to read". Live run 06 shows why that does not work:
+    // the model drew shopfronts reading "CAFE & STA…" and a fascia of garbled
+    // letterforms, in the same image whose closing clause bans stray text. You
+    // cannot ask for a sign and then ask for it to have no words on it — a sign
+    // is a thing with words on it, and the model resolves the conflict by
+    // writing them. So the boards are gone from the list and the ground floors
+    // are named as unbranded. `promptContradictions` now holds the pair.
+    'Continue the ground plane out from the building: pavement, kerbs, road surface, street trees, parked cars and ' +
+      'lighting columns, all at correct scale against the building. Every ground floor on the street is UNBRANDED: no ' +
+      'shopfront fascias, no hanging signs, no billboards, no posters, no menu boards, no house numbers and no ' +
+      'lettering on any vehicle. Where a real street would carry a sign, leave that surface plain.',
     a.entourage
       ? 'Populate the street with people at correct scale, occupied and not looking at the camera.'
       : 'No people.',
