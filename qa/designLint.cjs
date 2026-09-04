@@ -126,6 +126,28 @@ check(
     arbitraryType.slice(0, 5).join('\n      '),
 );
 
+// --- A finished entrance animation must not leave a transform behind ---------
+//
+// `.view-enter` wraps EVERY routed screen. It ran `fade-up ... both`, and
+// `animation-fill-mode: both` holds the final keyframe forever — a completed
+// transform animation computes to `matrix(1, 0, 0, 1, 0, 0)`. An identity
+// matrix is still a transform, and a transformed ancestor becomes the
+// containing block for every `position: fixed` descendant.
+//
+// So the result screen's phone action bar, written `fixed bottom-0`, positioned
+// itself against that wrapper and scrolled away with the page. Nothing in the
+// CSS looks wrong; the class is on a different file from the bug; and writing
+// `to { transform: none }` does NOT fix it, because the animation interpolates
+// to the equivalent matrix either way. Two wrong guesses before walking the
+// ancestors' computed styles found it.
+const viewEnter = css.match(/\.view-enter\s*{([^}]*)}/)?.[1] ?? '';
+check(
+  'the app-wide view wrapper drops its transform when it finishes',
+  viewEnter.length > 0 && !/\b(both|forwards)\b/.test(viewEnter),
+  `animation: ${viewEnter.trim()} — a forward fill leaves an identity matrix on every screen, ` +
+    'which silently breaks position:fixed inside it. Use `backwards`.',
+);
+
 const failed = results.filter((r) => !r.ok).length;
 console.log(`\n${results.length - failed}/${results.length} design checks passed`);
 process.exit(failed === 0 ? 0 : 1);

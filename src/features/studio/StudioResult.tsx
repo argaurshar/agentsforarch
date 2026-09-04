@@ -149,9 +149,24 @@ export function StudioResult({ feature, input, kind, source, onBack, onChain, on
       <Button variant="ghost" size="sm" icon={<ChevronLeft size={14} strokeWidth={1.75} />} onClick={onBack}>
         Something else
       </Button>
-      <p className="text-caption text-mist">
-        {def.verb} · from a {INPUT_KIND_LABEL[kind].toLowerCase()}
-      </p>
+      <div className="flex items-center gap-3">
+        <p className="text-caption text-mist">
+          {def.verb} · from a {INPUT_KIND_LABEL[kind].toLowerCase()}
+        </p>
+        {/* Moved out of the action row when that row became a phone-sticky bar:
+            three buttons fit under a thumb, four wrapped to two rows and ate a
+            quarter of the screen. This is a destination, not an action, so the
+            header is where it belongs anyway. */}
+        <Button
+          variant="ghost"
+          size="sm"
+          icon={<Settings2 size={14} strokeWidth={1.75} />}
+          onClick={() => setTab(feature)}
+          data-full-controls
+        >
+          Full controls
+        </Button>
+      </div>
     </div>
   );
 
@@ -227,7 +242,15 @@ export function StudioResult({ feature, input, kind, source, onBack, onChain, on
 
           {warn ? <Notice tone="warning" message={warn} /> : null}
 
-          <div className="flex flex-wrap items-center gap-3">
+          {/* Fixed on a phone, static from `sm` up — ONE row, not a second
+              copy: a duplicated bar would have put two `data-tweak-open`
+              buttons in the DOM and made every selector ambiguous.
+              `sticky bottom-0` was tried first and does not do this job: it
+              only holds while its own parent is on screen, so it rode up with
+              the content on the way to the bottom of the page. Verified by
+              measuring the box before and after a scroll, not by reading the
+              spec. The spacer below reserves its height in flow. */}
+          <div data-result-actions className="flex flex-wrap items-center gap-3 max-sm:fixed max-sm:inset-x-0 max-sm:bottom-0 max-sm:z-30 max-sm:border-t max-sm:border-hairline max-sm:bg-paper/95 max-sm:px-4 max-sm:pt-3 max-sm:shadow-card-lg max-sm:backdrop-blur max-sm:safe-bottom">
             <Button variant="primary" icon={<Upload size={16} strokeWidth={1.75} />} onClick={onStartOver}>
               Try it on your own image
             </Button>
@@ -246,14 +269,6 @@ export function StudioResult({ feature, input, kind, source, onBack, onChain, on
             >
               Tweak
             </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              icon={<Settings2 size={14} strokeWidth={1.75} />}
-              onClick={() => setTab(feature)}
-            >
-              Full controls
-            </Button>
           </div>
 
           <ShareBar
@@ -266,6 +281,11 @@ export function StudioResult({ feature, input, kind, source, onBack, onChain, on
           />
 
           {chainRow(prepared.output, prepared.outputSource)}
+
+          {/* Clears the fixed phone action bar, so the last thing on the page is
+              reachable rather than trapped under it. At the END of the content —
+              put where the row used to sit, it is a hole in the middle. */}
+          <div className="h-28 sm:hidden" aria-hidden />
         </div>
 
         {tweaking ? (
@@ -321,7 +341,7 @@ export function StudioResult({ feature, input, kind, source, onBack, onChain, on
           {warning ? <Notice tone="warning" message={warning} /> : null}
           {warn ? <Notice tone="warning" message={warn} /> : null}
 
-          <div className="flex flex-wrap items-center gap-3">
+          <div data-result-actions className="flex flex-wrap items-center gap-3 max-sm:fixed max-sm:inset-x-0 max-sm:bottom-0 max-sm:z-30 max-sm:border-t max-sm:border-hairline max-sm:bg-paper/95 max-sm:px-4 max-sm:pt-3 max-sm:shadow-card-lg max-sm:backdrop-blur max-sm:safe-bottom">
             <Button
               variant="primary"
               icon={<Download size={16} strokeWidth={1.75} />}
@@ -340,14 +360,6 @@ export function StudioResult({ feature, input, kind, source, onBack, onChain, on
             >
               Tweak
             </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              icon={<Settings2 size={14} strokeWidth={1.75} />}
-              onClick={() => setTab(feature)}
-            >
-              Full controls
-            </Button>
           </div>
 
           <ShareBar
@@ -360,6 +372,7 @@ export function StudioResult({ feature, input, kind, source, onBack, onChain, on
           />
 
           {chainRow(generated.url, null)}
+          <div className="h-28 sm:hidden" aria-hidden />
 
           {tweaking ? (
             <TweakSheet

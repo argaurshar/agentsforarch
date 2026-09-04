@@ -1249,6 +1249,77 @@ const check = (name, ok, detail = '') => {
   );
   await tweak.close();
 
+  // 27. The phone. Not "it renders at 390px" — three specific things that were
+  //     wrong when this was measured rather than assumed.
+  const ph = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+  const pp = await ph.newPage();
+  await pp.route('**generativelanguage.googleapis.com/**', (r) => r.fulfill({ status: 200, headers: CORS, body: '{}' }));
+  await pp.route('**api.kie.ai/**', (r) => r.fulfill({ status: 200, headers: CORS, body: '{}' }));
+
+  await pp.goto(BASE, { waitUntil: 'domcontentloaded' });
+  await pp.waitForTimeout(600);
+  await pp.locator('[data-sample="plan"]').click();
+  await pp.waitForTimeout(1200);
+
+  // (a) The screen must not scroll sideways. A one-line scrollable chip row
+  //     inside a grid item defaults to `min-width: auto`, so its ~700px
+  //     min-content width stretched the whole column.
+  //
+  //     Measured on the app's OWN scroll container, not `documentElement`. The
+  //     first version of this check asked the document, which never overflows
+  //     here — the root is `overflow-hidden` and `<main>` does the scrolling —
+  //     so it passed with both `min-w-0` guards removed and the bug fully
+  //     present. Caught by breaking the fix and finding the gate silent.
+  const overflows = await pp.evaluate(() => {
+    const main = document.querySelector('main');
+    const el = main ?? document.documentElement;
+    return { over: el.scrollWidth > el.clientWidth + 1, w: el.scrollWidth, c: el.clientWidth };
+  });
+  check('the phone layout does not scroll sideways', !overflows.over, `${overflows.w}px in a ${overflows.c}px column`);
+
+  // (b) "Make it…" is the question this screen exists to answer, so at least one
+  //     card has to be on the first screen. It was past 1,000px.
+  const firstCard = await pp.locator('[data-card]').first().boundingBox();
+  check('a tool card is above the fold', Boolean(firstCard) && firstCard.y < 844, `y=${firstCard?.y}`);
+
+  // (c) The instant badge is a mark on the image, not a sentence: at 390px the
+  //     full wording covered most of the card and hid the preview.
+  const badge = await pp.locator('[data-instant]').first().boundingBox();
+  const card = await pp.locator('[data-card="render"]').boundingBox();
+  check(
+    'the no-key badge does not cover the card preview',
+    Boolean(badge) && Boolean(card) && badge.width < card.width * 0.45,
+    `badge ${badge?.width}px of a ${card?.width}px card`,
+  );
+
+  // (d) The action bar stays under the thumb. `position: fixed` was silently
+  //     broken by a finished entrance animation leaving an identity matrix on
+  //     the wrapper — so this measures the box before and after a scroll rather
+  //     than trusting the class list.
+  await pp.locator('[data-card="render"]').click();
+  await pp.waitForTimeout(1400);
+  const barTop = await pp.locator('[data-result-actions]').boundingBox();
+  await pp.evaluate(() => {
+    let n = document.querySelector('[data-result-actions]')?.parentElement;
+    while (n && n !== document.body) {
+      if (/(auto|scroll)/.test(getComputedStyle(n).overflowY)) { n.scrollTop = n.scrollHeight; return; }
+      n = n.parentElement;
+    }
+  });
+  await pp.waitForTimeout(500);
+  const barEnd = await pp.locator('[data-result-actions]').boundingBox();
+  check(
+    'the result actions stay pinned while the page scrolls',
+    Boolean(barTop) && Boolean(barEnd) && Math.abs(barTop.y - barEnd.y) < 2,
+    `y ${barTop?.y} -> ${barEnd?.y}`,
+  );
+  check(
+    'and sit at the bottom of the screen',
+    Boolean(barEnd) && Math.abs(barEnd.y + barEnd.height - 844) < 2,
+    `bottom=${barEnd ? barEnd.y + barEnd.height : '?'}`,
+  );
+  await ph.close();
+
   check('no page crashes', perr.length === 0, perr.slice(0, 2).join(' | '));
   await browser.close();
   const failed = results.filter((r) => !r.ok).length;

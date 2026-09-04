@@ -57,6 +57,10 @@ changed prompt string**. Five gates, each catching something the others cannot:
 | `registryLint` | a tool that is incomplete, unreachable, missing from a derived table, or offered for an image it cannot read |
 | `verifyContracts` | a tool whose own default prompt no longer satisfies the contract it declares |
 | `verifyQuick` | a control the user can tap that changes nothing about the request |
+
+`designLint` gained a sixteenth rule from P5: the app-wide view wrapper must drop
+its transform when its entrance animation finishes, because a lingering identity
+matrix silently breaks `position: fixed` anywhere inside it.
 | `promptSnapshot` | any prompt whose wording changed, across every enumerated variant |
 | `promptContradictions` | a prompt that asks for a thing and forbids it in the same breath |
 
@@ -162,6 +166,42 @@ Not everything is an axis. Free-text fields, ordered multi-selects, scene
 sliders and extra dropzones stay on the tool screen, because a one-tap chip
 cannot express them — and an axis that only matters once a text field is filled
 is not self-sufficient enough to belong in a sheet that has no text field.
+
+### On a phone
+
+The device most likely to be holding the photo is the one this was worst on, so
+P5 was an audit at 390×844 rather than a set of assumptions:
+
+- **The result's actions are a fixed bar** at the bottom of a phone screen —
+  primary, Download, Tweak — so you never scroll to act. Static from `sm` up.
+  One row, not a second fixed copy: a duplicate would have put two
+  `data-tweak-open` buttons in the DOM and made every selector ambiguous.
+- **"Make it…" is above the fold.** The input preview plus a six-chip wrapped
+  kind row pushed the first card past 1,000px; the preview is shorter on small
+  screens and the chips are one scrollable line.
+- **The no-key badge is a mark, not a sentence.** At 390px the full wording
+  spanned most of a card and hid the before/after preview that is the reason to
+  tap it. The words moved into the card body.
+- `viewport-fit=cover` plus a `safe-bottom` utility so the bar clears the home
+  indicator, and a 44px minimum on pills **under a coarse pointer only** — the
+  desktop density this design system is built around is untouched.
+
+**The bar did not work the first two times, and the reason is worth writing
+down.** `.view-enter` — the wrapper around every routed screen — animated with
+`animation-fill-mode: both`, which holds the final keyframe forever. A finished
+transform animation computes to `matrix(1, 0, 0, 1, 0, 0)`: an identity matrix,
+but still a transform, and **a transformed ancestor becomes the containing block
+for every `position: fixed` descendant**. So the bar positioned itself against
+that wrapper and scrolled away with the page.
+
+Writing `to { transform: none }` does not fix it — the animation interpolates to
+the equivalent matrix either way. Only dropping the forward fill does
+(`backwards`). Found by walking the ancestors' computed styles after two wrong
+guesses from reading the CSS, and now gated in `designLint`.
+
+Camera capture is wired (`capture="environment"` on the drop zone), and it is
+the one thing here that **cannot be verified from this environment** — headless
+Chromium has no camera. It needs a real device.
 
 ### Sharing a result
 
