@@ -250,20 +250,18 @@ const badIds = files
   );
 check('prompt textarea ids match their feature key', badIds.length === 0, badIds.join('\n      '));
 
-// --- 5. Every tool the registry claims is reachable in the nav ---------------
+// --- 5. Every tool the registry claims is reachable ---------------------------
 //
-// Reachability is two hops now that the sidebar lists categories rather than
-// tools: sidebar → category, category screen → its tools. BOTH have to stay
-// derived. If either one is ever hand-listed, a tool can exist, build, deploy
-// and be unreachable — which is the exact failure this whole refactor exists to
-// make impossible.
-
-const sidebar = files.find((f) => f.rel.endsWith('Sidebar.tsx'));
-check(
-  'the sidebar derives its rows from the registry',
-  /CATEGORIES\.map/.test(sidebar?.text ?? ''),
-  'a hand-written NAV_ITEMS list is how a feature ships unreachable',
-);
+// The failure this guards has not changed — a tool that exists, builds, deploys
+// and cannot be opened — but the route to it has, twice. It was sidebar → tool,
+// then sidebar → category → tool, and it is now nav → tool index → tool, with
+// the category screens reached from the index and kept for the one thing only
+// they do: running several tools on one image.
+//
+// So the sidebar is no longer asserted to derive from CATEGORIES: it holds three
+// fixed destinations on purpose, and the derived list moved into the index,
+// where rule 12 checks it. What still has to hold here is the SECOND hop, which
+// did not move.
 
 const categoryScreen = files.find((f) => f.rel.endsWith('CategoryScreen.tsx'));
 check(
@@ -530,6 +528,47 @@ check(
   'no screen hand-writes a control for a declared quick axis',
   dupes.length === 0,
   dupes.join('\n      ') + '  — render it from the declaration, or drop it from quick',
+);
+
+// --- 12. "All tools" means all of them ---------------------------------------
+//
+// The nav row said "Every tool, with full controls" and the screen behind it
+// listed FOUR of thirty — it was a pipeline map over the tools that happened to
+// declare a `stage`, and the promise had been wrong since the day the fifth
+// tool shipped. Nothing caught it because nothing tied the destination's
+// contents to the registry: the filter was legitimate code doing exactly what
+// it said, on a field only four tools set.
+//
+// So the rule is about the SHAPE of that screen, not its output: the index must
+// map over the derived category list, and it must not filter the tools inside
+// one. A `.filter(` there is how four-of-thirty happens again.
+
+const index = files.find((f) => f.rel.endsWith(path.join('home', 'ToolIndex.tsx')));
+check('the tool index exists', Boolean(index));
+const indexText = stripComments(index?.text ?? '');
+check(
+  'the tool index enumerates every category',
+  /CATEGORIES\.map\(/.test(indexText),
+  'it must map over the derived category list, not a hand-picked subset',
+);
+check(
+  'and every tool inside one',
+  /category\.features\.map\(/.test(indexText) && !/category\.features\s*\n?\s*\.filter\(/.test(indexText),
+  'a filter here is how "All tools" came to mean four of thirty',
+);
+check(
+  'the dashboard it replaced is gone',
+  !fs.existsSync(path.join(SRC, 'features', 'home', 'DashboardFeature.tsx')),
+  'two home screens is one too many',
+);
+
+// The nav promises a count; the count comes from the registry rather than a
+// number somebody typed next to the word "All".
+const navFile = files.find((f) => f.rel.endsWith(path.join('Layout', 'Sidebar.tsx')));
+check(
+  'the nav counts the tools rather than claiming a number',
+  /count: TOOL_COUNT/.test(stripComments(navFile?.text ?? '')),
+  'a hand-typed count is a promise that rots on the next tool',
 );
 
 const failed = results.filter((r) => !r.ok).length;

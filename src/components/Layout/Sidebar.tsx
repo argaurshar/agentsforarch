@@ -1,6 +1,6 @@
 import { BRAND } from '../../lib/brand';
 import { Images, LayoutDashboard, Sparkles } from 'lucide-react';
-import { CATEGORIES, featureDef } from '../../features/registry';
+import { TOOL_COUNT } from '../../lib/brand';
 import type { LucideIcon } from 'lucide-react';
 import { categoryFromTab, isFeatureKind } from '../../features/registry/keys';
 import { useProjectStore } from '../../store/useProjectStore';
@@ -16,20 +16,21 @@ interface NavItem {
   count?: number;
 }
 
-// One row per CATEGORY, not per tool.
+// Three rows. It was nine.
 //
-// A row per tool was right at five and wrong at eleven: a flat list stops being
-// scannable somewhere around a dozen rows, and this app is heading for ~54
-// tools. Categories give the nav a fixed height — six rows at most, forever.
+// The six category rows were the right answer when the nav WAS the way in: a row
+// per tool stops being scannable somewhere around a dozen, and categories gave
+// it a fixed height. But the front door answers "what do you have?" and hands
+// back a shortlist, so nobody navigates a taxonomy to find a tool any more —
+// and nine rows of chrome around a screen whose whole thesis is "drop an image"
+// is the app arguing with itself.
 //
-// Still derived, and now doubly so: a category is in this list because a tool
-// declared it, and it disappears when it holds nothing. So a category arrives
-// the day its first tool does, rather than sitting here as an empty promise, and
-// a tool is still reachable by existing rather than by being remembered.
+// The categories did not disappear: they are the structure of the tool index,
+// one row along, and each of them still links to its own batch screen. What
+// went is a second, permanently-visible copy of that structure.
 const NAV_ITEMS: NavItem[] = [
   { key: 'studio', name: 'Start', sub: 'Drop an image, pick what it becomes', icon: Sparkles },
-  { key: 'home', name: 'All tools', sub: 'Every tool, with full controls', icon: LayoutDashboard },
-  ...CATEGORIES.map((c) => ({ key: c.tab, name: c.label, sub: c.blurb, icon: c.icon, count: c.features.length })),
+  { key: 'home', name: 'All tools', sub: 'Every tool, with full controls', icon: LayoutDashboard, count: TOOL_COUNT },
   { key: 'gallery', name: 'Gallery', sub: 'All Outputs · Save / Load', icon: Images },
 ];
 
@@ -41,7 +42,9 @@ interface SidebarProps {
 export function Sidebar({ onNavigate }: SidebarProps = {}) {
   const tab = useProjectStore((s) => s.tab);
   const setTab = useProjectStore((s) => s.setTab);
-  const activeCategory = useProjectStore((s) => (isFeatureKind(s.tab) ? featureDef(s.tab).category : categoryFromTab(s.tab)));
+  // A tool screen and a category screen both live under "All tools" now, so
+  // that row stays lit rather than leaving the nav pointing at nothing.
+  const underTools = useProjectStore((s) => isFeatureKind(s.tab) || categoryFromTab(s.tab) !== null);
 
   return (
     <nav
@@ -69,7 +72,7 @@ export function Sidebar({ onNavigate }: SidebarProps = {}) {
         {NAV_ITEMS.map((item) => {
           // A tool screen keeps its own category row lit — otherwise opening a
           // tool from the rail unlights the whole nav and you are nowhere.
-          const active = tab === item.key || (categoryFromTab(item.key) !== null && categoryFromTab(item.key) === activeCategory);
+          const active = tab === item.key || (item.key === 'home' && underTools);
           const Icon = item.icon;
           return (
             <li key={item.key}>

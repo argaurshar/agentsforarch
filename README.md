@@ -202,9 +202,25 @@ something the registry no longer supports.
 ## The tools
 
 Thirty generation tools, also grouped by the stage of the job they belong to.
-**All tools** in the sidebar is the full list: pick a category and you get its
-**tool rail** — tick as many tools as you want, drop **one** image, and press
-**Synthesize** — they all run on it, one at a time, each with its own settings.
+**All tools** is the index: every one of the thirty, in its category, with what
+it reads. Each category there links to its **tool rail** — tick as many tools as
+you want, drop **one** image, and press **Synthesize** — they all run on it, one
+at a time, each with its own settings.
+
+That index replaced a "project dashboard" whose nav row promised *"Every tool,
+with full controls"* and listed **four of thirty**: it was a pipeline map over
+the tools that happened to declare a `stage` field, and the promise had been
+wrong since the fifth tool shipped. Nothing caught it, because nothing tied the
+destination's contents to the registry — the filter was legitimate code doing
+exactly what it said. Two rules do now: `registryLint` fails an index that
+filters its tools, and `qa:e2e` counts what the screen lists against
+`FEATURE_KEYS`.
+
+Its other jobs went where they were already being done better: the front door is
+the way in, the chain row tells the pipeline story from what each tool actually
+*produces*, and the Gallery holds the outputs. `stage` went with it — with its
+only reader gone it was a write-only field on four tools, the same shape as
+`sceneShow` before it.
 
 Each tool also has its own screen (`Open for full settings`, or `#/<tool>`) where
 every control lives, including the prompt. The front door and the tool screen run
@@ -219,11 +235,13 @@ the same code and share the same output: tapping a card *is* running that tool.
 | **Interiors** | Interior Design · Declutter · Place Object · Targeted Edit · FF&E Spec Sheet |
 | **Diagrams & Boards** | Floor Analysis · Program Diagram · Exploded Axonometric · Annotation Sketch · Material & Mood Board |
 
-Plus two fixed destinations: **Home** (project dashboard — pipeline map with
-live counts and thumbnails, recent outputs, getting-started steps and a bundled
-**sample floor plan**) and **Gallery** (every generated and uploaded image, with
+The nav is **three** destinations: **Start** (the front door), **All tools**
+(the index above) and **Gallery** (every generated and uploaded image, with
 reuse / download / delete, and whole-project export/import as a single file —
-the no-backend persistence answer).
+the no-backend persistence answer). It used to be nine — six of them category
+rows, which were the right answer when the nav *was* the way in. Nobody
+navigates a taxonomy to find a tool now, so the categories moved one route along
+into the index, where they still each link to their own batch screen.
 The `#` is the tool's number **within its category**, which is what the app's
 section header shows. It is derived from position, so it can never disagree.
 
@@ -368,10 +386,9 @@ the images that succeeded. Nothing is persisted (in-memory by design) — a
 ### Generating real images (two engines)
 
 Open **Settings** (the key button, top-right), pick an **engine**, and paste
-that engine's API key. On a desktop-width screen the panel opens by itself on
-the first visit, since it sits beside the dashboard rather than over it; below
-Tailwind's `md` breakpoint it is full-screen, so it stays closed until you tap
-the button:
+that engine's API key. The panel never opens itself — the key is asked at your
+first generation instead, in the slot where the result will appear. This is the
+way in if you would rather set it up first, or switch engines:
 
 - **Google Gemini** — **Nano Banana Pro** (Gemini 3 Pro Image), called directly
   with your Gemini key. Get a free key at

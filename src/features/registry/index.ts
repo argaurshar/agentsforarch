@@ -2,7 +2,7 @@
 //
 // Before this existed, adding one feature meant editing 15 places, and only 6 of
 // them were compile-enforced: the other 9 (nav items, route slugs, output
-// labels, batch expansion, pool groups, gallery labels, dashboard stages,
+// labels, batch expansion, pool groups, gallery labels, the tool index,
 // examples, send-targets) failed SILENTLY. A feature could build clean, deploy,
 // and be unreachable in the nav and mislabelled in its outputs.
 //
@@ -295,13 +295,13 @@ export interface FeatureDef<S extends FeatureSettings = FeatureSettings> {
   poolLabel: string;
   /** Gallery filter label. */
   galleryLabel: string;
-  /**
-   * Shown on the home dashboard as a numbered pipeline stage. The NUMBER is
-   * derived from position, like the section header's — leaving it hand-written
-   * is what made the pipeline render 01, 03, 02, 04 the moment Plans & Drawings
-   * was reordered.
-   */
-  stage?: { what: string };
+  // `stage` used to sit here: `{ what: string }` on four of thirty tools,
+  // feeding the home dashboard's numbered pipeline map. That dashboard is gone —
+  // the front door is the way in, and the chain row tells the pipeline story
+  // from what each tool actually PRODUCES (`outputKind`) rather than from a
+  // hand-picked four. With its only reader deleted the field was write-only,
+  // the same shape as `sceneShow` before it: a claim on the registry that
+  // nothing could act on and nothing could contradict.
 
   /**
    * One label per output image, in order. Omit for the default
@@ -537,7 +537,6 @@ const render: FeatureDef<RenderSettings> = {
   sendTargets: ['elevation', 'axonometric'],
   poolLabel: 'Renders',
   galleryLabel: 'Isometric',
-  stage: { what: 'Floor plan → 3D cutaway' },
   ui: {
     eyebrow: 'Plan to 3D Isometric · 2D Furnished Plan',
     title: 'Floor Plan → 3D Isometric',
@@ -869,7 +868,6 @@ const elevation: FeatureDef<ElevationSettings> = {
   sendTargets: ['axonometric'],
   poolLabel: 'Elevations',
   galleryLabel: 'Elevation',
-  stage: { what: 'Sketch → styled elevation' },
   labelsFor: (req, pretty) => {
     const faces = req.options.viewpoints?.length ? req.options.viewpoints : [undefined];
     const styleLabel = pretty(req.options.style, 'Rendered');
@@ -974,7 +972,6 @@ const axonometric: FeatureDef<AxonSettings> = {
   sendTargets: [],
   poolLabel: 'Axonometrics',
   galleryLabel: 'Axonometric',
-  stage: { what: 'Elevation or 3D → axonometric' },
   labelsFor: (req) => {
     const viewpoints = req.options.viewpoints?.length ? req.options.viewpoints : ['NE'];
     return viewpoints.map((vp) => `${vp} axonometric${req.options.section ? ' — section' : ''}`);
@@ -1125,7 +1122,6 @@ const interior: FeatureDef<InteriorSettings> = {
   sendTargets: [],
   poolLabel: 'Interiors',
   galleryLabel: 'Interior',
-  stage: { what: 'Room photo → redesign' },
   labelsFor: (req, pretty) => [pretty(req.options.style, 'Interior')],
   ui: {
     eyebrow: 'Interior Design',

@@ -129,9 +129,6 @@ interface ProjectState {
 
   setTab: (tab: TabKey) => void;
   renameProject: (name: string) => void;
-  /** Session flag: the dashboard's getting-started card was dismissed. */
-  tipsDismissed: boolean;
-  dismissTips: () => void;
 
   setBrand: (patch: Partial<Brand>) => void;
   addUploads: (images: GeneratedImage[]) => void;
@@ -284,8 +281,6 @@ export const useProjectStore = create<ProjectState>((set, get) => {
 
     setTab: (tab) => set({ tab }),
 
-    tipsDismissed: false,
-    dismissTips: () => set({ tipsDismissed: true }),
 
     renameProject: (name) => {
       const next = touch({ ...get().project, name: name.trim() || 'Untitled Project' });

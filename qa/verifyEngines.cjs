@@ -138,8 +138,10 @@ const check = (name, ok, detail = '') => {
     await page.goto(BASE + '#/' + key, { waitUntil: 'domcontentloaded' });
     await page.waitForTimeout(350);
   };
+  // Categories left the sidebar when the front door took over finding tools.
+  // They are reached by route, and from the tool index — both asserted below.
   const catTo = async (key) => {
-    await page.locator(`nav[aria-label="Features"] [data-nav="cat:${key}"]`).first().click();
+    await page.goto(`${BASE}#/c/${key}`, { waitUntil: 'domcontentloaded' });
     await page.waitForTimeout(350);
   };
   const nav = page.locator('nav[aria-label="Features"] button');
@@ -290,7 +292,7 @@ const check = (name, ok, detail = '') => {
   await mob.waitForTimeout(400);
   check(
     'the full tool list is still one route away',
-    (await mob.getByText('Floor plan → 3D cutaway').count()) > 0,
+    (await mob.locator('[data-index-tool]').count()) > 0,
   );
   await mob.goto(BASE, { waitUntil: 'domcontentloaded' });
   await mob.waitForTimeout(300);
@@ -361,8 +363,24 @@ const check = (name, ok, detail = '') => {
   const navKeys = await page.locator('nav[aria-label="Features"] [data-nav]').evaluateAll((els) =>
     els.map((e) => e.getAttribute('data-nav')),
   );
-  const catRows = navKeys.filter((k) => k.startsWith('cat:'));
-  check('the sidebar lists categories, not one row per tool', catRows.length > 0 && catRows.length < navKeys.length);
+  // Three fixed destinations. The categories moved into the index, one route
+  // along, because nobody navigates a taxonomy to find a tool any more.
+  check('the nav is three destinations, not nine', navKeys.length === 3, navKeys.join(', '));
+  check('and none of them is a category row', navKeys.every((k) => !k.startsWith('cat:')));
+
+  // "All tools" has to mean all of them. It said "Every tool, with full
+  // controls" over a screen listing FOUR of thirty for as long as there were
+  // more than four — a promise nothing checked until this line.
+  const indexed = await page.locator('[data-index-tool]').evaluateAll((els) =>
+    els.map((e) => e.getAttribute('data-index-tool')),
+  );
+  check(
+    'the tool index lists every registered tool',
+    indexed.length === KEYS.length,
+    `${indexed.length} listed, ${KEYS.length} registered — missing: ${KEYS.filter((k) => !indexed.includes(k)).join(', ')}`,
+  );
+  check('every category is a section in it', (await page.locator('[data-index-category]').count()) > 0);
+  check('and each one links to its batch screen', (await page.locator('[data-index-batch]').count()) > 0);
   check(
     'no tool has its own sidebar row',
     KEYS.every((k) => !navKeys.includes(k)),
@@ -372,9 +390,16 @@ const check = (name, ok, detail = '') => {
   // Walk every category rail and collect the tools it offers. The union must be
   // every registered tool, and no tool may appear twice — this is what proves a
   // new tool is reachable without anyone remembering to add it to a nav list.
+  //
+  // The walk starts from the tool index now that the categories live there, so
+  // it also proves the index's batch links go where they say.
+  const catKeys = await page.locator('[data-index-batch]').evaluateAll((els) =>
+    els.map((e) => e.getAttribute('data-index-batch')),
+  );
+  check('the index offers a batch link per category', catKeys.length > 0, catKeys.join(','));
   const seen = [];
-  for (const row of catRows) {
-    await page.locator(`nav[aria-label="Features"] [data-nav="${row}"]`).first().click();
+  for (const row of catKeys) {
+    await page.goto(`${BASE}#/c/${row}`, { waitUntil: 'domcontentloaded' });
     await page.waitForTimeout(400);
     const tools = await page
       .locator('[data-tool]')
@@ -510,10 +535,10 @@ const check = (name, ok, detail = '') => {
   // The new category exists only because this tool put it there.
   await page.goto(BASE + '#/home', { waitUntil: 'domcontentloaded' });
   await page.waitForTimeout(400);
-  const navAfter = await page.locator('nav[aria-label="Features"] [data-nav]').evaluateAll((els) =>
-    els.map((e) => e.getAttribute('data-nav')),
+  check(
+    'a new category appears once its first tool exists',
+    (await page.locator('[data-index-category="concept"]').count()) === 1,
   );
-  check('a new category appears once its first tool exists', navAfter.includes('cat:concept'));
 
   // 15c. The region marker. Dragging a box must change the PROMPT — an
   //      unexplained red rectangle is just something for the model to reproduce.
