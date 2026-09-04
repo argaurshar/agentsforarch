@@ -873,6 +873,31 @@ const check = (name, ok, detail = '') => {
   clicks += 1;
   await page.waitForTimeout(900);
   check('one click fills the input and shows the shortlist', (await page.locator('[data-card]').count()) > 0);
+  // The visible six must be tools that are ABOUT what was dropped. Upscale for
+  // Print accepts all six input kinds and used to sit fourth for a floor plan —
+  // a utility taking a slot from an answer. Ordering by how many kinds a tool
+  // accepts pushes the catch-alls past the fold; this asserts the outcome
+  // rather than the sort.
+  //
+  //     Asserted as ORDER, not membership: only seven tools accept a plan and
+  //     six cards are shown, so the catch-alls cannot all be hidden — the first
+  //     draft of this check demanded that and failed on a shortlist that was
+  //     already correct. What matters is that they rank last.
+  const visible = await page.locator('[data-card]').evaluateAll((els) => els.map((e) => e.getAttribute('data-card')));
+  const leading = visible.slice(0, 4);
+  const catchAlls = ['upscale', 'annotation', 'moodboard'];
+  check(
+    'no catch-all tool is in the leading cards for a plan',
+    catchAlls.every((k) => !leading.includes(k)),
+    `leading: ${leading.join(', ')}`,
+  );
+  check(
+    'the widest-reaching tool is not shown at all before "show all"',
+    !visible.includes('upscale'),
+    `visible: ${visible.join(', ')}`,
+  );
+  check('and a plan-specific tool leads', visible[0] === 'render', `first card: ${visible[0]}`);
+
   check('the shortlist is a shortlist, not all thirty', (await page.locator('[data-card]').count()) <= 6);
   check('a floor plan offers Make it 3D', (await page.locator('[data-card="render"]').count()) === 1);
   check('and does not offer a tool that cannot read a plan', (await page.locator('[data-card="birdsEye"]').count()) === 0);
