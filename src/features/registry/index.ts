@@ -2330,7 +2330,24 @@ export function categoryOf(feature: FeatureKind): CategoryDef {
  * and the prompt snapshot are derived rather than maintained.
  */
 export function toolsForKind(kind: InputKind): FeatureDef<FeatureSettings>[] {
-  return ALL_FEATURES.filter((f) => f.inputKind.includes(kind));
+  return (
+    ALL_FEATURES.filter((f) => f.inputKind.includes(kind))
+      // SPECIFIC FIRST, and the measure is a property tools already declare:
+      // how many kinds of image a tool accepts. One that reads only a floor
+      // plan is ABOUT floor plans; one that reads all six — Upscale for Print —
+      // is a utility that happens to accept yours, and it was taking a slot in
+      // the six cards the front door shows before "Show all".
+      //
+      // Dropping a plan used to lead with "Sketch to CAD Plan" and put Upscale
+      // fourth, so a third of the visible shortlist was catch-alls rather than
+      // answers to "what is this?". Sorting by `inputKind.length` puts
+      // Isometric and Floor Analysis first and pushes Upscale off the visible
+      // row entirely.
+      //
+      // A stable sort, so registry order — which is workflow order, and
+      // deliberate — still decides between two tools of equal specificity.
+      .sort((a, b) => a.inputKind.length - b.inputKind.length)
+  );
 }
 
 /**

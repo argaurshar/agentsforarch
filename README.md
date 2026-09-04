@@ -98,9 +98,18 @@ bright top edge is outside, flat and green-grey is satellite — and it is one t
 to correct. It costs nothing and calls nothing; the alternative was a paid
 vision request on every drop, to decide something the user already knows.
 
-The shortlist is **derived**. Every tool declares which kinds of image it can
-read (`inputKind` on its registry entry), so dropping a floor plan filters
-thirty tools to seven without anyone navigating a taxonomy. A new tool joins the
+The shortlist is **derived**, and **ordered by specificity**. Every tool declares
+which kinds of image it can read (`inputKind` on its registry entry), so
+dropping a floor plan filters thirty tools to seven without anyone navigating a
+taxonomy — and the same field decides the order, because *how many* kinds a tool
+accepts is a good measure of how much it is about yours.
+
+A tool that reads only floor plans is *about* floor plans. Upscale for Print
+reads all six kinds; it is a utility that happens to accept yours, and it used
+to sit fourth for a plan, taking one of the six visible slots from an answer.
+Sorted by `inputKind.length`, a plan now leads with Isometric and Floor Analysis
+and the catch-alls fall past the fold. Registry order — workflow order, and
+deliberate — still decides between two tools of equal specificity. A new tool joins the
 right shortlists by declaring what it reads — the same property that makes the
 nav rows and the prompt snapshot derived rather than maintained.
 
