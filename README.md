@@ -56,10 +56,17 @@ changed prompt string**. Five gates, each catching something the others cannot:
 | `designLint` | design-system drift — an unregistered type size, a squared-off panel, a zeroed radius or shadow scale, a suppressed focus ring |
 | `registryLint` | a tool that is incomplete, unreachable, missing from a derived table, or offered for an image it cannot read |
 | `verifyContracts` | a tool whose own default prompt no longer satisfies the contract it declares |
+| `verifyQuick` | a control the user can tap that changes nothing about the request |
 | `promptSnapshot` | any prompt whose wording changed, across every enumerated variant |
 | `promptContradictions` | a prompt that asks for a thing and forbids it in the same breath |
 
-The last one is the least obvious and the most valuable. The two worst bugs this
+`verifyQuick` is the newest and it earned its place on its first run, finding
+two axes whose options built byte-identical requests. One was a gate bug (an
+engine parameter that never reaches the prompt); the other was real — an "apply
+to one named element" chip that does nothing until an element is named, in a
+sheet with nowhere to name one.
+
+The contradiction gate is the least obvious and the most valuable. The two worst bugs this
 app has shipped were both self-contradictory prompts, not missing ones — a
 prompt can satisfy every contract and pass the snapshot while instructing the
 model to do and not do the same thing.
@@ -124,6 +131,38 @@ dangling filename behind. `registryLint` checks every referenced asset is
 actually shipped, and that every sample on the drop zone has at least one tool
 that can answer it for free.
 
+### Tweaking a result
+
+A result is rarely the last word, so it has a **Tweak** sheet — and the sheet
+holds two different runs rather than one ambiguous "Regenerate":
+
+| | What it changes | What it runs on |
+|---|---|---|
+| **Settings** | the recipe — a different light, face, palette, hatching | your original image, again |
+| **Change this image** | the output — warmer light, more glass, remove the people | the result on screen |
+
+Collapsing those into one button would mean guessing which you meant, and the
+same words produce visibly different images depending on the answer.
+
+**Nothing fires on change.** The plan for this step said "regenerate on change";
+on a tool that bills per image, a chip row that spends money on every tap is a
+trap. Each section has its own button and says what it is about to do, and
+`qa:e2e` asserts that changing a setting and picking a refine chip both leave
+the network untouched.
+
+The settings in the sheet are the tool's **declared axes** (`quick` on its
+registry entry), and the tool's own screen renders them from the same
+declaration through one `<QuickControls>`. That is the whole reason the field
+exists: two hand-written copies of "Light: golden / overcast / midday" is the
+parallel table this codebase keeps deleting, and the second copy is the one that
+would silently lose an option. `registryLint` fails a screen that hand-writes a
+control for a key its registry entry already declares.
+
+Not everything is an axis. Free-text fields, ordered multi-selects, scene
+sliders and extra dropzones stay on the tool screen, because a one-tap chip
+cannot express them — and an axis that only matters once a text field is filled
+is not self-sufficient enough to belong in a sheet that has no text field.
+
 ### Sharing a result
 
 A result is the only thing here worth sending someone, and it can travel two
@@ -163,9 +202,25 @@ something the registry no longer supports.
 ## The tools
 
 Thirty generation tools, also grouped by the stage of the job they belong to.
-**All tools** in the sidebar is the full list: pick a category and you get its
-**tool rail** — tick as many tools as you want, drop **one** image, and press
-**Synthesize** — they all run on it, one at a time, each with its own settings.
+**All tools** is the index: every one of the thirty, in its category, with what
+it reads. Each category there links to its **tool rail** — tick as many tools as
+you want, drop **one** image, and press **Synthesize** — they all run on it, one
+at a time, each with its own settings.
+
+That index replaced a "project dashboard" whose nav row promised *"Every tool,
+with full controls"* and listed **four of thirty**: it was a pipeline map over
+the tools that happened to declare a `stage` field, and the promise had been
+wrong since the fifth tool shipped. Nothing caught it, because nothing tied the
+destination's contents to the registry — the filter was legitimate code doing
+exactly what it said. Two rules do now: `registryLint` fails an index that
+filters its tools, and `qa:e2e` counts what the screen lists against
+`FEATURE_KEYS`.
+
+Its other jobs went where they were already being done better: the front door is
+the way in, the chain row tells the pipeline story from what each tool actually
+*produces*, and the Gallery holds the outputs. `stage` went with it — with its
+only reader gone it was a write-only field on four tools, the same shape as
+`sceneShow` before it.
 
 Each tool also has its own screen (`Open for full settings`, or `#/<tool>`) where
 every control lives, including the prompt. The front door and the tool screen run
@@ -180,11 +235,13 @@ the same code and share the same output: tapping a card *is* running that tool.
 | **Interiors** | Interior Design · Declutter · Place Object · Targeted Edit · FF&E Spec Sheet |
 | **Diagrams & Boards** | Floor Analysis · Program Diagram · Exploded Axonometric · Annotation Sketch · Material & Mood Board |
 
-Plus two fixed destinations: **Home** (project dashboard — pipeline map with
-live counts and thumbnails, recent outputs, getting-started steps and a bundled
-**sample floor plan**) and **Gallery** (every generated and uploaded image, with
+The nav is **three** destinations: **Start** (the front door), **All tools**
+(the index above) and **Gallery** (every generated and uploaded image, with
 reuse / download / delete, and whole-project export/import as a single file —
-the no-backend persistence answer).
+the no-backend persistence answer). It used to be nine — six of them category
+rows, which were the right answer when the nav *was* the way in. Nobody
+navigates a taxonomy to find a tool now, so the categories moved one route along
+into the index, where they still each link to their own batch screen.
 The `#` is the tool's number **within its category**, which is what the app's
 section header shows. It is derived from position, so it can never disagree.
 
@@ -329,10 +386,9 @@ the images that succeeded. Nothing is persisted (in-memory by design) — a
 ### Generating real images (two engines)
 
 Open **Settings** (the key button, top-right), pick an **engine**, and paste
-that engine's API key. On a desktop-width screen the panel opens by itself on
-the first visit, since it sits beside the dashboard rather than over it; below
-Tailwind's `md` breakpoint it is full-screen, so it stays closed until you tap
-the button:
+that engine's API key. The panel never opens itself — the key is asked at your
+first generation instead, in the slot where the result will appear. This is the
+way in if you would rather set it up first, or switch engines:
 
 - **Google Gemini** — **Nano Banana Pro** (Gemini 3 Pro Image), called directly
   with your Gemini key. Get a free key at

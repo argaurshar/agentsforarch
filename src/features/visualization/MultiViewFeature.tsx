@@ -1,12 +1,6 @@
 import { GenerationScreen } from '../../components/Generation/GenerationScreen';
-import { ChipGroup } from '../../components/ui/ChipGroup';
+import { QuickControls } from '../../components/Generation/QuickControls';
 import type { SheetLayout, SheetView } from '../../store/generation';
-
-const LAYOUT_OPTIONS: { value: SheetLayout; label: string }[] = [
-  { value: '1x3', label: '3 across' },
-  { value: '2x2', label: '2 × 2' },
-  { value: '2x3', label: '2 × 3' },
-];
 
 const PANELS: Record<SheetLayout, number> = { '1x3': 3, '2x2': 4, '2x3': 6 };
 
@@ -18,13 +12,12 @@ const VIEW_LABEL: Record<SheetView, string> = {
   detail: 'Entrance detail',
   entrance: 'Approach, eye level',
 };
-
 const ALL_VIEWS = Object.keys(VIEW_LABEL) as SheetView[];
 
 export function MultiViewFeature() {
   return (
     <GenerationScreen feature="multiView">
-      {({ settings, patch }) => {
+      {({ feature, settings, patch }) => {
         const panels = PANELS[settings.layout];
         const atCap = settings.views.length >= panels;
         const toggle = (v: SheetView) =>
@@ -37,9 +30,10 @@ export function MultiViewFeature() {
           });
         return (
           <>
-            <div className="p-5">
-              <ChipGroup label="Layout" value={settings.layout} options={LAYOUT_OPTIONS} onChange={(v) => patch({ layout: v })} />
-            </div>
+            <QuickControls feature={feature} settings={settings} patch={patch} />
+            {/* Ordered multi-select, capped by the layout — not a quick axis:
+                the cap depends on another axis and the ORDER is the panel
+                order, neither of which a one-tap chip row can express. */}
             <div className="flex flex-col gap-3 p-5">
               <div>
                 <p className="section-heading">Views</p>

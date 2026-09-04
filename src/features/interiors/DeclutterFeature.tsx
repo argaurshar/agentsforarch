@@ -1,19 +1,13 @@
 import { GenerationScreen } from '../../components/Generation/GenerationScreen';
-import { SwitchRow } from '../../components/ui/SwitchRow';
+import { QuickControls } from '../../components/Generation/QuickControls';
 
+/**
+ * One switch: whether fitted joinery survives the strip-out.
+ */
 export function DeclutterFeature() {
   return (
     <GenerationScreen feature="declutter">
-      {({ settings, patch }) => (
-        <div className="p-5">
-          <SwitchRow
-            checked={settings.keepBuiltIns}
-            onChange={(next) => patch({ keepBuiltIns: next })}
-            label="Keep fitted joinery"
-            hint="On: wardrobes, kitchen units and fixed shelving stay. Off: a full strip-out to bare walls."
-          />
-        </div>
-      )}
+      {({ feature: f, settings, patch }) => <QuickControls feature={f} settings={settings} patch={patch} />}
     </GenerationScreen>
   );
 }

@@ -138,8 +138,10 @@ const check = (name, ok, detail = '') => {
     await page.goto(BASE + '#/' + key, { waitUntil: 'domcontentloaded' });
     await page.waitForTimeout(350);
   };
+  // Categories left the sidebar when the front door took over finding tools.
+  // They are reached by route, and from the tool index — both asserted below.
   const catTo = async (key) => {
-    await page.locator(`nav[aria-label="Features"] [data-nav="cat:${key}"]`).first().click();
+    await page.goto(`${BASE}#/c/${key}`, { waitUntil: 'domcontentloaded' });
     await page.waitForTimeout(350);
   };
   const nav = page.locator('nav[aria-label="Features"] button');
@@ -290,7 +292,7 @@ const check = (name, ok, detail = '') => {
   await mob.waitForTimeout(400);
   check(
     'the full tool list is still one route away',
-    (await mob.getByText('Floor plan → 3D cutaway').count()) > 0,
+    (await mob.locator('[data-index-tool]').count()) > 0,
   );
   await mob.goto(BASE, { waitUntil: 'domcontentloaded' });
   await mob.waitForTimeout(300);
@@ -361,8 +363,24 @@ const check = (name, ok, detail = '') => {
   const navKeys = await page.locator('nav[aria-label="Features"] [data-nav]').evaluateAll((els) =>
     els.map((e) => e.getAttribute('data-nav')),
   );
-  const catRows = navKeys.filter((k) => k.startsWith('cat:'));
-  check('the sidebar lists categories, not one row per tool', catRows.length > 0 && catRows.length < navKeys.length);
+  // Three fixed destinations. The categories moved into the index, one route
+  // along, because nobody navigates a taxonomy to find a tool any more.
+  check('the nav is three destinations, not nine', navKeys.length === 3, navKeys.join(', '));
+  check('and none of them is a category row', navKeys.every((k) => !k.startsWith('cat:')));
+
+  // "All tools" has to mean all of them. It said "Every tool, with full
+  // controls" over a screen listing FOUR of thirty for as long as there were
+  // more than four — a promise nothing checked until this line.
+  const indexed = await page.locator('[data-index-tool]').evaluateAll((els) =>
+    els.map((e) => e.getAttribute('data-index-tool')),
+  );
+  check(
+    'the tool index lists every registered tool',
+    indexed.length === KEYS.length,
+    `${indexed.length} listed, ${KEYS.length} registered — missing: ${KEYS.filter((k) => !indexed.includes(k)).join(', ')}`,
+  );
+  check('every category is a section in it', (await page.locator('[data-index-category]').count()) > 0);
+  check('and each one links to its batch screen', (await page.locator('[data-index-batch]').count()) > 0);
   check(
     'no tool has its own sidebar row',
     KEYS.every((k) => !navKeys.includes(k)),
@@ -372,9 +390,16 @@ const check = (name, ok, detail = '') => {
   // Walk every category rail and collect the tools it offers. The union must be
   // every registered tool, and no tool may appear twice — this is what proves a
   // new tool is reachable without anyone remembering to add it to a nav list.
+  //
+  // The walk starts from the tool index now that the categories live there, so
+  // it also proves the index's batch links go where they say.
+  const catKeys = await page.locator('[data-index-batch]').evaluateAll((els) =>
+    els.map((e) => e.getAttribute('data-index-batch')),
+  );
+  check('the index offers a batch link per category', catKeys.length > 0, catKeys.join(','));
   const seen = [];
-  for (const row of catRows) {
-    await page.locator(`nav[aria-label="Features"] [data-nav="${row}"]`).first().click();
+  for (const row of catKeys) {
+    await page.goto(`${BASE}#/c/${row}`, { waitUntil: 'domcontentloaded' });
     await page.waitForTimeout(400);
     const tools = await page
       .locator('[data-tool]')
@@ -510,10 +535,10 @@ const check = (name, ok, detail = '') => {
   // The new category exists only because this tool put it there.
   await page.goto(BASE + '#/home', { waitUntil: 'domcontentloaded' });
   await page.waitForTimeout(400);
-  const navAfter = await page.locator('nav[aria-label="Features"] [data-nav]').evaluateAll((els) =>
-    els.map((e) => e.getAttribute('data-nav')),
+  check(
+    'a new category appears once its first tool exists',
+    (await page.locator('[data-index-category="concept"]').count()) === 1,
   );
-  check('a new category appears once its first tool exists', navAfter.includes('cat:concept'));
 
   // 15c. The region marker. Dragging a box must change the PROMPT — an
   //      unexplained red rectangle is just something for the model to reproduce.
@@ -1120,6 +1145,109 @@ const check = (name, ok, detail = '') => {
   check('copy link puts the remix URL on the clipboard', clip.includes('#/do/render?from=plan-input.jpg'), clip);
   check('and says so', (await shp.locator('[data-share-link]').innerText()).includes('Link copied'));
   await shareCtx.close();
+
+  // 26. The Tweak sheet. Two ways to change a result, and NEITHER fires on its
+  //     own — the whole point of an explicit button on a tool that bills per
+  //     image is that a chip tap cannot spend money.
+  const tweak = await browser.newContext({ viewport: { width: 1280, height: 1000 } });
+  const tp = await tweak.newPage();
+  let tweakCalls = 0;
+  const tweakBodies = [];
+  await tp.route('**generativelanguage.googleapis.com/**', (r) => {
+    tweakCalls += 1;
+    tweakBodies.push(r.request().postData() || '');
+    return r.fulfill({
+      status: 200,
+      headers: CORS,
+      body: JSON.stringify({ candidates: [{ content: { parts: [{ inlineData: { mimeType: 'image/png', data: PNG_1PX.toString('base64') } }] } }] }),
+    });
+  });
+  await tp.route('**api.kie.ai/**', (r) => {
+    tweakCalls += 1;
+    return r.fulfill({ status: 200, headers: CORS, body: '{}' });
+  });
+
+  await tp.goto(BASE, { waitUntil: 'domcontentloaded' });
+  await tp.waitForTimeout(500);
+
+  // A prepared result offers the sheet too — but it cannot demonstrate the
+  // buttons, because on a prepared pair every button here is a real run. So
+  // this checks the affordance, then starts again from a real generation.
+  await tp.locator('[data-sample="plan"]').click();
+  await tp.waitForTimeout(900);
+  await tp.locator('[data-card="render"]').click();
+  await tp.waitForTimeout(1200);
+  check('a prepared result offers to be tweaked', (await tp.locator('[data-tweak-open]').count()) === 1);
+  check('and nothing has been spent to get there', tweakCalls === 0, `${tweakCalls} call(s)`);
+
+  // The user's own image, a key, a real result — the path the sheet is for.
+  await tp.goto('about:blank');
+  await tp.goto(BASE, { waitUntil: 'domcontentloaded' });
+  await tp.waitForTimeout(400);
+  await tp.setInputFiles('input[type=file]', PLAN);
+  await tp.waitForTimeout(1400);
+  await tp.locator('[data-card="render"]').click();
+  await tp.waitForTimeout(600);
+  await tp.fill('#studio-key', 'AIza-qa-tweak');
+  await tp.getByRole('button', { name: /^Continue$/ }).click();
+  await tp.waitForTimeout(3000);
+  check('a generated result is on screen', (await tp.locator('[data-studio-result]').count()) === 1);
+  const afterFirstRun = tweakCalls;
+
+  check('a generated result offers to be tweaked', (await tp.locator('[data-tweak-open]').count()) === 1);
+  await tp.locator('[data-tweak-open]').click();
+  await tp.waitForTimeout(400);
+  check('the sheet opens', (await tp.locator('[data-tweak-sheet]').count()) === 1);
+
+  // The axes come from the registry declaration, so the isometric tool's own
+  // output-view chips are here — the same ones its tool screen renders.
+  check('it carries the tool\'s declared axes', (await tp.locator('[data-tweak-sheet] [aria-pressed]').count()) > 0);
+  const planChip = tp.locator('[data-tweak-sheet] button', { hasText: '2D furnished plan' });
+  check('including this tool\'s own output view', (await planChip.count()) === 1);
+  await planChip.click();
+  await tp.waitForTimeout(300);
+  check('changing a setting spends nothing on its own', tweakCalls === afterFirstRun, `${tweakCalls - afterFirstRun} extra call(s)`);
+
+  // Refine is the OTHER run, and it too waits to be asked.
+  check('refine starts disabled', await tp.locator('[data-tweak-refine]').isDisabled());
+  await tp.locator('[data-tweak-sheet] button', { hasText: 'Warmer light' }).click();
+  await tp.waitForTimeout(200);
+  check('picking a change enables it', !(await tp.locator('[data-tweak-refine]').isDisabled()));
+  check('and still spends nothing', tweakCalls === afterFirstRun, `${tweakCalls - afterFirstRun} extra call(s)`);
+
+  // Advanced holds the prompt, keyed to the feature like the tool screen's own.
+  await tp.locator('[data-tweak-advanced]').click();
+  await tp.waitForTimeout(250);
+  check('advanced reveals the prompt', (await tp.locator('#render-prompt').count()) === 1);
+  const sheetPrompt = await tp.locator('#render-prompt').inputValue();
+  check('which is the real assembled prompt', /floor plan|isometric|plan/i.test(sheetPrompt), sheetPrompt.slice(0, 60));
+
+  // Only the button spends. This one re-runs the TOOL on the original input.
+  await tp.locator('[data-tweak-rerun]').click();
+  await tp.waitForTimeout(3000);
+  check('the run button is what spends', tweakCalls > afterFirstRun, `${tweakCalls - afterFirstRun} extra call(s)`);
+  check('and the sheet closes behind it', (await tp.locator('[data-tweak-sheet]').count()) === 0);
+  // The settings change has to reach the request, or the sheet is decorative.
+  check(
+    'the changed setting reached the prompt',
+    /furnish/i.test(tweakBodies[tweakBodies.length - 1] ?? ''),
+    'a 2D furnished plan was asked for; the last request should say so',
+  );
+
+  // Refine sends the RESULT back through, not the original input — a different
+  // run from the same sheet, and the distinction is the reason there are two
+  // buttons rather than one "Regenerate".
+  await tp.locator('[data-tweak-open]').click();
+  await tp.waitForTimeout(400);
+  const beforeRefine = tweakCalls;
+  await tp.locator('[data-tweak-refine]').click();
+  await tp.waitForTimeout(3000);
+  check('refine runs too', tweakCalls > beforeRefine);
+  check(
+    'and it carries the refine instruction',
+    /warmer|keep everything|change only/i.test(tweakBodies.slice(beforeRefine).join(' ')),
+  );
+  await tweak.close();
 
   check('no page crashes', perr.length === 0, perr.slice(0, 2).join(' | '));
   await browser.close();

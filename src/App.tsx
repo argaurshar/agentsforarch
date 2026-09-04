@@ -13,7 +13,7 @@ import { SectionFeature } from './features/drawings/SectionFeature';
 import { SketchPlanFeature } from './features/drawings/SketchPlanFeature';
 import { CategoryScreen } from './features/category/CategoryScreen';
 import { ElevationFeature } from './features/elevation/ElevationFeature';
-import { DashboardFeature } from './features/home/DashboardFeature';
+import { ToolIndex } from './features/home/ToolIndex';
 import { GalleryFeature } from './features/gallery/GalleryFeature';
 import { InteriorFeature } from './features/interior/InteriorFeature';
 import { DeclutterFeature } from './features/interiors/DeclutterFeature';
@@ -45,7 +45,7 @@ import type { FeatureKind } from './types';
 // anywhere: it exists because a tool declared it.
 const FEATURES: Record<FeatureKind | 'studio' | 'home' | 'gallery', ComponentType> = {
   studio: StudioScreen,
-  home: DashboardFeature,
+  home: ToolIndex,
   massing: MassingFeature,
   sketchRender: SketchRenderFeature,
   render: RenderFeature,

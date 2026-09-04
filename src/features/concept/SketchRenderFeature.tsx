@@ -1,31 +1,13 @@
 import { GenerationScreen } from '../../components/Generation/GenerationScreen';
 import { SceneControls } from '../../components/Scene/SceneControls';
-import { ChipGroup } from '../../components/ui/ChipGroup';
-import type { SketchMedium } from '../../store/generation';
-
-const MEDIUM_OPTIONS: { value: SketchMedium; label: string }[] = [
-  { value: 'illustration', label: 'Illustration' },
-  { value: 'photoreal', label: 'Photoreal' },
-  { value: 'hybrid', label: 'Hybrid' },
-];
+import { QuickControls } from '../../components/Generation/QuickControls';
 
 export function SketchRenderFeature() {
   return (
     <GenerationScreen feature="sketchRender">
-      {({ settings, patch }) => (
+      {({ feature, settings, patch }) => (
         <>
-          <div className="flex flex-col gap-2 p-5">
-            <ChipGroup
-              label="Finish"
-              value={settings.medium}
-              options={MEDIUM_OPTIONS}
-              onChange={(v) => patch({ medium: v })}
-            />
-            <p className="text-caption text-mist">
-              Hybrid keeps your own linework visible over the colour — the closest thing to a sketch that has been
-              painted rather than replaced.
-            </p>
-          </div>
+          <QuickControls feature={feature} settings={settings} patch={patch} />
 
           {/* A rough sketch is ambiguous by construction, and the model resolves
               ambiguity upward unless told what it is looking at. */}

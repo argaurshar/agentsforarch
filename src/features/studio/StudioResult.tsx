@@ -1,5 +1,5 @@
-import { ChevronLeft, Download, Settings2, Upload, Zap } from 'lucide-react';
-import { useEffect, useRef } from 'react';
+import { ChevronLeft, Download, Settings2, SlidersHorizontal, Upload, Zap } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import { Button } from '../../components/ui/Button';
 import { ErrorBanner } from '../../components/ui/ErrorBanner';
 import { Notice } from '../../components/ui/Notice';
@@ -14,6 +14,7 @@ import type { FeatureKind } from '../../types';
 import { useProjectStore } from '../../store/useProjectStore';
 import { KeyGate } from './KeyGate';
 import { ShareBar } from './ShareBar';
+import { TweakSheet } from './TweakSheet';
 import { instantFeatures, instantFor } from './instant';
 
 /** Chips in the "now make it…" row. Beyond this it reads as a directory. */
@@ -66,6 +67,7 @@ export function StudioResult({ feature, input, kind, source, onBack, onChain, on
   const setTab = useProjectStore((s) => s.setTab);
   const { status, error, warning, outputs, inputUsed, engineReady, run, cancel } = useGenerate(feature);
   const fired = useRef(false);
+  const [tweaking, setTweaking] = useState(false);
 
   const prepared = instantFor(source, feature);
 
@@ -76,6 +78,37 @@ export function StudioResult({ feature, input, kind, source, onBack, onChain, on
         inputImages: [input],
         prompt,
         ctx: { refine: false },
+      }),
+    );
+  };
+
+  /** Settings changed in the sheet: another take on the ORIGINAL input. The
+   *  prompt is rebuilt from the new settings, so a stale one from the previous
+   *  run cannot survive the change that was the whole point of opening it. */
+  const rerun = () => {
+    setTweaking(false);
+    fired.current = true;
+    void run(
+      buildFeatureRequest(feature, settings, {
+        inputImages: [input],
+        prompt: def.buildPrompt(settings as never, { useMoodboard: false, useStyleRef: false, hasMarker: false }),
+        ctx: { refine: false },
+      }),
+    );
+  };
+
+  /** Refine from the sheet: an edit pass on the RESULT, not on the input. The
+   *  store's own refine mode is deliberately not entered — that belongs to the
+   *  tool screen, and flipping it from here would change what that screen shows
+   *  next time it is opened. */
+  const refineFrom = (image: string) => (refinePrompt: string) => {
+    setTweaking(false);
+    fired.current = true;
+    void run(
+      buildFeatureRequest(feature, settings, {
+        inputImages: [image],
+        prompt: refinePrompt,
+        ctx: { refine: true },
       }),
     );
   };
@@ -206,6 +239,14 @@ export function StudioResult({ feature, input, kind, source, onBack, onChain, on
               Download
             </Button>
             <Button
+              variant="secondary"
+              icon={<SlidersHorizontal size={16} strokeWidth={1.75} />}
+              onClick={() => setTweaking(true)}
+              data-tweak-open
+            >
+              Tweak
+            </Button>
+            <Button
               variant="ghost"
               size="sm"
               icon={<Settings2 size={14} strokeWidth={1.75} />}
@@ -226,6 +267,17 @@ export function StudioResult({ feature, input, kind, source, onBack, onChain, on
 
           {chainRow(prepared.output, prepared.outputSource)}
         </div>
+
+        {tweaking ? (
+          <TweakSheet
+            feature={feature}
+            output={prepared.output}
+            prepared
+            onClose={() => setTweaking(false)}
+            onRerun={rerun}
+            onRefine={refineFrom(prepared.output)}
+          />
+        ) : null}
       </div>
     );
   }
@@ -281,6 +333,14 @@ export function StudioResult({ feature, input, kind, source, onBack, onChain, on
               Try again
             </Button>
             <Button
+              variant="secondary"
+              icon={<SlidersHorizontal size={16} strokeWidth={1.75} />}
+              onClick={() => setTweaking(true)}
+              data-tweak-open
+            >
+              Tweak
+            </Button>
+            <Button
               variant="ghost"
               size="sm"
               icon={<Settings2 size={14} strokeWidth={1.75} />}
@@ -300,6 +360,17 @@ export function StudioResult({ feature, input, kind, source, onBack, onChain, on
           />
 
           {chainRow(generated.url, null)}
+
+          {tweaking ? (
+            <TweakSheet
+              feature={feature}
+              output={generated.url}
+              prepared={false}
+              onClose={() => setTweaking(false)}
+              onRerun={rerun}
+              onRefine={refineFrom(generated.url)}
+            />
+          ) : null}
         </div>
       ) : (
         <div className="flex flex-col items-center gap-4 rounded-card border border-hairline bg-paper px-6 py-16">

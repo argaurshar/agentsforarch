@@ -3,26 +3,17 @@ import { GenerationScreen } from '../../components/Generation/GenerationScreen';
 import { SceneControls } from '../../components/Scene/SceneControls';
 import { StyleRefPicker } from '../../components/Scene/StyleRefPicker';
 import { ChipGroup } from '../../components/ui/ChipGroup';
+import { QuickControls } from '../../components/Generation/QuickControls';
 import { ImageDropzone } from '../../components/Upload/ImageDropzone';
 import { Select } from '../../components/ui/Select';
 import { Switch } from '../../components/ui/Switch';
 import { INTERIOR_REFINE_CHIPS } from '../../lib/refine';
 import { INTERIOR_THEMES } from '../../lib/scene';
 import { useProjectStore } from '../../store/useProjectStore';
-import type { InteriorMode, InteriorThemeKey, RoomTypeKey } from '../../store/generation';
+import type { InteriorThemeKey, RoomTypeKey } from '../../store/generation';
 import { useStyleRef } from '../hooks';
 
-const MODE_OPTIONS: { value: InteriorMode; label: string }[] = [
-  { value: 'restyle', label: 'Restyle' },
-  { value: 'stage', label: 'Stage (furnish empty room)' },
-  { value: 'renovate', label: 'Renovate' },
-];
 
-const MODE_HINT: Record<InteriorMode, string> = {
-  restyle: 'Keeps the room’s architecture; replaces furniture, finishes and décor in the new style.',
-  stage: 'Furnishes a bare room with movable pieces only — walls, windows, doors, finishes and camera stay untouched.',
-  renovate: 'Bigger changes allowed: finishes, flooring, ceiling and fixtures may be replaced.',
-};
 
 const ROOM_OPTIONS: { value: RoomTypeKey; label: string }[] = [
   { value: 'living', label: 'Living room' },
@@ -79,13 +70,11 @@ export function InteriorFeature() {
           : undefined,
       }}
     >
-      {({ settings: s, patch }) => (
+      {({ feature, settings: s, patch }) => (
         <>
-          <div className="flex flex-col gap-2 p-5">
-            <ChipGroup label="Mode" value={s.mode} options={MODE_OPTIONS} onChange={(v) => patch({ mode: v })} />
-            {/* The only explanation of what each mode does — never muted. */}
-            <p className="text-label text-graphite">{MODE_HINT[s.mode]}</p>
-          </div>
+          {/* Mode is a declared axis, so the chips and the per-mode explanation
+              come from the registry — the same list the Tweak sheet reads. */}
+          <QuickControls feature={feature} settings={s} patch={patch} />
 
           <div className="p-5">
             <Select label="Room type" value={s.roomType} options={ROOM_OPTIONS} onChange={(v) => patch({ roomType: v })} />

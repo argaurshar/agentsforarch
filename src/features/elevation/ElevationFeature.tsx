@@ -2,27 +2,14 @@ import { GenerationScreen } from '../../components/Generation/GenerationScreen';
 import { SceneControls } from '../../components/Scene/SceneControls';
 import { StyleRefPicker } from '../../components/Scene/StyleRefPicker';
 import { ChipGroup } from '../../components/ui/ChipGroup';
+import { QuickControls } from '../../components/Generation/QuickControls';
 import { ImageDropzone } from '../../components/Upload/ImageDropzone';
-import { Select } from '../../components/ui/Select';
 import { ELEVATION_THEMES } from '../../lib/scene';
 import { useProjectStore } from '../../store/useProjectStore';
 import type { ElevationThemeKey } from '../../store/generation';
 import { useStyleRef } from '../hooks';
 
-const TYPE_OPTIONS = [
-  { value: 'Front', label: 'Front' },
-  { value: 'Side', label: 'Side' },
-  { value: 'Rear', label: 'Rear' },
-  // Kept short so the native select never truncates it on a 320px viewport —
-  // the face enumeration lives in the helper line under the field instead.
-  { value: 'All', label: 'All faces' },
-] as const;
 
-const STYLE_OPTIONS = [
-  { value: 'line', label: 'Line' },
-  { value: 'rendered', label: 'Rendered' },
-  { value: 'shaded', label: 'Shaded' },
-] as const;
 
 const SOURCE_OPTIONS = [
   { value: 'theme', label: 'Design theme' },
@@ -53,17 +40,15 @@ export function ElevationFeature() {
         useStyleRef: useStyleRefStyle,
       }}
     >
-      {({ settings: s, patch }) => (
+      {({ feature, settings: s, patch }) => (
         <>
-          {/* Single column below `sm` — two native selects side by side truncate
-              their option text at 320px. */}
-          <div className="grid grid-cols-1 gap-4 p-5 sm:grid-cols-2">
-            <div className="flex flex-col gap-2">
-              <Select label="Elevation type" value={s.face} options={TYPE_OPTIONS} onChange={(v) => patch({ face: v })} />
-              {s.face === 'All' ? <p className="text-label text-graphite">Front · Side · Rear, generated in one run.</p> : null}
-            </div>
-            <Select label="Style" value={s.style} options={STYLE_OPTIONS} onChange={(v) => patch({ style: v })} />
-          </div>
+          {/* Face and style are declared axes, so they render here and in the
+              front door's Tweak sheet from one list. They were two native
+              selects; as chips they also stop truncating at 320px. */}
+          <QuickControls feature={feature} settings={s} patch={patch} />
+          {s.face === 'All' ? (
+            <p className="px-5 text-label text-graphite">Front · Side · Rear, generated in one run.</p>
+          ) : null}
 
           {/* Rendered elevations can be driven by a design theme OR a mood board. */}
           {s.style === 'rendered' ? (
