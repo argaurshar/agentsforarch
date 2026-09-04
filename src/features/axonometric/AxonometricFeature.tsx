@@ -1,33 +1,19 @@
 import { GenerationScreen } from '../../components/Generation/GenerationScreen';
-import { ChipGroup } from '../../components/ui/ChipGroup';
-import { Select } from '../../components/ui/Select';
-import { SwitchRow } from '../../components/ui/SwitchRow';
+import { QuickControls } from '../../components/Generation/QuickControls';
 
 // Everything this screen used to hand-roll — header, examples, dropzone, refine
 // panel, prompt box, action row, output column, compare slider — now comes from
-// <GenerationScreen> and this tool's registry entry. What is left is the part
-// that is genuinely specific to an axonometric: style, corners, section.
+// <GenerationScreen> and this tool's registry entry.
 
 const VIEWPOINTS = ['NE', 'NW', 'SE', 'SW'] as const;
 
-// The first control on the screen, because it decides which of two prompts runs
-// — and whether the output carries an accuracy warning. From an elevation the
-// depth is invented; from a model it is read off the image.
-const SOURCE_OPTIONS = [
-  { value: 'elevation', label: 'An elevation' },
-  { value: 'model', label: 'A 3D model' },
-] as const;
-
-const STYLE_OPTIONS = [
-  { value: 'realistic', label: 'Realistic render' },
-  { value: 'lineart', label: 'Line art' },
-  { value: 'bw', label: 'Black & white lines' },
-] as const;
-
+// Source, style and the section switch are declared on the registry entry, so
+// they render here and in the front door's Tweak sheet from one list. What is
+// left below is the corner multi-select, which is neither a choice nor a toggle.
 export function AxonometricFeature() {
   return (
     <GenerationScreen feature="axonometric">
-      {({ settings, patch }) => {
+      {({ feature, settings, patch }) => {
         // Preserve NE,NW,SE,SW ordering regardless of click order.
         const ordered = VIEWPOINTS.filter((vp) => settings.viewpoints.includes(vp));
         const toggle = (vp: string) =>
@@ -39,27 +25,7 @@ export function AxonometricFeature() {
 
         return (
           <>
-            <div className="flex flex-col gap-2 p-5">
-              <ChipGroup
-                label="Built from"
-                value={settings.source}
-                options={SOURCE_OPTIONS}
-                onChange={(v) => patch({ source: v })}
-              />
-              <p className="text-caption text-mist">
-                {settings.source === 'elevation'
-                  ? 'An elevation shows one face, so the depth and roof behind it are inferred — the output says so.'
-                  : 'A viewport screenshot already carries the depth. This flattens the perspective instead of guessing.'}
-              </p>
-            </div>
-            <div className="p-5">
-              <Select
-                label="Axonometric style"
-                value={settings.style}
-                options={STYLE_OPTIONS}
-                onChange={(v) => patch({ style: v })}
-              />
-            </div>
+            <QuickControls feature={feature} settings={settings} patch={patch} />
 
             {/* Viewpoints — multi-select (spec §8.03), rendered as a segmented
                 control so the four options read as one field. */}
@@ -89,15 +55,6 @@ export function AxonometricFeature() {
               <p className="text-body text-mist">
                 {ordered.length || 'No'} viewpoint{ordered.length === 1 ? '' : 's'} selected.
               </p>
-            </div>
-
-            <div className="p-5">
-              <SwitchRow
-                checked={settings.section}
-                onChange={(next) => patch({ section: next })}
-                label="Section axonometric"
-                hint="Adds a cut plane and labels views “— section”."
-              />
             </div>
           </>
         );

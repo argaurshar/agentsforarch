@@ -1121,6 +1121,109 @@ const check = (name, ok, detail = '') => {
   check('and says so', (await shp.locator('[data-share-link]').innerText()).includes('Link copied'));
   await shareCtx.close();
 
+  // 26. The Tweak sheet. Two ways to change a result, and NEITHER fires on its
+  //     own — the whole point of an explicit button on a tool that bills per
+  //     image is that a chip tap cannot spend money.
+  const tweak = await browser.newContext({ viewport: { width: 1280, height: 1000 } });
+  const tp = await tweak.newPage();
+  let tweakCalls = 0;
+  const tweakBodies = [];
+  await tp.route('**generativelanguage.googleapis.com/**', (r) => {
+    tweakCalls += 1;
+    tweakBodies.push(r.request().postData() || '');
+    return r.fulfill({
+      status: 200,
+      headers: CORS,
+      body: JSON.stringify({ candidates: [{ content: { parts: [{ inlineData: { mimeType: 'image/png', data: PNG_1PX.toString('base64') } }] } }] }),
+    });
+  });
+  await tp.route('**api.kie.ai/**', (r) => {
+    tweakCalls += 1;
+    return r.fulfill({ status: 200, headers: CORS, body: '{}' });
+  });
+
+  await tp.goto(BASE, { waitUntil: 'domcontentloaded' });
+  await tp.waitForTimeout(500);
+
+  // A prepared result offers the sheet too — but it cannot demonstrate the
+  // buttons, because on a prepared pair every button here is a real run. So
+  // this checks the affordance, then starts again from a real generation.
+  await tp.locator('[data-sample="plan"]').click();
+  await tp.waitForTimeout(900);
+  await tp.locator('[data-card="render"]').click();
+  await tp.waitForTimeout(1200);
+  check('a prepared result offers to be tweaked', (await tp.locator('[data-tweak-open]').count()) === 1);
+  check('and nothing has been spent to get there', tweakCalls === 0, `${tweakCalls} call(s)`);
+
+  // The user's own image, a key, a real result — the path the sheet is for.
+  await tp.goto('about:blank');
+  await tp.goto(BASE, { waitUntil: 'domcontentloaded' });
+  await tp.waitForTimeout(400);
+  await tp.setInputFiles('input[type=file]', PLAN);
+  await tp.waitForTimeout(1400);
+  await tp.locator('[data-card="render"]').click();
+  await tp.waitForTimeout(600);
+  await tp.fill('#studio-key', 'AIza-qa-tweak');
+  await tp.getByRole('button', { name: /^Continue$/ }).click();
+  await tp.waitForTimeout(3000);
+  check('a generated result is on screen', (await tp.locator('[data-studio-result]').count()) === 1);
+  const afterFirstRun = tweakCalls;
+
+  check('a generated result offers to be tweaked', (await tp.locator('[data-tweak-open]').count()) === 1);
+  await tp.locator('[data-tweak-open]').click();
+  await tp.waitForTimeout(400);
+  check('the sheet opens', (await tp.locator('[data-tweak-sheet]').count()) === 1);
+
+  // The axes come from the registry declaration, so the isometric tool's own
+  // output-view chips are here — the same ones its tool screen renders.
+  check('it carries the tool\'s declared axes', (await tp.locator('[data-tweak-sheet] [aria-pressed]').count()) > 0);
+  const planChip = tp.locator('[data-tweak-sheet] button', { hasText: '2D furnished plan' });
+  check('including this tool\'s own output view', (await planChip.count()) === 1);
+  await planChip.click();
+  await tp.waitForTimeout(300);
+  check('changing a setting spends nothing on its own', tweakCalls === afterFirstRun, `${tweakCalls - afterFirstRun} extra call(s)`);
+
+  // Refine is the OTHER run, and it too waits to be asked.
+  check('refine starts disabled', await tp.locator('[data-tweak-refine]').isDisabled());
+  await tp.locator('[data-tweak-sheet] button', { hasText: 'Warmer light' }).click();
+  await tp.waitForTimeout(200);
+  check('picking a change enables it', !(await tp.locator('[data-tweak-refine]').isDisabled()));
+  check('and still spends nothing', tweakCalls === afterFirstRun, `${tweakCalls - afterFirstRun} extra call(s)`);
+
+  // Advanced holds the prompt, keyed to the feature like the tool screen's own.
+  await tp.locator('[data-tweak-advanced]').click();
+  await tp.waitForTimeout(250);
+  check('advanced reveals the prompt', (await tp.locator('#render-prompt').count()) === 1);
+  const sheetPrompt = await tp.locator('#render-prompt').inputValue();
+  check('which is the real assembled prompt', /floor plan|isometric|plan/i.test(sheetPrompt), sheetPrompt.slice(0, 60));
+
+  // Only the button spends. This one re-runs the TOOL on the original input.
+  await tp.locator('[data-tweak-rerun]').click();
+  await tp.waitForTimeout(3000);
+  check('the run button is what spends', tweakCalls > afterFirstRun, `${tweakCalls - afterFirstRun} extra call(s)`);
+  check('and the sheet closes behind it', (await tp.locator('[data-tweak-sheet]').count()) === 0);
+  // The settings change has to reach the request, or the sheet is decorative.
+  check(
+    'the changed setting reached the prompt',
+    /furnish/i.test(tweakBodies[tweakBodies.length - 1] ?? ''),
+    'a 2D furnished plan was asked for; the last request should say so',
+  );
+
+  // Refine sends the RESULT back through, not the original input — a different
+  // run from the same sheet, and the distinction is the reason there are two
+  // buttons rather than one "Regenerate".
+  await tp.locator('[data-tweak-open]').click();
+  await tp.waitForTimeout(400);
+  const beforeRefine = tweakCalls;
+  await tp.locator('[data-tweak-refine]').click();
+  await tp.waitForTimeout(3000);
+  check('refine runs too', tweakCalls > beforeRefine);
+  check(
+    'and it carries the refine instruction',
+    /warmer|keep everything|change only/i.test(tweakBodies.slice(beforeRefine).join(' ')),
+  );
+  await tweak.close();
+
   check('no page crashes', perr.length === 0, perr.slice(0, 2).join(' | '));
   await browser.close();
   const failed = results.filter((r) => !r.ok).length;

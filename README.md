@@ -56,10 +56,17 @@ changed prompt string**. Five gates, each catching something the others cannot:
 | `designLint` | design-system drift — an unregistered type size, a squared-off panel, a zeroed radius or shadow scale, a suppressed focus ring |
 | `registryLint` | a tool that is incomplete, unreachable, missing from a derived table, or offered for an image it cannot read |
 | `verifyContracts` | a tool whose own default prompt no longer satisfies the contract it declares |
+| `verifyQuick` | a control the user can tap that changes nothing about the request |
 | `promptSnapshot` | any prompt whose wording changed, across every enumerated variant |
 | `promptContradictions` | a prompt that asks for a thing and forbids it in the same breath |
 
-The last one is the least obvious and the most valuable. The two worst bugs this
+`verifyQuick` is the newest and it earned its place on its first run, finding
+two axes whose options built byte-identical requests. One was a gate bug (an
+engine parameter that never reaches the prompt); the other was real — an "apply
+to one named element" chip that does nothing until an element is named, in a
+sheet with nowhere to name one.
+
+The contradiction gate is the least obvious and the most valuable. The two worst bugs this
 app has shipped were both self-contradictory prompts, not missing ones — a
 prompt can satisfy every contract and pass the snapshot while instructing the
 model to do and not do the same thing.
@@ -123,6 +130,38 @@ becomes a new instant path by existing, and a renamed asset cannot leave a
 dangling filename behind. `registryLint` checks every referenced asset is
 actually shipped, and that every sample on the drop zone has at least one tool
 that can answer it for free.
+
+### Tweaking a result
+
+A result is rarely the last word, so it has a **Tweak** sheet — and the sheet
+holds two different runs rather than one ambiguous "Regenerate":
+
+| | What it changes | What it runs on |
+|---|---|---|
+| **Settings** | the recipe — a different light, face, palette, hatching | your original image, again |
+| **Change this image** | the output — warmer light, more glass, remove the people | the result on screen |
+
+Collapsing those into one button would mean guessing which you meant, and the
+same words produce visibly different images depending on the answer.
+
+**Nothing fires on change.** The plan for this step said "regenerate on change";
+on a tool that bills per image, a chip row that spends money on every tap is a
+trap. Each section has its own button and says what it is about to do, and
+`qa:e2e` asserts that changing a setting and picking a refine chip both leave
+the network untouched.
+
+The settings in the sheet are the tool's **declared axes** (`quick` on its
+registry entry), and the tool's own screen renders them from the same
+declaration through one `<QuickControls>`. That is the whole reason the field
+exists: two hand-written copies of "Light: golden / overcast / midday" is the
+parallel table this codebase keeps deleting, and the second copy is the one that
+would silently lose an option. `registryLint` fails a screen that hand-writes a
+control for a key its registry entry already declares.
+
+Not everything is an axis. Free-text fields, ordered multi-selects, scene
+sliders and extra dropzones stay on the tool screen, because a one-tap chip
+cannot express them — and an axis that only matters once a text field is filled
+is not self-sufficient enough to belong in a sheet that has no text field.
 
 ### Sharing a result
 

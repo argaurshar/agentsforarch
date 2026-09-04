@@ -1,25 +1,12 @@
 import { GenerationScreen } from '../../components/Generation/GenerationScreen';
-import { ChipGroup } from '../../components/ui/ChipGroup';
-import type { ProgramOrientation } from '../../store/generation';
-
-const ORIENTATION_OPTIONS: { value: ProgramOrientation; label: string }[] = [
-  { value: 'vertical', label: 'Stacked' },
-  { value: 'isometric', label: 'Exploded isometric' },
-];
+import { QuickControls } from '../../components/Generation/QuickControls';
 
 export function ProgramDiagramFeature() {
   return (
     <GenerationScreen feature="programDiagram">
-      {({ settings, patch }) => (
+      {({ feature, settings, patch }) => (
         <>
-          <div className="p-5">
-            <ChipGroup
-              label="Arrangement"
-              value={settings.orientation}
-              options={ORIENTATION_OPTIONS}
-              onChange={(v) => patch({ orientation: v })}
-            />
-          </div>
+          <QuickControls feature={feature} settings={settings} patch={patch} />
 
           {/* A facade cannot say what happens behind it, so the program is the
               one thing the input genuinely cannot supply. */}

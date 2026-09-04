@@ -89,7 +89,7 @@ import {
   buildSpecSheetPrompt,
   buildTargetedSwapPrompt,
 } from '../../lib/prompt/interiors';
-import { defaultScene } from '../../lib/scene';
+import { LIGHTING, MATERIAL_PRESETS, MOODS, SEASONS, defaultScene } from '../../lib/scene';
 import type { AspectRatio } from '../../providers/options';
 import type { GenerateOptions, GenerateRequest } from '../../providers/types';
 import type {
@@ -156,6 +156,44 @@ export interface PromptContext {
 export interface FeatureJob {
   label: string;
   prompt: string;
+}
+
+/**
+ * One axis of a tool worth changing without leaving the result.
+ *
+ * These are declared HERE rather than written into each tool's screen because
+ * two surfaces now render them: the tool screen, and the front door's Tweak
+ * sheet. Two hand-written copies of "Light: golden / overcast / midday" is the
+ * parallel table this codebase keeps deleting — the second copy would be the
+ * one that silently lost an option.
+ *
+ * It is deliberately a SHORTLIST, not every control. A tool's free-text fields,
+ * scene sliders, extra dropzones and multi-selects stay on its own screen; what
+ * belongs here is what someone re-runs to change after seeing a result. A tool
+ * with nothing worth changing that way declares nothing, and its sheet says so.
+ */
+export type QuickAxis<S> =
+  | {
+      kind: 'choice';
+      /** The settings key this patches. `keyof S` keeps a typo from compiling. */
+      key: Extract<keyof S, string>;
+      label: string;
+      /** One line under the row. Worth writing when the choice has a cost. */
+      hint?: string;
+      /** A per-option `hint` replaces the axis hint while that option is
+       *  selected. Several tools already worked this way — "the rear face is
+       *  not in the input at all" is true of one choice, not of the axis — and
+       *  flattening those into one static line would have made every hint
+       *  hedge. */
+      options: readonly { value: string; label: string; hint?: string }[];
+    }
+  | { kind: 'toggle'; key: Extract<keyof S, string>; label: string; hint: string };
+
+/** `{ golden: { label: 'Golden hour' } }` → `[{ value: 'golden', label: '…' }]`.
+ *  Derived from the scene vocabulary so a tool and the scene controls can never
+ *  offer different options for the same axis. */
+function vocab<K extends string>(o: Record<K, { label: string }>): { value: string; label: string }[] {
+  return (Object.keys(o) as K[]).map((value) => ({ value, label: o[value].label }));
 }
 
 export interface FeatureDef<S extends FeatureSettings = FeatureSettings> {
@@ -227,6 +265,13 @@ export interface FeatureDef<S extends FeatureSettings = FeatureSettings> {
   accuracyWarning?: (settings: S) => string | undefined;
 
   defaultSettings: S;
+  /**
+   * The one to four axes worth changing from a result — rendered by the tool
+   * screen AND by the front door's Tweak sheet, from this one declaration.
+   * Omitted when a tool has nothing that fits (its controls are all free text,
+   * or it has none at all).
+   */
+  quick?: QuickAxis<S>[];
   buildPrompt: (settings: S, ctx: PromptContext) => string;
   // `sceneShow` used to sit here: a Record<string, boolean> that thirty tools
   // filled in and NOTHING read. The screens that show scene controls pass their
@@ -365,6 +410,18 @@ const massing: FeatureDef<MassingSettings> = {
   inputMode: 'text',
   maxReferences: 0,
   defaultSettings: { brief: '', siteSize: '', density: 'medium', storeys: '', context: '' },
+  quick: [
+    {
+      kind: 'choice',
+      key: 'density',
+      label: 'Density',
+      options: [
+        { value: 'low', label: 'Low-rise' },
+        { value: 'medium', label: 'Mid-rise' },
+        { value: 'high', label: 'High-density' },
+      ],
+    },
+  ],
   buildPrompt: (s) => buildMassingPrompt(s),
   // A massing model is photographed three-quarter aerial, which is a landscape
   // composition whatever the plot shape — there is no input canvas to inherit.
@@ -405,6 +462,19 @@ const sketchRender: FeatureDef<SketchRenderSettings> = {
   inputMode: 'image',
   maxReferences: 0,
   defaultSettings: { medium: 'illustration', subject: '', scene: defaultScene() },
+  quick: [
+    {
+      kind: 'choice',
+      key: 'medium',
+      label: 'Finish',
+      hint: 'Hybrid keeps your own linework visible over the colour — the closest thing to a sketch that has been painted rather than replaced.',
+      options: [
+        { value: 'illustration', label: 'Illustration' },
+        { value: 'photoreal', label: 'Photoreal' },
+        { value: 'hybrid', label: 'Hybrid' },
+      ],
+    },
+  ],
   buildPrompt: (s) => buildSketchRenderPrompt({ ...s.scene, medium: s.medium, subject: s.subject }),
   // Deliberately unpinned. The sketch's own crop IS the composition the
   // architect drew, and the prompt locks the viewpoint to it — pinning a ratio
@@ -447,6 +517,17 @@ const render: FeatureDef<RenderSettings> = {
   inputMode: 'image',
   maxReferences: 1,
   defaultSettings: { style: 'isometric', variations: 1, scene: defaultScene() },
+  quick: [
+    {
+      kind: 'choice',
+      key: 'style',
+      label: 'Output view',
+      options: [
+        { value: 'isometric', label: '3D isometric' },
+        { value: 'plan2d', label: '2D furnished plan' },
+      ],
+    },
+  ],
   buildPrompt: (s, ctx) => buildRenderPrompt({ style: s.style, useStyleRef: ctx.useStyleRef, ...s.scene }),
   // An isometric of ANY plan is a ~4:3 landscape composition (the plan's own
   // width:depth cancels in the projection), so inheriting a portrait plan's
@@ -498,6 +579,14 @@ const sketchPlan: FeatureDef<SketchPlanSettings> = {
   inputMode: 'image',
   maxReferences: 0,
   defaultSettings: { annotation: 'none', units: 'metric', furnished: false },
+  quick: [
+    {
+      kind: 'toggle',
+      key: 'furnished',
+      label: 'Include fixtures',
+      hint: 'Sanitary ware, kitchen counters, beds and the stair, as plan symbols.',
+    },
+  ],
   buildPrompt: (s) => buildSketchPlanPrompt(s),
   // A drawn-up plan follows the sketch's own proportions — pinning a ratio here
   // would be the isometric bug in reverse, squeezing a long plan into a square.
@@ -544,6 +633,29 @@ const cadElevation: FeatureDef<CadElevationSettings> = {
       ? 'The rear face is not in the input image — it is reconstructed from the volume, roof form and materials that are. Treat its openings as a proposal, not a survey.'
       : undefined,
   defaultSettings: { face: 'front', annotation: 'none', units: 'metric', hatch: true },
+  quick: [
+    {
+      kind: 'choice',
+      key: 'face',
+      label: 'Which face',
+      options: [
+        { value: 'front', label: 'Facing camera', hint: 'Drawn from what the input shows, flattened.' },
+        { value: 'left', label: 'Left', hint: 'The flank on the left of the view, turned square-on.' },
+        { value: 'right', label: 'Right', hint: 'The flank on the right of the view, turned square-on.' },
+        {
+          value: 'rear',
+          label: 'Rear',
+          hint: 'Not visible in the input — reconstructed from the volume, roof form and materials that are.',
+        },
+      ],
+    },
+    {
+      kind: 'toggle',
+      key: 'hatch',
+      label: 'Material hatching',
+      hint: 'Conventional flat hatching for brick, render, stone and glazing.',
+    },
+  ],
   buildPrompt: (s) => buildCadElevationPrompt(s),
   // The input is a 3D viewport of any shape; the output is one flat facade.
   // Inheriting the screenshot's canvas is the pressure that squashed L-shaped
@@ -590,6 +702,32 @@ const section: FeatureDef<SectionSettings> = {
       ? undefined
       : 'Nothing here says how tall the building is — a plan cannot show it and one view rarely can, so the storey heights and roof form are the model’s guess. Fill in "Storeys and levels" to pin them down.',
   defaultSettings: { axis: 'longitudinal', style: 'line', levels: '', entourage: true, annotation: 'none', units: 'metric' },
+  quick: [
+    {
+      kind: 'choice',
+      key: 'axis',
+      label: 'Cut direction',
+      options: [
+        { value: 'longitudinal', label: 'Along the long axis' },
+        { value: 'cross', label: 'Across the short axis' },
+      ],
+    },
+    {
+      kind: 'choice',
+      key: 'style',
+      label: 'Style',
+      options: [
+        { value: 'line', label: 'Line drawing' },
+        { value: 'shaded', label: 'Shaded' },
+      ],
+    },
+    {
+      kind: 'toggle',
+      key: 'entourage',
+      label: 'People and furniture',
+      hint: 'Light outlines inside the rooms, so ceiling heights read at a glance.',
+    },
+  ],
   buildPrompt: (s) => buildSectionPrompt(s),
   // A section is a wide drawing whatever the building — it spans the full length
   // or width and is only ever a couple of storeys tall.
@@ -636,6 +774,14 @@ const renderToPlan: FeatureDef<RenderToPlanSettings> = {
   accuracyWarning: () =>
     'A plan reverse-engineered from one view is part measurement, part inference. Everything the image could not see is the model’s plainest guess — check it against the real thing before drawing on it.',
   defaultSettings: { annotation: 'none', units: 'metric', furnished: false },
+  quick: [
+    {
+      kind: 'toggle',
+      key: 'furnished',
+      label: 'Include furniture',
+      hint: 'Plan symbols for what the view shows in each room.',
+    },
+  ],
   buildPrompt: (s) => buildRenderToPlanPrompt(s),
   // Same reason: a plan derived from a 16:9 render must not be generated into a
   // 16:9 frame, because the building's footprint has nothing to do with the
@@ -685,6 +831,29 @@ const elevation: FeatureDef<ElevationSettings> = {
     moodboard: null,
     scene: defaultScene(),
   },
+  quick: [
+    {
+      kind: 'choice',
+      key: 'face',
+      label: 'Elevation type',
+      options: [
+        { value: 'Front', label: 'Front' },
+        { value: 'Side', label: 'Side' },
+        { value: 'Rear', label: 'Rear' },
+        { value: 'All', label: 'All faces' },
+      ],
+    },
+    {
+      kind: 'choice',
+      key: 'style',
+      label: 'Style',
+      options: [
+        { value: 'line', label: 'Line' },
+        { value: 'rendered', label: 'Rendered' },
+        { value: 'shaded', label: 'Shaded' },
+      ],
+    },
+  ],
   buildPrompt: (s, ctx) =>
     buildElevationPrompt({
       face: s.face === 'All' ? null : s.face,
@@ -757,6 +926,41 @@ const axonometric: FeatureDef<AxonSettings> = {
   inputMode: 'image',
   maxReferences: 1,
   defaultSettings: { source: 'elevation', viewpoints: ['NE'], style: 'realistic', section: false, scene: defaultScene() },
+  quick: [
+    {
+      kind: 'choice',
+      key: 'source',
+      label: 'Built from',
+      options: [
+        {
+          value: 'elevation',
+          label: 'An elevation',
+          hint: 'An elevation shows one face, so the depth and roof behind it are inferred — the output says so.',
+        },
+        {
+          value: 'model',
+          label: 'A 3D model',
+          hint: 'A viewport screenshot already carries the depth. This flattens the perspective instead of guessing.',
+        },
+      ],
+    },
+    {
+      kind: 'choice',
+      key: 'style',
+      label: 'Axonometric style',
+      options: [
+        { value: 'realistic', label: 'Realistic render' },
+        { value: 'lineart', label: 'Line art' },
+        { value: 'bw', label: 'Black & white lines' },
+      ],
+    },
+    {
+      kind: 'toggle',
+      key: 'section',
+      label: 'Section axonometric',
+      hint: 'Adds a cut plane and labels views \u201c\u2014 section\u201d.',
+    },
+  ],
   buildPrompt: (s) => buildAxonometricPrompt({ section: s.section, style: s.style, source: s.source }),
   // Only the elevation branch is guessing. A modelled viewport carries the depth
   // the drawing needs, so warning about it there would be a warning the user
@@ -825,6 +1029,21 @@ const watercolour: FeatureDef<WatercolourSettings> = {
   inputMode: 'image',
   maxReferences: 0,
   defaultSettings: { palette: 'warm', loose: true, keepLines: true },
+  quick: [
+    {
+      kind: 'choice',
+      key: 'palette',
+      label: 'Palette',
+      options: [
+        { value: 'warm', label: 'Warm' },
+        { value: 'cool', label: 'Cool' },
+        { value: 'muted', label: 'Muted' },
+        { value: 'monochrome', label: 'Monochrome' },
+      ],
+    },
+    { kind: 'toggle', key: 'loose', label: 'Loose washes', hint: 'Bleeding edges and pooling pigment. The paint gets to be loose; the building does not.' },
+    { kind: 'toggle', key: 'keepLines', label: 'Ink line over the paint', hint: 'Off leaves the form described by the washes alone — softer, and harder to read at small sizes.' },
+  ],
   buildPrompt: (s) => buildWatercolourPrompt(s),
   sendTargets: ['moodboard'],
   poolLabel: 'Watercolours',
@@ -870,6 +1089,30 @@ const interior: FeatureDef<InteriorSettings> = {
     moodboard: null,
     scene: defaultScene(),
   },
+  quick: [
+    {
+      kind: 'choice',
+      key: 'mode',
+      label: 'Mode',
+      options: [
+        {
+          value: 'restyle',
+          label: 'Restyle',
+          hint: 'Keeps the room\u2019s architecture; replaces furniture, finishes and décor in the new style.',
+        },
+        {
+          value: 'stage',
+          label: 'Stage (furnish empty room)',
+          hint: 'Furnishes a bare room with movable pieces only — walls, windows, doors, finishes and camera stay untouched.',
+        },
+        {
+          value: 'renovate',
+          label: 'Renovate',
+          hint: 'Bigger changes allowed: finishes, flooring, ceiling and fixtures may be replaced.',
+        },
+      ],
+    },
+  ],
   buildPrompt: (s, ctx) =>
     buildInteriorPrompt({
       mode: s.mode,
@@ -925,6 +1168,14 @@ const declutter: FeatureDef<DeclutterSettings> = {
   inputMode: 'image',
   maxReferences: 0,
   defaultSettings: { keepBuiltIns: true },
+  quick: [
+    {
+      kind: 'toggle',
+      key: 'keepBuiltIns',
+      label: 'Keep fitted joinery',
+      hint: 'On: wardrobes, kitchen units and fixed shelving stay. Off: a full strip-out to bare walls.',
+    },
+  ],
   buildPrompt: (s) => buildDeclutterPrompt(s),
   sendTargets: ['interior'],
   poolLabel: 'Cleared rooms',
@@ -969,6 +1220,35 @@ const placeObject: FeatureDef<PlaceObjectSettings> = {
     { label: 'Input · the object', hint: 'A product shot of the exact item — plain background works best' },
   ],
   defaultSettings: { kind: 'furniture', placement: 'replace', target: '' },
+  quick: [
+    {
+      kind: 'choice',
+      key: 'kind',
+      label: 'Object type',
+      options: [
+        {
+          value: 'furniture',
+          label: 'Furniture',
+          hint: 'Grounded with a contact shadow and correct occlusion against what is already there.',
+        },
+        {
+          value: 'lighting',
+          label: 'Light fitting',
+          hint: 'Placed switched ON — its light falls on the surrounding ceiling, walls and furniture.',
+        },
+        { value: 'artwork', label: 'Artwork', hint: 'Mounted flat to the wall plane in correct perspective, wall finish untouched.' },
+      ],
+    },
+    {
+      kind: 'choice',
+      key: 'placement',
+      label: 'Placement',
+      options: [
+        { value: 'replace', label: 'Replace something' },
+        { value: 'add', label: 'Add to the room' },
+      ],
+    },
+  ],
   buildPrompt: (s) => buildPlaceObjectPrompt(s),
   sendTargets: [],
   poolLabel: 'Placed objects',
@@ -1107,6 +1387,19 @@ const birdsEye: FeatureDef<BirdsEyeSettings> = {
   inputMode: 'image',
   maxReferences: 0,
   defaultSettings: { light: 'golden', context: '' },
+  quick: [
+    {
+      kind: 'choice',
+      key: 'light',
+      label: 'Light',
+      hint: 'Golden hour throws long shadows, which is what makes a flat satellite image read as three-dimensional.',
+      options: [
+        { value: 'golden', label: 'Golden hour' },
+        { value: 'overcast', label: 'Overcast' },
+        { value: 'midday', label: 'Midday' },
+      ],
+    },
+  ],
   buildPrompt: (s) => buildBirdsEyePrompt(s),
   // A drone shot is a landscape composition whatever shape the screenshot was
   // cropped to, and the input crop carries no compositional intent — it is
@@ -1153,6 +1446,24 @@ const urbanContext: FeatureDef<UrbanContextSettings> = {
   inputMode: 'image',
   maxReferences: 0,
   defaultSettings: { density: 'mid', city: '', entourage: true },
+  quick: [
+    {
+      kind: 'choice',
+      key: 'density',
+      label: 'Neighbours',
+      options: [
+        { value: 'low', label: 'Low-rise' },
+        { value: 'mid', label: 'Mid-rise' },
+        { value: 'dense', label: 'Dense city' },
+      ],
+    },
+    {
+      kind: 'toggle',
+      key: 'entourage',
+      label: 'People on the street',
+      hint: 'At correct scale against the building — the cheapest way to make the height read.',
+    },
+  ],
   buildPrompt: (s) => buildUrbanContextPrompt(s),
   // Unpinned on purpose: the prompt's second instruction is that the camera does
   // not move, and a pinned ratio is a re-crop, which is a camera move.
@@ -1195,6 +1506,14 @@ const wireframeRender: FeatureDef<WireframeRenderSettings> = {
   inputMode: 'image',
   maxReferences: 1,
   defaultSettings: { keepBackground: false, scene: defaultScene() },
+  quick: [
+    {
+      kind: 'toggle',
+      key: 'keepBackground',
+      label: 'Keep the viewport background',
+      hint: 'On: whatever is behind the model stays. Off: a plausible setting is built around it.',
+    },
+  ],
   buildPrompt: (s) => buildWireframeRenderPrompt({ ...s.scene, keepBackground: s.keepBackground }),
   sendTargets: ['atmosphere', 'humanScale', 'upscale'],
   poolLabel: 'Renders',
@@ -1232,6 +1551,23 @@ const renderRefine: FeatureDef<RenderRefineSettings> = {
   inputMode: 'image',
   maxReferences: 0,
   defaultSettings: { level: 'finish', fixPeople: true, fixMaterials: true },
+  quick: [
+    {
+      kind: 'choice',
+      key: 'level',
+      label: 'How far',
+      options: [
+        { value: 'polish', label: 'Polish', hint: 'Clean up what is soft or noisy. The lightest touch — closest to the original.' },
+        {
+          value: 'finish',
+          label: 'Finish',
+          hint: 'Bring it to portfolio standard: real material detail, contact shadows, believable glass.',
+        },
+      ],
+    },
+    { kind: 'toggle', key: 'fixMaterials', label: 'Fix materials', hint: 'Kill repeating textures, stretched mapping and brick courses at the wrong scale.' },
+    { kind: 'toggle', key: 'fixPeople', label: 'Fix people', hint: 'Correct anatomy, hands and feet, and shadows that actually touch the ground.' },
+  ],
   buildPrompt: (s) => buildRenderRefinePrompt(s),
   sendTargets: ['upscale', 'humanScale'],
   poolLabel: 'Refined renders',
@@ -1269,6 +1605,17 @@ const atmosphere: FeatureDef<AtmosphereSettings> = {
   inputMode: 'image',
   maxReferences: 0,
   defaultSettings: { lighting: 'golden-hour', season: 'none', mood: 'none', keepPeople: true },
+  quick: [
+    { kind: 'choice', key: 'lighting', label: 'Light', options: vocab(LIGHTING) },
+    { kind: 'choice', key: 'season', label: 'Season', options: vocab(SEASONS) },
+    { kind: 'choice', key: 'mood', label: 'Mood', options: vocab(MOODS) },
+    {
+      kind: 'toggle',
+      key: 'keepPeople',
+      label: 'Keep the people',
+      hint: 'Off clears the render of people and vehicles, leaving the architecture.',
+    },
+  ],
   buildPrompt: (s) => buildAtmospherePrompt(s),
   sendTargets: ['upscale', 'humanScale'],
   poolLabel: 'Re-lit renders',
@@ -1306,6 +1653,13 @@ const facadeMaterial: FeatureDef<FacadeMaterialSettings> = {
   inputMode: 'image',
   maxReferences: 0,
   defaultSettings: { materials: 'brick-timber', customMaterials: '', scope: 'whole', target: '' },
+  quick: [
+    // `scope` is deliberately NOT here. "One named element" does nothing until
+    // an element is named, and that text field cannot live in a one-tap sheet —
+    // so in the sheet it would be a chip that changes the request not at all.
+    // qa/verifyQuick.cjs caught exactly that on its first run.
+    { kind: 'choice', key: 'materials', label: 'Material', options: vocab(MATERIAL_PRESETS) },
+  ],
   buildPrompt: (s) => buildFacadeMaterialPrompt(s),
   sendTargets: ['atmosphere', 'upscale'],
   poolLabel: 'Material studies',
@@ -1351,6 +1705,31 @@ const humanScale: FeatureDef<HumanScaleSettings> = {
   inputMode: 'image',
   maxReferences: 0,
   defaultSettings: { density: 'some', setting: 'residential', vehicles: false, planting: false },
+  quick: [
+    {
+      kind: 'choice',
+      key: 'density',
+      label: 'How many',
+      options: [
+        { value: 'few', label: 'A few' },
+        { value: 'some', label: 'Some' },
+        { value: 'busy', label: 'Busy' },
+      ],
+    },
+    {
+      kind: 'choice',
+      key: 'setting',
+      label: 'Who',
+      hint: 'Sets what the figures are doing, which is what stops them reading as stock cut-outs.',
+      options: [
+        { value: 'residential', label: 'Residential' },
+        { value: 'commercial', label: 'Commercial' },
+        { value: 'civic', label: 'Civic / public' },
+      ],
+    },
+    { kind: 'toggle', key: 'vehicles', label: 'Vehicles', hint: 'One or two, where a vehicle would actually be — never blocking the facade.' },
+    { kind: 'toggle', key: 'planting', label: 'Planting', hint: 'Street trees, hedging or beds at believable mature sizes.' },
+  ],
   buildPrompt: (s) => buildHumanScalePrompt(s),
   sendTargets: ['atmosphere', 'upscale'],
   poolLabel: 'Populated renders',
@@ -1392,6 +1771,18 @@ const multiView: FeatureDef<MultiViewSettings> = {
   accuracyWarning: () =>
     'Check the panels against each other before you use this — count storeys and windows in each. Generating several views of one building is the hardest thing this app asks, and a sheet of four near-misses looks convincing at a glance.',
   defaultSettings: { views: ['front', 'threequarter', 'side', 'aerial'], layout: '2x2' },
+  quick: [
+    {
+      kind: 'choice',
+      key: 'layout',
+      label: 'Layout',
+      options: [
+        { value: '1x3', label: '3 across' },
+        { value: '2x2', label: '2 \u00d7 2' },
+        { value: '2x3', label: '2 \u00d7 3' },
+      ],
+    },
+  ],
   buildPrompt: (s) => buildMultiViewPrompt(s),
   // A sheet is a landscape composition whatever the building.
   aspectRatio: () => '3:2',
@@ -1438,6 +1829,26 @@ const reflection: FeatureDef<ReflectionSettings> = {
   inputMode: 'image',
   maxReferences: 0,
   defaultSettings: { mode: 'balanced', reflect: '' },
+  quick: [
+    {
+      kind: 'choice',
+      key: 'mode',
+      label: 'What the glass does',
+      options: [
+        {
+          value: 'transparent',
+          label: 'See through it',
+          hint: 'Interiors visible through the glass — the reading that makes a building look occupied.',
+        },
+        {
+          value: 'balanced',
+          label: 'Balanced',
+          hint: 'Part interior, part sky, varying pane by pane with the angle. The most photographic.',
+        },
+        { value: 'mirror', label: 'Mirror it', hint: 'The facade disappears into its surroundings. Strongest at a distance.' },
+      ],
+    },
+  ],
   buildPrompt: (s) => buildReflectionPrompt(s),
   sendTargets: ['upscale', 'atmosphere'],
   poolLabel: 'Glazing studies',
@@ -1475,6 +1886,18 @@ const upscale: FeatureDef<UpscaleSettings> = {
   inputMode: 'image',
   maxReferences: 0,
   defaultSettings: { resolution: '2K', sharpen: true },
+  quick: [
+    {
+      kind: 'choice',
+      key: 'resolution',
+      label: 'Target size',
+      options: [
+        { value: '2K', label: '2K' },
+        { value: '4K', label: '4K' },
+      ],
+    },
+    { kind: 'toggle', key: 'sharpen', label: 'Output sharpening', hint: 'Restrained, for large-format print. Off leaves the result naturally soft.' },
+  ],
   buildPrompt: (s) => buildUpscalePrompt(s),
   sendTargets: [],
   poolLabel: 'Print masters',
@@ -1522,6 +1945,26 @@ const floorAnalysis: FeatureDef<FloorAnalysisSettings> = {
   inputMode: 'image',
   maxReferences: 0,
   defaultSettings: { layer: 'circulation', labels: true },
+  quick: [
+    {
+      kind: 'choice',
+      key: 'layer',
+      label: 'Layer',
+      hint: 'One at a time on purpose. Four layers on one plan is a colourful mess; four runs is a series.',
+      options: [
+        { value: 'circulation', label: 'Circulation' },
+        { value: 'zoning', label: 'Zoning' },
+        { value: 'daylight', label: 'Daylight' },
+        { value: 'structure', label: 'Structure' },
+      ],
+    },
+    {
+      kind: 'toggle',
+      key: 'labels',
+      label: 'Room names and a title',
+      hint: 'On by default here — an analysis diagram nobody can read explains nothing.',
+    },
+  ],
   buildPrompt: (s) => buildFloorAnalysisPrompt(s),
   sendTargets: [],
   poolLabel: 'Analysis diagrams',
@@ -1560,6 +2003,17 @@ const programDiagram: FeatureDef<ProgramDiagramSettings> = {
   inputMode: 'image',
   maxReferences: 0,
   defaultSettings: { levels: '', orientation: 'vertical' },
+  quick: [
+    {
+      kind: 'choice',
+      key: 'orientation',
+      label: 'Arrangement',
+      options: [
+        { value: 'vertical', label: 'Stacked' },
+        { value: 'isometric', label: 'Exploded isometric' },
+      ],
+    },
+  ],
   buildPrompt: (s) => buildProgramDiagramPrompt(s),
   // A separated stack is tall whichever way you cut it; an isometric explosion
   // spreads sideways as well, so it gets a squarer frame.
@@ -1601,6 +2055,24 @@ const explodedAxon: FeatureDef<ExplodedAxonSettings> = {
   inputMode: 'image',
   maxReferences: 0,
   defaultSettings: { axis: 'vertical', labels: true },
+  quick: [
+    {
+      kind: 'choice',
+      key: 'axis',
+      label: 'Explode',
+      hint: 'Upward reads as an assembly sequence. Outward peels the envelope off the structure — better for showing a facade build-up.',
+      options: [
+        { value: 'vertical', label: 'Upward' },
+        { value: 'layered', label: 'Outward' },
+      ],
+    },
+    {
+      kind: 'toggle',
+      key: 'labels',
+      label: 'Label each layer',
+      hint: 'Roof structure, floor plates, frame, facade, ground — on leader lines.',
+    },
+  ],
   buildPrompt: (s) => buildExplodedAxonPrompt(s),
   aspectRatio: (s) => (s.axis === 'vertical' ? '4:5' : '4:3'),
   sendTargets: [],
@@ -1640,6 +2112,27 @@ const annotation: FeatureDef<AnnotationSettings> = {
   inputMode: 'image',
   maxReferences: 0,
   defaultSettings: { subject: 'circulation', custom: '', labels: true },
+  quick: [
+    {
+      kind: 'choice',
+      key: 'subject',
+      label: 'Explain',
+      options: [
+        { value: 'circulation', label: 'Circulation' },
+        { value: 'ventilation', label: 'Ventilation' },
+        { value: 'sun', label: 'Sun path' },
+        { value: 'program', label: 'Program' },
+        { value: 'structure', label: 'Structure' },
+        { value: 'custom', label: 'Something else' },
+      ],
+    },
+    {
+      kind: 'toggle',
+      key: 'labels',
+      label: 'Labels and a legend',
+      hint: 'Off leaves arrows and highlight zones only — cleaner, and it needs someone present to explain it.',
+    },
+  ],
   buildPrompt: (s) => buildAnnotationPrompt(s),
   sendTargets: [],
   poolLabel: 'Annotated diagrams',

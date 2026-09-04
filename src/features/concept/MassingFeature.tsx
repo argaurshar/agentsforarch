@@ -1,12 +1,5 @@
 import { GenerationScreen } from '../../components/Generation/GenerationScreen';
-import { ChipGroup } from '../../components/ui/ChipGroup';
-import type { MassingDensity } from '../../store/generation';
-
-const DENSITY_OPTIONS: { value: MassingDensity; label: string }[] = [
-  { value: 'low', label: 'Low-rise' },
-  { value: 'medium', label: 'Mid-rise' },
-  { value: 'high', label: 'High-density' },
-];
+import { QuickControls } from '../../components/Generation/QuickControls';
 
 /**
  * The first tool with no image input.
@@ -20,7 +13,7 @@ const DENSITY_OPTIONS: { value: MassingDensity; label: string }[] = [
 export function MassingFeature() {
   return (
     <GenerationScreen feature="massing">
-      {({ settings, patch }) => (
+      {({ feature, settings, patch }) => (
         <>
           <div className="flex flex-col gap-2 p-5">
             <label htmlFor="massing-brief" className="mono-meta">
@@ -62,14 +55,7 @@ export function MassingFeature() {
             </div>
           </div>
 
-          <div className="p-5">
-            <ChipGroup
-              label="Density"
-              value={settings.density}
-              options={DENSITY_OPTIONS}
-              onChange={(v) => patch({ density: v })}
-            />
-          </div>
+          <QuickControls feature={feature} settings={settings} patch={patch} />
 
           <div className="flex flex-col gap-2 p-5">
             <label htmlFor="massing-context" className="mono-meta">

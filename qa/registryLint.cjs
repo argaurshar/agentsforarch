@@ -481,6 +481,57 @@ check(
   'a #/do/… link would resolve to nothing — the router must parse it AND record it',
 );
 
+// --- 11. A declared quick axis is rendered from the declaration, once --------
+//
+// `quick` exists so the tool screen and the front door's Tweak sheet draw the
+// same controls from one list. That only holds while the screen renders
+// <QuickControls>; the moment it also hand-writes a chip row for a declared key
+// there are two copies again, and the second one is the one that will quietly
+// lose an option.
+//
+// Detected by looking for a screen patching a key its registry entry already
+// declares — `patch({ face: …})` in a file whose tool declares a `face` axis.
+
+const appSrc = fs.readFileSync(path.join(SRC, 'App.tsx'), 'utf8');
+// `  render: RenderFeature,` in App.tsx's FEATURES map — the one place that
+// already maps a tool to the component that draws it.
+const screenOf = {};
+for (const m of stripComments(appSrc).matchAll(/^\s{2}([a-zA-Z]+): (\w+Feature),$/gm)) screenOf[m[1]] = m[2];
+
+const quickKeys = {};
+for (const b of defBlocks) {
+  const key = b.match(/key: '([^']+)'/)?.[1];
+  const block = b.match(/\n  quick: \[([\s\S]*?)\n  \],/)?.[1];
+  if (!key || !block) continue;
+  quickKeys[key] = [...block.matchAll(/key: '([^']+)'/g)].map((m) => m[1]);
+}
+check('quick axes are declared', Object.keys(quickKeys).length > 0, `${Object.keys(quickKeys).length} tool(s)`);
+
+const dupes = [];
+for (const [tool, keys] of Object.entries(quickKeys)) {
+  const component = screenOf[tool];
+  const screen = files.find((f) => new RegExp(`export function ${component}\\b`).test(f.text));
+  if (!component || !screen) {
+    dupes.push(`${tool}: no screen found for ${component ?? '(unmapped)'}`);
+    continue;
+  }
+  const text = stripComments(screen.text);
+  if (!/<QuickControls\b/.test(text)) {
+    dupes.push(`${screen.rel}: declares quick axes but never renders <QuickControls>`);
+    continue;
+  }
+  for (const k of keys) {
+    // `patch({ face: v })` / `patch({ face: next })` — the screen writing the
+    // same setting the declaration already owns.
+    if (new RegExp(`patch\\(\\{\\s*${k}:`).test(text)) dupes.push(`${screen.rel}: hand-writes a control for "${k}"`);
+  }
+}
+check(
+  'no screen hand-writes a control for a declared quick axis',
+  dupes.length === 0,
+  dupes.join('\n      ') + '  — render it from the declaration, or drop it from quick',
+);
+
 const failed = results.filter((r) => !r.ok).length;
 console.log(`\n${results.length - failed}/${results.length} registry checks passed`);
 process.exit(failed === 0 ? 0 : 1);

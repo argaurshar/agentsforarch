@@ -4,7 +4,7 @@ import { GenerationScreen } from '../../components/Generation/GenerationScreen';
 import { SceneControls } from '../../components/Scene/SceneControls';
 import { StyleRefPicker } from '../../components/Scene/StyleRefPicker';
 import { Button } from '../../components/ui/Button';
-import { ChipGroup } from '../../components/ui/ChipGroup';
+import { QuickControls } from '../../components/Generation/QuickControls';
 import { SwitchRow } from '../../components/ui/SwitchRow';
 import { PlanTips } from '../../components/Upload/PlanTips';
 import { loadDemoPlan } from '../../lib/demoPlan';
@@ -12,11 +12,6 @@ import { ARCH_STYLES } from '../../lib/scene';
 import { useProjectStore } from '../../store/useProjectStore';
 import type { ArchStyleKey } from '../../store/generation';
 import { useStyleRef } from '../hooks';
-
-const VIEW_OPTIONS = [
-  { value: 'isometric', label: '3D isometric' },
-  { value: 'plan2d', label: '2D furnished plan' },
-] as const;
 
 const VIEW_LABEL: Record<string, string> = { isometric: 'Isometric', plan2d: 'Furnished plan' };
 
@@ -97,11 +92,9 @@ export function RenderFeature() {
           : undefined,
       }}
     >
-      {({ settings: s, patch }) => (
+      {({ feature, settings: s, patch }) => (
         <>
-          <div className="p-5">
-            <ChipGroup label="Output view" value={s.style} options={VIEW_OPTIONS} onChange={(v) => patch({ style: v })} />
-          </div>
+          <QuickControls feature={feature} settings={s} patch={patch} />
 
           {/* Compare styles — one plan × several design languages in one batch. */}
           <div className="flex flex-col gap-4 p-5">

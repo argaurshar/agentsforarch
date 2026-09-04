@@ -1,20 +1,13 @@
 import { GenerationScreen } from '../../components/Generation/GenerationScreen';
-import { SwitchRow } from '../../components/ui/SwitchRow';
+import { QuickControls } from '../../components/Generation/QuickControls';
 import { DrawingAnnotation } from './DrawingControls';
 
 export function RenderToPlanFeature() {
   return (
     <GenerationScreen feature="renderToPlan">
-      {({ settings, patch }) => (
+      {({ feature, settings, patch }) => (
         <>
-          <div className="p-5">
-            <SwitchRow
-              checked={settings.furnished}
-              onChange={(v) => patch({ furnished: v })}
-              label="Include furniture"
-              hint="Plan symbols for what the view shows in each room."
-            />
-          </div>
+          <QuickControls feature={feature} settings={settings} patch={patch} />
           <DrawingAnnotation
             annotation={settings.annotation}
             units={settings.units}
