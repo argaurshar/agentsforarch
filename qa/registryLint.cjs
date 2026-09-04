@@ -175,6 +175,41 @@ check(
   `${missingAssets.join(', ')} — referenced in examples.ts, absent from public/examples`,
 );
 
+// --- 1d. Every tool a visitor can reach shows them what it does --------------
+//
+// Twenty-five of thirty tools shipped with an EMPTY showcase for months, because
+// a worked example needs a real generation and generations cost money. Three
+// rounds of live verification paid for them, and this gate is what stops the
+// coverage quietly rotting: a tool added tomorrow with no example fails the
+// build rather than presenting a visitor with a blank panel and no explanation.
+//
+// The exemptions are not a convenience list. Each of these three needs an input
+// fixture that does not exist in this repo and cannot be fetched or credibly
+// generated, so no example CAN be produced for them yet. Deleting a name from
+// this list is how the gate is satisfied once its fixture lands.
+const NO_FIXTURE = {
+  birdsEye: 'needs a top-down satellite or Maps screenshot',
+  wireframeRender: 'needs a SketchUp or 3D viewport screenshot',
+  placeObject: 'needs a product shot on plain ground as its second image',
+};
+const documented = new Set(
+  [...stripComments(examplesSrc).matchAll(/^  ([a-zA-Z]+): \{$/gm)].map((m) => m[1]),
+);
+const undocumented = declaredKeys.filter((k) => !documented.has(k) && !(k in NO_FIXTURE));
+check(
+  'every tool shows a worked example, or is a documented fixture gap',
+  undocumented.length === 0,
+  `${undocumented.join(', ')} — no entry in examples.ts and not listed in NO_FIXTURE`,
+);
+// And the exemption list cannot outlive its reason: a tool that HAS gained an
+// example must come off it, or the list becomes folklore.
+const staleExemptions = Object.keys(NO_FIXTURE).filter((k) => documented.has(k));
+check(
+  'no tool is exempted from examples while having one',
+  staleExemptions.length === 0,
+  `${staleExemptions.join(', ')} — has an example; remove it from NO_FIXTURE`,
+);
+
 // An example case with an `input` is one (input asset, tool) pair that can be
 // served instantly. Collect them the way src/features/studio/instant.ts does.
 const instantInputs = new Set(
