@@ -1,0 +1,130 @@
+{
+  "runs": [
+    {
+      "id": "V1",
+      "tool": "urbanContext",
+      "input": "elev-rendered.jpg",
+      "title": "FIX CHECK — the signage boards are gone. Does the street stay unlettered?",
+      "verdicts": [
+        "PASS — neighbours with blank fascias and no readable words anywhere",
+        "FAIL — any shopfront lettering, garbled or legible"
+      ],
+      "status": "generated",
+      "calls": 1,
+      "labels": [
+        "Urban context"
+      ],
+      "files": [
+        "run-V1-output.png"
+      ],
+      "failures": []
+    },
+    {
+      "id": "V2",
+      "tool": "explodedAxon",
+      "input": "elev-rendered.jpg",
+      "settings": {
+        "axis": "layered"
+      },
+      "title": "FIX CHECK — roof form is now locked, and Outward forbids the vertical stack.",
+      "verdicts": [
+        "PASS — flat overhanging roof preserved AND layers offset sideways",
+        "FAIL — a pitched roof, or layers stacked one directly above another"
+      ],
+      "status": "generated",
+      "calls": 1,
+      "labels": [
+        "Exploded axon"
+      ],
+      "files": [
+        "run-V2-output.png"
+      ],
+      "failures": []
+    },
+    {
+      "id": "V3",
+      "tool": "declutter",
+      "input": "room-input.jpg",
+      "title": "FIX CHECK — the camera is now audited FIRST. Does the viewpoint hold?",
+      "verdicts": [
+        "PASS — same camera, same window, same panes, room emptied",
+        "FAIL — the view shifts, or the window changes size or pane count"
+      ],
+      "status": "generated",
+      "calls": 1,
+      "labels": [
+        "Cleared room"
+      ],
+      "files": [
+        "run-V3-output.png"
+      ],
+      "failures": []
+    },
+    {
+      "id": "V4",
+      "tool": "interior",
+      "input": "room-empty.jpg",
+      "settings": {
+        "mode": "stage"
+      },
+      "title": "BLAST-RADIUS CHECK — Stage inherited the camera rewrite on another tool’s evidence.",
+      "verdicts": [
+        "PASS — furnished from the identical camera, shell untouched",
+        "FAIL — the camera moves, or the rewrite has broken staging"
+      ],
+      "status": "generated",
+      "calls": 1,
+      "labels": [
+        "Staged interior"
+      ],
+      "files": [
+        "run-V4-output.png"
+      ],
+      "failures": []
+    },
+    {
+      "id": "V5",
+      "tool": "targetedSwap",
+      "input": "/home/user/agentsforarch/qa/live-results/fixture-room-marked.png",
+      "marked": true,
+      "settings": {
+        "element": "the beige fabric sofa inside the red rectangle",
+        "replacement": "a dark green velvet three-seater sofa"
+      },
+      "title": "THE RED BOX. Instruction, or something to faithfully redraw?",
+      "verdicts": [
+        "PASS — the sofa is swapped and NO red rectangle appears in the output",
+        "FAIL — the red box is reproduced in the output, or the edit is ignored, or something outside the box changed"
+      ],
+      "status": "generated",
+      "calls": 1,
+      "labels": [
+        "Targeted edit"
+      ],
+      "files": [
+        "run-V5-output.png"
+      ],
+      "failures": []
+    },
+    {
+      "id": "V6",
+      "tool": "upscale",
+      "input": "elev-line.jpg",
+      "title": "Does an upscale resolve detail, or hallucinate detail that was never there?",
+      "verdicts": [
+        "PASS — the same drawing, cleaner, with nothing added",
+        "FAIL — invented linework, or a redesigned drawing"
+      ],
+      "status": "generated",
+      "calls": 1,
+      "labels": [
+        "Print master"
+      ],
+      "files": [
+        "run-V6-output.png"
+      ],
+      "failures": []
+    }
+  ],
+  "generations": 6
+}

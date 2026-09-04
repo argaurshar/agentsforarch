@@ -36,6 +36,11 @@ const SNAPSHOT = path.join(__dirname, 'prompt-snapshot.txt');
  */
 const PAIRS = [
   [
+    'do not invent it',
+    'Photorealistic architectural photograph',
+    'live run V6: an upscale told to invent nothing was also told its output is a photograph, and turned a line drawing into a render',
+  ],
+  [
     'signage boards',
     'stray text',
     'live run 06: a street asked for signage boards drew legible shopfronts in an image that bans stray text',

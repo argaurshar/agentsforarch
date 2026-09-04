@@ -1939,6 +1939,11 @@ const upscale: FeatureDef<UpscaleSettings> = {
   promptContracts: [
     { name: 'upscale resolves rather than invents', pattern: /resolve detail, do not invent it/ },
     { name: 'upscale refuses to improve the design', pattern: /your job is to make it printable, not better/ },
+    // `outputKind: 'same'` promises, in the registry's own words, that "an
+    // upscale of a plan is still a plan". Live run V6 broke that promise: a line
+    // elevation came back as a photoreal render with sky, lawn and driveway.
+    { name: 'upscale keeps the input medium', pattern: /a line drawing stays a line drawing|A line drawing stays a line drawing/ },
+    { name: 'upscale never converts a drawing to a render', pattern: /Never convert a drawing into a render/ },
   ],
 };
 

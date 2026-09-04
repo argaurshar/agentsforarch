@@ -435,9 +435,28 @@ export function buildUpscalePrompt(a: { sharpen: boolean }): string {
     'You are producing a high-resolution print master of the architectural image in the input.',
     lock.read,
     lock.lock,
-    'STEP 3 — ONLY THEN RESOLVE IT. Render the same image at much higher fidelity: real material texture where the ' +
-      'input only suggests it, crisp edges on frames, reveals and mullions, legible detail in the middle distance, and ' +
-      'clean gradients in the sky and on flat surfaces. Remove compression artefacts, banding and noise.',
+    // MEDIUM LOCK. Live run V6 fed this a black-and-white line elevation and got
+    // back a photorealistic render: blue sky, lawn, driveway, trees reflected in
+    // the glazing. Three clauses caused it, and all three assumed the input was
+    // a photograph — "real material texture where the input only suggests it"
+    // (a drawing only suggests material everywhere), "clean gradients in the
+    // sky" (a drawing has no sky, so this asks for one), and the PHOTO_FINISH
+    // tail flatly declaring the output a photorealistic photograph.
+    //
+    // The registry says `inputKind` is all six kinds and `outputKind: 'same'`.
+    // The prompt was contradicting the tool's own declared contract, and
+    // promptContradictions could not see it: the conflict is not between two
+    // clauses, it is between a clause and the INPUT TYPE.
+    'STEP 3 — KEEP THE MEDIUM. The output is the same KIND of image as the input, and this outranks every rendering ' +
+      'instruction below. A line drawing stays a line drawing — no sky, no colour, no materials, no lighting, no ' +
+      'ground, no context, no shading that is not already drawn. A flat 2D plan stays a flat 2D plan. A watercolour ' +
+      'stays a watercolour. A photograph or a photorealistic render stays photorealistic. Never convert a drawing ' +
+      'into a render: if the input is line art on white, the output is line art on white.',
+    'STEP 4 — ONLY THEN RESOLVE IT. Render the same image at much higher fidelity IN ITS OWN MEDIUM: cleaner and ' +
+      'truer edges on frames, reveals and mullions, linework that stays crisp and unbroken at size, legible detail ' +
+      'wherever the input already carries it, and smooth gradients only where the input already has them. Where the ' +
+      'input already shows a real material, resolve its true texture; where it does not, leave the surface as the ' +
+      'input draws it. Remove compression artefacts, banding and noise.',
     // The rule that makes an upscaler useful rather than merely impressive.
     'CRITICAL — resolve detail, do not invent it. Every element in the output is the same element that is in the ' +
       'input, only better resolved. Do not add an architectural feature, a plant, a person, a vehicle or a reflection ' +
@@ -446,7 +465,12 @@ export function buildUpscalePrompt(a: { sharpen: boolean }): string {
     a.sharpen
       ? 'Finish with restrained output sharpening suitable for large-format print — no halos, no crunchy edges.'
       : 'No output sharpening; leave the result naturally soft where the input is soft.',
-    PHOTO_FINISH,
+    // PHOTO_FINISH used to sit here unconditionally, which is what turned a line
+    // drawing into a photograph. The finish now names the medium as the input's
+    // own rather than asserting one.
+    'Reproduce the input’s own medium faithfully at high resolution, with its existing colour treatment, its existing ' +
+      'lighting or lack of it, and its existing level of abstraction — ultra-detailed within that medium, never ' +
+      'translated out of it.',
     lock.check,
     NO_TEXT,
   ].join(' ');

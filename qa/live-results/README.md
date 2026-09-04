@@ -89,3 +89,71 @@ kie.ai could not be tested: `api.kie.ai` returns a 403 CONNECT tunnel failure
 through this environment's egress proxy. The three blocked fixtures (satellite
 grab, 3D viewport screenshot, product shot) remain outstanding, so the tools
 that need them are untested live.
+
+---
+
+# Round 2 — verifying the fixes, and two questions the first fifteen never asked
+
+Six more runs, 2026-09-04, same model. **5 PASS · 1 FAIL.** Reproduce with
+`node qa/liveRuns.ts --verify`; the marker fixture comes from
+`node qa/makeMarker.cjs`.
+
+Round 1 ended with three fixes and no proof any of them worked. These runs are
+that proof, plus the red-marker question the plan named as its biggest unknown.
+
+| # | Tool | Under test | Verdict |
+|---|---|---|---|
+| V1 | Urban Context | Are the invented shopfronts gone? | **PASS — fix confirmed** |
+| V2 | Exploded Axon (outward) | Roof form locked, and does Outward differ? | **PASS — both fixes confirmed** |
+| V3 | Declutter | Does the camera hold now it is audited first? | **PASS — regression gone** |
+| V4 | Interior (stage) | Did the shared-clause rewrite break staging? | **PASS — blast radius safe** |
+| V5 | Targeted Edit | **Is a red rectangle an instruction or a picture?** | **PASS** |
+| V6 | Upscale for Print | Resolve detail, or invent it? | **FAIL — new bug, fixed** |
+
+## V5 settles the plan's biggest open question
+
+The plan listed, among what could not be verified without paid calls, *"the
+biggest one — whether the model reads a burned-in red rectangle as an
+instruction rather than reproducing it."*
+
+It reads it as an instruction. The output contains **no red rectangle**. The
+sofa inside the box went from beige fabric to dark green velvet, and everything
+outside it survived untouched — window, net curtains, radiator, CRT television
+and stand, floor lamp, Persian rug, newspapers, mugs, both bookcases, the
+clutter pile. The crochet blanket and cushions resting *on* the sofa were
+preserved and re-composited over the new upholstery. The region marker works.
+
+## V6 — a new failure, of a kind the gates could not see
+
+Fed a black-and-white line elevation, Upscale returned a photorealistic render:
+blue sky, lawn, concrete driveway, trees reflected in the glazing, and a garage
+door converted from a glazed grid to a solid timber panel.
+
+Three clauses caused it, and all three assumed the input was a photograph:
+"real material texture where the input **only suggests it**" (a drawing only
+suggests material everywhere), "clean gradients in **the sky**" (a drawing has
+no sky, so this asks for one), and a closing `PHOTO_FINISH` flatly declaring the
+output a photorealistic architectural photograph.
+
+The registry declares this tool `inputKind: [plan, sketch, room, building,
+model, map]` and `outputKind: 'same'` — whose own documentation reads *"an
+upscale of a plan is still a plan."* **The prompt was contradicting the tool's
+declared contract.**
+
+Fixed with an explicit medium lock ranked above every rendering instruction, and
+a finish that names the input's own medium instead of asserting one.
+`promptContradictions` gains the pair `do not invent it` + `Photorealistic
+architectural photograph`, which was watched failing against the old prompt —
+so the gate that missed this now catches it. **The fix itself is not yet
+verified live.**
+
+## What still holds after eleven more images
+
+- Labels the model is *asked to write* stay correctly spelled (V2's five layer
+  captions). Text on a *depicted object* stays gibberish (V4's coffee-table
+  book spines). The round-1 finding survives contact.
+- Exterior geometry locks are reliable (V1, V2). Interior camera locks are
+  better but still not exact — V3 holds the window and the viewpoint but sits
+  slightly lower, and the input's left-edge bookcase returned as a door
+  architrave. V4 lost the input's ceiling pendant. The `accuracyWarning` on
+  these tools stays earned.
