@@ -29,6 +29,7 @@ export const FEATURE_KEYS = [
   // Visualization, in the order a render matures: build it, resolve it, light
   // it, study it, populate it, sheet it, tune the glass, print it.
   'wireframeRender',
+  'massingRender',
   'renderRefine',
   'atmosphere',
   'facadeMaterial',

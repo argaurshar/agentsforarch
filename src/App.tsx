@@ -33,6 +33,7 @@ import { RenderRefineFeature } from './features/visualization/RenderRefineFeatur
 import { UpscaleFeature } from './features/visualization/UpscaleFeature';
 import { WatercolourFeature } from './features/visualization/WatercolourFeature';
 import { WireframeRenderFeature } from './features/visualization/WireframeRenderFeature';
+import { MassingRenderFeature } from './features/visualization/MassingRenderFeature';
 import { RenderFeature } from './features/render/RenderFeature';
 import { useHashRoute } from './lib/useHashRoute';
 import { useProjectStore } from './store/useProjectStore';
@@ -57,6 +58,7 @@ const FEATURES: Record<FeatureKind | 'studio' | 'home' | 'gallery', ComponentTyp
   birdsEye: BirdsEyeFeature,
   urbanContext: UrbanContextFeature,
   wireframeRender: WireframeRenderFeature,
+  massingRender: MassingRenderFeature,
   renderRefine: RenderRefineFeature,
   atmosphere: AtmosphereFeature,
   facadeMaterial: FacadeMaterialFeature,

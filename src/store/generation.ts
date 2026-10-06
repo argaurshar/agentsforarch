@@ -158,6 +158,17 @@ export interface WireframeRenderSettings {
   scene: SceneOptions;
 }
 
+/** What the reference image is allowed to contribute. Never its form. */
+export type ReferenceTake = 'everything' | 'materials' | 'atmosphere';
+/** Whether the render may glaze the recesses and voids the massing already has. */
+export type MassingOpenings = 'recesses' | 'solid';
+
+export interface MassingRenderSettings {
+  take: ReferenceTake;
+  openings: MassingOpenings;
+  entourage: boolean;
+}
+
 export type RefineLevel = 'polish' | 'finish';
 
 export interface RenderRefineSettings {
@@ -376,6 +387,7 @@ export type FeatureSettings =
   | RenderToPlanSettings
   | CadElevationSettings
   | WireframeRenderSettings
+  | MassingRenderSettings
   | RenderRefineSettings
   | AtmosphereSettings
   | FacadeMaterialSettings

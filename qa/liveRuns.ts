@@ -40,6 +40,8 @@ interface Run {
   input: string | null;
   /** Sent as `hasMarker` to buildPrompt — the input must ALREADY carry the box. */
   marked?: boolean;
+  /** A tool's own second image (`extraInputs`), sent positionally after the input. */
+  extra?: string;
   /** Settings overrides — the non-default variant, when that IS the risk. */
   settings?: Record<string, unknown>;
   verdicts: string[];
@@ -266,6 +268,26 @@ const SKIPPED: Run[] = [
   },
 ];
 
+/**
+ * Round 4: tools added after the verification rounds. Each needs one approved
+ * paid run to earn its worked example; `registryLint` keeps them on
+ * AWAITING_LIVE_RUN until that example exists.
+ *
+ * X1 is the hard case on purpose: the reference is a two-storey HOUSE and the
+ * massing is a courtyard BLOCK, so a render that quietly built the reference
+ * instead of the massing cannot hide.
+ */
+const NEW_TOOLS: Run[] = [
+  {
+    id: 'X1', tool: 'massingRender', input: 'ex-massing.jpg', extra: 'elev-rendered.jpg',
+    title: 'Massing + a reference with a DIFFERENT form. Whose building comes back?',
+    verdicts: [
+      'PASS — the courtyard block, every volume and step intact, clad and lit like the reference',
+      'FAIL — the reference house comes back, or the massing changed shape, or it is still a model on a table',
+    ],
+  },
+];
+
 function dataUrl(file: string): string {
   const buf = fs.readFileSync(path.isAbsolute(file) ? file : path.join(EXAMPLES, file));
   const mime = file.endsWith('.png') ? 'image/png' : 'image/jpeg';
@@ -288,7 +310,9 @@ function dataUrl(file: string): string {
   let spent = 0;
   let planned = 0;
 
-  const set = process.argv.includes('--skipped')
+  const set = process.argv.includes('--new')
+    ? NEW_TOOLS
+    : process.argv.includes('--skipped')
     ? SKIPPED
     : process.argv.includes('--verify')
       ? VERIFY
@@ -304,7 +328,7 @@ function dataUrl(file: string): string {
       hasMarker: run.marked ?? false,
     });
     const req = buildFeatureRequest(run.tool, settings, {
-      inputImages: run.input ? [dataUrl(run.input)] : [],
+      inputImages: [run.input, run.extra].filter((f): f is string => Boolean(f)).map(dataUrl),
       prompt,
       ctx,
     });
@@ -361,7 +385,9 @@ function dataUrl(file: string): string {
     console.log(`\n${planned} API call(s) would be billed. Nothing was sent.`);
     return;
   }
-  const reportName = process.argv.includes('--skipped')
+  const reportName = process.argv.includes('--new')
+    ? 'report-new.json'
+    : process.argv.includes('--skipped')
     ? 'report-skipped.json'
     : process.argv.includes('--verify')
       ? 'report-verify.json'

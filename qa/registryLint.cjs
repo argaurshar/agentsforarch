@@ -192,22 +192,32 @@ const NO_FIXTURE = {
   wireframeRender: 'needs a SketchUp or 3D viewport screenshot',
   placeObject: 'needs a product shot on plain ground as its second image',
 };
+// A different reason, kept in a different list so the two cannot blur: these
+// tools have every fixture they need, but their worked example needs a PAID
+// generation that has not been approved yet. `node qa/liveRuns.ts --new`
+// produces it; the stale check below then forces the name off this list.
+const AWAITING_LIVE_RUN = {
+  massingRender: 'new; fixtures exist (ex-massing.jpg + elev-rendered.jpg), awaiting one approved paid run',
+};
+const exempt = (k) => k in NO_FIXTURE || k in AWAITING_LIVE_RUN;
 const documented = new Set(
   [...stripComments(examplesSrc).matchAll(/^  ([a-zA-Z]+): \{$/gm)].map((m) => m[1]),
 );
-const undocumented = declaredKeys.filter((k) => !documented.has(k) && !(k in NO_FIXTURE));
+const undocumented = declaredKeys.filter((k) => !documented.has(k) && !exempt(k));
 check(
   'every tool shows a worked example, or is a documented fixture gap',
   undocumented.length === 0,
-  `${undocumented.join(', ')} — no entry in examples.ts and not listed in NO_FIXTURE`,
+  `${undocumented.join(', ')} — no entry in examples.ts and not listed in NO_FIXTURE or AWAITING_LIVE_RUN`,
 );
 // And the exemption list cannot outlive its reason: a tool that HAS gained an
 // example must come off it, or the list becomes folklore.
-const staleExemptions = Object.keys(NO_FIXTURE).filter((k) => documented.has(k));
+const staleExemptions = [...Object.keys(NO_FIXTURE), ...Object.keys(AWAITING_LIVE_RUN)].filter((k) =>
+  documented.has(k),
+);
 check(
   'no tool is exempted from examples while having one',
   staleExemptions.length === 0,
-  `${staleExemptions.join(', ')} — has an example; remove it from NO_FIXTURE`,
+  `${staleExemptions.join(', ')} — has an example; remove it from its exemption list`,
 );
 
 // An example case with an `input` is one (input asset, tool) pair that can be
