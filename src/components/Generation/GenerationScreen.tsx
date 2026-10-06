@@ -44,6 +44,9 @@ export interface ControlsContext<K extends FeatureKind> {
   patch: (p: SettingsPatch<SettingsFor<K>>) => void;
   mode: FeatureMode;
   loading: boolean;
+  /** An input image is attached. Lets a tool whose image is optional show the
+   *  controls that only mean something once there is one. */
+  hasImage: boolean;
 }
 
 export interface GenerationScreenProps<K extends FeatureKind> {
@@ -112,8 +115,9 @@ export function GenerationScreen<K extends FeatureKind>({
             useMoodboard,
             useStyleRef,
             hasMarker: marker !== null,
+            hasImage: input !== null,
           }),
-    [mode, refine, settings, def, useMoodboard, useStyleRef, marker, runExtras?.promptSettings],
+    [mode, refine, settings, def, useMoodboard, useStyleRef, marker, input, runExtras?.promptSettings],
   );
 
   // Controls drive the prompt until the user edits it, then they stop.
@@ -126,15 +130,19 @@ export function GenerationScreen<K extends FeatureKind>({
 
   // A text-only tool has nothing to upload, so "has an input" is vacuously true
   // for it — otherwise every such tool would be permanently blocked by a
-  // dropzone it does not have.
+  // dropzone it does not have. An OPTIONAL image is the same: the dropzone is
+  // shown, but leaving it empty must never block the run. `'optional'` sat in
+  // the InputMode type unused until Massing took an image, and this line used
+  // to treat it as required.
   const wantsImage = def.inputMode !== 'text';
-  const hasInput = !wantsImage || input !== null;
+  const hasImage = input !== null;
+  const hasInput = def.inputMode === 'text' || def.inputMode === 'optional' || hasImage;
 
   const slots = def.extraInputs ?? [];
   const missingSlot = slots.findIndex((_, i) => !extraInputs[i]);
 
   const blocked =
-    def.blockedReason?.(settings, hasInput, mode) ??
+    def.blockedReason?.(settings, def.inputMode === 'optional' ? hasImage : hasInput, mode) ??
     (hasInput ? null : 'Upload an image to begin.') ??
     null;
   // A tool's own extra inputs are as required as the primary one — running
@@ -278,6 +286,7 @@ export function GenerationScreen<K extends FeatureKind>({
                 patch: (p) => updateFeatureSettings(feature, p),
                 mode,
                 loading,
+                hasImage,
               })
             )}
 

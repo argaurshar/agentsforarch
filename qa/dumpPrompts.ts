@@ -72,6 +72,15 @@ for (const density of ['low','medium','high'] as const)
     add(`massing:${density}:${filled ? 'full' : 'bare'}`, buildMassingPrompt(filled
       ? { brief: '40-unit residential block with ground-floor retail', siteSize: '45m x 60m corner plot', density, storeys: '6 storeys stepping to 4', context: 'four-storey terraces on two sides' }
       : { brief: '', siteSize: '', density, storeys: '', context: '' }));
+// Massing with an image attached. The no-image keys above are deliberately
+// unchanged — the typed workflow must stay byte-identical — so the attached
+// cases get keys of their own: every role, bare and filled, every density.
+for (const image of ['sketch', 'reference'] as const)
+  for (const density of ['low','medium','high'] as const)
+    for (const filled of [false, true])
+      add(`massing:${image}:${density}:${filled ? 'full' : 'bare'}`, buildMassingPrompt(filled
+        ? { brief: '40-unit residential block with ground-floor retail', siteSize: '45m x 60m corner plot', density, storeys: '6 storeys stepping to 4', context: 'four-storey terraces on two sides', image }
+        : { brief: '', siteSize: '', density, storeys: '', context: '', image }));
 // Sketch to Render. The scene axes are enumerated alongside the medium because
 // each one appends a clause, and an empty clause has to drop out cleanly rather
 // than leave "Materials: ." in the prompt.

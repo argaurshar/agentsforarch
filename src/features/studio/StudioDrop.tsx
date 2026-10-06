@@ -211,7 +211,7 @@ export function StudioDrop({ onImage, queued }: StudioDropProps) {
         </div>
       </div>
 
-      {/* The one tool that needs no image at all. It has nowhere else to live on
+      {/* Tools that can start with no image. They have nowhere else to live on
           a screen whose organising idea is "what did you drop?". */}
       {textOnly.length > 0 ? (
         <p className="text-body text-mist">
@@ -220,6 +220,7 @@ export function StudioDrop({ onImage, queued }: StudioDropProps) {
             <button
               key={f.key}
               type="button"
+              data-no-image-tool={f.key}
               onClick={() => setTab(f.key)}
               className="rounded-control text-ochre-deep underline decoration-ochre/40 underline-offset-2 transition-colors hover:decoration-ochre-deep"
             >

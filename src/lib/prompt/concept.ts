@@ -10,7 +10,7 @@
 import { CONTEXTS, LIGHTING, archStyleClause, materialsClause } from '../scene';
 import type { SceneOptions } from '../../store/generation';
 import { NO_TEXT } from './clauses';
-import type { SketchMedium } from '../../store/generation';
+import type { MassingImageRole, SketchMedium } from '../../store/generation';
 
 export type { SketchMedium };
 
@@ -37,19 +37,57 @@ export function buildMassingPrompt(a: {
   density: MassingDensity;
   storeys: string;
   context: string;
+  /** What the attached image is, or null when there is none. With null the
+   *  prompt is byte-identical to the text-only tool it used to be. */
+  image?: MassingImageRole | null;
 }): string {
-  const brief = a.brief.trim() || 'a mixed-use building';
+  const image = a.image ?? null;
   const site = a.siteSize.trim();
   const storeys = a.storeys.trim();
   const context = a.context.trim();
+  // With a sketch attached the drawing IS the brief, so an empty brief field is
+  // no longer a reason to invent "a mixed-use building".
+  const brief =
+    a.brief.trim() ||
+    (image === 'sketch' ? 'the building drawn in the attached sketch' : 'a mixed-use building');
 
   const parts: string[] = [
     `You are an architect producing an early MASSING STUDY — a physical white study model, photographed. ` +
       `The project is: ${brief}.`,
+  ];
+
+  if (image === 'sketch') {
+    parts.push(
+      'AN IMAGE IS ATTACHED: a SKETCH of this massing. It is the design. STEP 1 — READ THE SKETCH FIRST: count the ' +
+        'volumes, and note how they are arranged, their relative heights, where they step, set back, cantilever or ' +
+        'leave a courtyard or void between them. STEP 2 — BUILD EXACTLY THAT. The same number of volumes, in the same ' +
+        'arrangement, at the proportions the sketch implies. Straighten wobbly hand lines into clean planes and true ' +
+        'corners, but do not add a volume, remove one, merge two, or tidy the composition into something more regular ' +
+        'than drawn. Where the typed brief adds a site size or a height, use it to set the scale; where it disagrees ' +
+        'with the sketch about FORM, the sketch wins. Handwritten notes, dimensions and arrows on the sketch are ' +
+        'information for you, not marks to reproduce.',
+    );
+  } else if (image === 'reference') {
+    parts.push(
+      'AN IMAGE IS ATTACHED: a REFERENCE — a precedent building or model whose massing idea the architect likes. Do ' +
+        'not reproduce it. Read the STRATEGY behind its form — how its volumes are stacked, stepped, cantilevered, ' +
+        'carved, splayed or wrapped around a void — and apply that strategy to THIS project, at THIS project’s ' +
+        'brief, site and height. The result must be recognisably a different building that shares the reference’s ' +
+        'logic of form. Take nothing else from it: not its outline, its proportions, its facade, its windows or its ' +
+        'materials.',
+    );
+  }
+
+  parts.push(
     site
       ? `The site measures ${site}. Read that as the plot boundary and keep the building within it, with the setbacks a real scheme would have.`
-      : 'Choose a plausible rectangular plot and keep the building within it, with realistic setbacks.',
-    `The massing is ${DENSITY_CLAUSE[a.density]}.` + (storeys ? ` Aim for roughly ${storeys}.` : ''),
+      : image === 'sketch'
+        ? 'If the sketch shows the plot, keep the building within it; otherwise choose a plausible plot that fits what is drawn, with realistic setbacks.'
+        : 'Choose a plausible rectangular plot and keep the building within it, with realistic setbacks.',
+    image === 'sketch'
+      ? `Where the sketch leaves heights unclear, the massing is ${DENSITY_CLAUSE[a.density]}.` +
+          (storeys ? ` Aim for roughly ${storeys}.` : '')
+      : `The massing is ${DENSITY_CLAUSE[a.density]}.` + (storeys ? ` Aim for roughly ${storeys}.` : ''),
     context
       ? `The immediate context is ${context}; show it as simple lower-contrast grey blocks around the site so the scale reads.`
       : 'Show two or three neighbouring plots as simple lower-contrast grey blocks so the scale reads.',
@@ -58,12 +96,30 @@ export function buildMassingPrompt(a: {
       'brick, no timber, no glazing, no window openings, no doors, no railings, no signage, no colour and no ' +
       'entourage. Form only: the volumes, how they step, and how they meet the ground. Do not decorate it, and do ' +
       'not resolve details the design has not reached yet.',
-    'Show it as a three-quarter aerial view from about 30 degrees above the horizon, in soft even studio daylight ' +
-      'with clean legible shadows that describe the steps and setbacks. Neutral pale grey ground plane, plain ' +
-      'background, no sky drama.',
+    // A perspective sketch has already chosen its camera, and re-shooting it
+    // from a stock aerial angle makes it hard to compare against the drawing.
+    image === 'sketch'
+      ? 'If the sketch is a perspective, photograph the model from that same viewpoint; if it is a plan or an ' +
+          'elevation, show a three-quarter aerial view from about 30 degrees above the horizon. Soft even studio ' +
+          'daylight with clean legible shadows that describe the steps and setbacks. Neutral pale grey ground plane, ' +
+          'plain background, no sky drama.'
+      : 'Show it as a three-quarter aerial view from about 30 degrees above the horizon, in soft even studio daylight ' +
+          'with clean legible shadows that describe the steps and setbacks. Neutral pale grey ground plane, plain ' +
+          'background, no sky drama.',
     'Photorealistic photograph of a crisp white architectural study model, shallow depth of field, ultra-detailed.',
-    NO_TEXT,
-  ];
+  );
+  if (image === 'sketch') {
+    parts.push(
+      'Before you finish, compare the model against the sketch volume by volume: if one has appeared, vanished or ' +
+        'merged with another, rebuild it.',
+    );
+  } else if (image === 'reference') {
+    parts.push(
+      'Before you finish, compare the model against the reference: if it reads as a copy of that building rather ' +
+        'than this project built on the same idea, rebuild it.',
+    );
+  }
+  parts.push(NO_TEXT);
   return parts.join(' ');
 }
 

@@ -91,7 +91,7 @@ export function StudioResult({ feature, input, kind, source, onBack, onChain, on
     void run(
       buildFeatureRequest(feature, settings, {
         inputImages: [input],
-        prompt: def.buildPrompt(settings as never, { useMoodboard: false, useStyleRef: false, hasMarker: false }),
+        prompt: def.buildPrompt(settings as never, { useMoodboard: false, useStyleRef: false, hasMarker: false, hasImage: true }),
         ctx: { refine: false },
       }),
     );

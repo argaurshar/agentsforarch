@@ -64,7 +64,7 @@ export function useBatch(): BatchRunner {
         // the tool's own screen survives into the batch.
         const prompt = run.promptEdited
           ? run.prompt
-          : def.buildPrompt(run.settings, { useMoodboard: false, useStyleRef: false });
+          : def.buildPrompt(run.settings, { useMoodboard: false, useStyleRef: false, hasImage: true });
 
         const outcome = await runFeature(
           buildFeatureRequest(feature, run.settings, {
