@@ -152,6 +152,11 @@ export interface PromptContext {
    *  The prompt has to say so — an unexplained red box in the image is just
    *  something for the model to faithfully reproduce in its output. */
   hasMarker?: boolean;
+  /** An input image is attached. Only matters to a tool whose image is
+   *  OPTIONAL (`inputMode: 'optional'`): its prompt says different things with
+   *  and without one, and the builder cannot see the store. Every caller that
+   *  always has an image (the front door, a batch run) passes true. */
+  hasImage?: boolean;
 }
 
 /** A batch job: one output image, with the clause that distinguishes it. */
@@ -403,15 +408,20 @@ const massing: FeatureDef<MassingSettings> = {
   name: 'Massing Study',
   blurb: 'Brief to White Model',
   verb: 'Model the brief',
-  inputKind: [],
+  // A sketch to follow. A reference precedent is also accepted, but only inside
+  // the tool, where the architect says which one it is: the front door cannot
+  // ask, and treating every dropped building photo as "copy this massing" would
+  // be the wrong default for the one case the reference mode exists to avoid.
+  inputKind: ['sketch'],
   outputKind: 'building',
   icon: Boxes,
-  // The first tool with NO image input. Everything an uploaded drawing would
-  // have told the model has to be said in words instead, which is why this
-  // screen is a form rather than a dropzone.
-  inputMode: 'text',
+  // It started as the one tool with NO image input, everything said in words.
+  // Now the image is OPTIONAL: a sketch to follow or a precedent to borrow the
+  // idea from. With none attached the prompt is byte-identical to the
+  // text-only tool, so nothing about the typed workflow changed.
+  inputMode: 'optional',
   maxReferences: 0,
-  defaultSettings: { brief: '', siteSize: '', density: 'medium', storeys: '', context: '' },
+  defaultSettings: { brief: '', siteSize: '', density: 'medium', storeys: '', context: '', imageRole: 'sketch' },
   quick: [
     {
       kind: 'choice',
@@ -424,7 +434,7 @@ const massing: FeatureDef<MassingSettings> = {
       ],
     },
   ],
-  buildPrompt: (s) => buildMassingPrompt(s),
+  buildPrompt: (s, ctx) => buildMassingPrompt({ ...s, image: ctx.hasImage ? s.imageRole : null }),
   // A massing model is photographed three-quarter aerial, which is a landscape
   // composition whatever the plot shape — there is no input canvas to inherit.
   aspectRatio: () => '3:2',
@@ -436,20 +446,30 @@ const massing: FeatureDef<MassingSettings> = {
     eyebrow: 'Concept & Form',
     title: 'Brief → Massing Study',
     description:
-      'The first-morning question: how much building, arranged how, on this plot. Describe the brief and the site — no drawing needed — and get a white study model back.',
-    inputLabel: 'Brief',
-    inputHint: 'No image needed — this one generates from what you type',
+      'The first-morning question: how much building, arranged how, on this plot. Describe the brief and the site — or add a sketch to follow or a precedent to borrow from — and get a white study model back.',
+    inputLabel: 'Sketch or reference · optional',
+    inputHint: 'A massing sketch to follow, or a precedent whose idea you like. Leave it empty to work from words alone.',
     outputCaption: 'The massing model',
     emptyIcon: Boxes,
     emptyTitle: 'No massing study yet',
-    emptyDescription: 'Describe the brief and press Generate — a white study model appears here.',
+    emptyDescription: 'Describe the brief, or add a sketch, and press Generate — a white study model appears here.',
   },
-  blockedReason: (s) => (s.brief.trim() ? null : 'Describe the project to begin.'),
+  // With a sketch the drawing is the brief; with a reference or with nothing,
+  // the model has no idea what to build until it is told.
+  blockedReason: (s, hasImage) =>
+    s.brief.trim() || (hasImage && s.imageRole === 'sketch')
+      ? null
+      : hasImage
+        ? 'Describe the project — a reference lends the idea, not the brief.'
+        : 'Describe the project, or add a sketch, to begin.',
   toOptions: (_s, ctx) => plainOptions(ctx),
   promptContracts: [
     { name: 'massing prompt refuses materials and glazing', pattern: /no materials, no brick, no timber, no glazing/i },
     { name: 'massing prompt asks for a white study model', pattern: /MASSING model, not a render/i },
     { name: 'massing prompt shows neighbouring context for scale', pattern: /lower-contrast grey blocks/i },
+    // The no-image prompt must not mention an attachment: it is the default
+    // state and the one the contract dump evaluates.
+    { name: 'massing prompt claims no image when none is attached', pattern: /^(?![\s\S]*IMAGE IS ATTACHED)/ },
   ],
 };
 
@@ -2509,9 +2529,17 @@ export function outputKindOf(feature: FeatureKind, inputKind: InputKind): InputK
   return declared === 'same' ? inputKind : declared;
 }
 
-/** Tools that take no image at all — the only ones reachable before a drop. */
+/**
+ * Tools that can run with no image — the only ones reachable before a drop.
+ *
+ * Asked of the INPUT MODE, not of `inputKind`. It used to filter on "declares no
+ * input kinds", which was the same question while the one such tool was
+ * text-only. Massing then gained an optional sketch, declared `['sketch']`, and
+ * would have dropped off the front door's "No image yet?" line — the only way
+ * to reach it without an image — with nothing failing.
+ */
 export function toolsWithoutImage(): FeatureDef<FeatureSettings>[] {
-  return ALL_FEATURES.filter((f) => f.inputKind.length === 0);
+  return ALL_FEATURES.filter((f) => f.inputMode === 'text' || f.inputMode === 'optional');
 }
 
 /**

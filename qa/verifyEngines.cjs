@@ -522,25 +522,61 @@ const check = (name, ok, detail = '') => {
     `${(twoBody.match(/"inlineData"/g) || []).length}`,
   );
 
-  // 15b. The text-only tool has no dropzone at all, and Generate is gated on
-  //      the form rather than on an upload.
+  // 15b. Massing's image is OPTIONAL. It began as the one text-only tool and
+  //      the typed path must still work exactly as it did — so this asserts
+  //      that path first, then what attaching an image changes, and in which
+  //      direction for each role.
   await navTo('massing');
-  check('a text-only tool renders no image dropzone', (await page.locator('input[type=file]').count()) === 0);
+  check('an optional-image tool shows exactly one dropzone', (await page.locator('input[type=file]').count()) === 1);
   const massingPrompt = page.locator('#massing-prompt');
-  check('a text-only tool still has its prompt box', (await massingPrompt.count()) === 1);
+  check('it still has its prompt box', (await massingPrompt.count()) === 1);
   check('massing prompt refuses materials and glazing', /no materials, no brick, no timber, no glazing/i.test(await massingPrompt.inputValue()));
+  check('with no image, the prompt claims none', !/IMAGE IS ATTACHED/.test(await massingPrompt.inputValue()));
+  check('with no image, there is no "the image is" choice', (await page.locator('[data-massing-image-role]').count()) === 0);
   const genMassing = page.getByRole('button', { name: /^Generate$/ });
-  check('a text-only tool is blocked by its own form, not by an upload', await genMassing.isDisabled());
+  check('an EMPTY optional dropzone does not block — the form does', await genMassing.isDisabled());
   await page.fill('#massing-brief', 'A 40-unit residential block with ground-floor retail');
   await page.waitForTimeout(300);
-  check('filling the form unblocks it', !(await genMassing.isDisabled()));
+  check('filling the form unblocks it with no image at all', !(await genMassing.isDisabled()));
   const beforeText = geminiBodies.length;
   await genMassing.click();
   await page.waitForTimeout(2000);
-  check('a text-only run fired', geminiBodies.length > beforeText);
+  check('a no-image run fired', geminiBodies.length > beforeText);
   const textBody = geminiBodies[geminiBodies.length - 1] || '';
-  check('a text-only run sends NO image part', !/"inlineData"/.test(textBody));
-  check('a text-only run carries what the user typed', /40-unit residential block/.test(textBody));
+  check('a no-image run sends NO image part', !/"inlineData"/.test(textBody));
+  check('a no-image run carries what the user typed', /40-unit residential block/.test(textBody));
+
+  // Attach a sketch: the role choice appears, the prompt follows the drawing,
+  // and the brief stops being required — the drawing IS the brief.
+  await page.setInputFiles('input[type=file]', PLAN);
+  await page.waitForTimeout(600);
+  check('attaching an image shows the "the image is" choice', (await page.locator('[data-massing-image-role]').count()) === 1);
+  check('a sketch is followed, not reinterpreted', /SKETCH of this massing[\s\S]*BUILD EXACTLY THAT/.test(await massingPrompt.inputValue()));
+  await page.fill('#massing-brief', '');
+  await page.waitForTimeout(300);
+  check('with a sketch, an empty brief no longer blocks', !(await genMassing.isDisabled()));
+  const beforeSketch = geminiBodies.length;
+  await genMassing.click();
+  await page.waitForTimeout(2000);
+  check('a sketch run fired', geminiBodies.length > beforeSketch);
+  const sketchBody = geminiBodies[geminiBodies.length - 1] || '';
+  check('a sketch run sends the image', (sketchBody.match(/"inlineData"/g) || []).length === 1);
+
+  // Switch to reference: the prompt borrows the idea and refuses the copy, and
+  // the brief is required again — a precedent says nothing about THIS project.
+  await page.locator('[data-massing-image-role]').getByRole('button', { name: /reference/i }).click();
+  await page.waitForTimeout(300);
+  const refText = await massingPrompt.inputValue();
+  check('a reference lends its strategy', /REFERENCE[\s\S]*Do not reproduce it/.test(refText));
+  check('and is checked against being copied', /reads as a copy of that building/.test(refText));
+  check('with a reference, an empty brief blocks again', await genMassing.isDisabled());
+
+  // Leave the tool as it was found. The store keeps a tool's image across
+  // navigation, and a later section reads every tool's DEFAULT prompt off the
+  // live screen — an image left here would make it read the reference prompt.
+  await page.getByRole('button', { name: 'Remove image' }).click();
+  await page.waitForTimeout(300);
+  check('removing the image takes the prompt back to no-image', !/IMAGE IS ATTACHED/.test(await massingPrompt.inputValue()));
 
   // The new category exists only because this tool put it there.
   await page.goto(BASE + '#/home', { waitUntil: 'domcontentloaded' });
@@ -976,6 +1012,13 @@ const check = (name, ok, detail = '') => {
   await fp.goto(BASE, { waitUntil: 'domcontentloaded' });
   await fp.waitForTimeout(500);
   check('a keyless visitor still sees the app', (await fp.locator('[data-studio-drop]').count()) === 1);
+  // The one way to reach a tool before dropping anything. It is derived from
+  // input mode, and it vanished silently once already: Massing gained an
+  // optional sketch and the old "declares no input kinds" filter dropped it.
+  check(
+    'the front door still offers a way in with no image',
+    (await fp.locator('[data-no-image-tool="massing"]').count()) === 1,
+  );
   await fp.locator(`[data-sample="${unprepared.sampleKind}"]`).click();
   await fp.waitForTimeout(900);
   await fp.locator(`[data-card="${unprepared.feature}"]`).click();
@@ -1143,7 +1186,7 @@ const check = (name, ok, detail = '') => {
   //     shape has to land somewhere usable rather than on a blank screen.
   for (const [hash, why] of [
     ['#/do/notatool', 'an unknown tool'],
-    ['#/do/massing', 'a tool that takes no image'],
+    ['#/do/massing', 'a tool whose image is optional'],
     ['#/do/render?from=deleted.jpg', 'an asset that no longer ships'],
   ]) {
     await openLink(hash);

@@ -222,8 +222,8 @@ export const EXAMPLES: Partial<Record<FeatureKind, ExampleSet>> = {
 
   massing: {
     summary:
-      'Type the brief and the site, get a white study model back. The one tool here that needs no image at all — ' +
-      'useful at the stage where there is nothing to photograph yet.',
+      'Type the brief and the site, get a white study model back — no image needed, for the stage where there is ' +
+      'nothing to photograph yet. Add a sketch and it builds what you drew; add a precedent and it borrows the idea.',
     cases: [
       {
         label: 'From a written brief',

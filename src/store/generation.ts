@@ -286,12 +286,17 @@ export type MassingDensity = 'low' | 'medium' | 'high';
 
 /** The first tool with no image input at all — every field here is what an
  *  uploaded drawing would otherwise have told the model. */
+/** What an attached image is to a massing study. Ignored when there is none. */
+export type MassingImageRole = 'sketch' | 'reference';
+
 export interface MassingSettings {
   brief: string;
   siteSize: string;
   density: MassingDensity;
   storeys: string;
   context: string;
+  /** A sketch is followed; a reference only lends its massing idea. */
+  imageRole: MassingImageRole;
 }
 
 /** How resolved a sketch comes back — three drawings, not a quality ladder. */
