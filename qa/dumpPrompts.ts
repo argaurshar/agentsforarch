@@ -15,6 +15,7 @@ import {
   buildAtmospherePrompt,
   buildFacadeMaterialPrompt,
   buildHumanScalePrompt,
+  buildMassingRenderPrompt,
   buildMultiViewPrompt,
   buildReflectionPrompt,
   buildRenderRefinePrompt,
@@ -158,6 +159,16 @@ for (const materials of ['studio','glass-steel'] as const)
   for (const lighting of ['golden-hour','overcast'] as const)
     for (const keepBackground of [false,true]) for (const entourage of [false,true])
       add(`wire:${materials}:${lighting}:b${keepBackground}:e${entourage}`, buildWireframeRenderPrompt({ ...sc, materials, lighting, entourage, keepBackground }));
+
+// Massing to Render: every take x openings x people. The reference's FORM must
+// be refused in all twelve, which is why the snapshot covers them all.
+for (const take of ['everything', 'materials', 'atmosphere'] as const) {
+  for (const openings of ['recesses', 'solid'] as const) {
+    for (const entourage of [false, true]) {
+      add(`massrender:${take}:${openings}:e${entourage}`, buildMassingRenderPrompt({ take, openings, entourage }));
+    }
+  }
+}
 add('moodboard', buildMoodboardPrompt());
 add('refine', buildRefinePrompt({ chips: ['warmer-light','change-curtains'], freeText: 'more plants' }));
 console.log(out.join('\n\n'));

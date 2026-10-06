@@ -75,6 +75,7 @@ import {
   buildRenderRefinePrompt,
   buildUpscalePrompt,
   buildWatercolourPrompt,
+  buildMassingRenderPrompt,
   buildWireframeRenderPrompt,
 } from '../../lib/prompt/visualization';
 import {
@@ -122,6 +123,7 @@ import type {
   SectionSettings,
   SketchPlanSettings,
   UpscaleSettings,
+  MassingRenderSettings,
   WireframeRenderSettings,
   MoodboardSettings,
   RenderSettings,
@@ -426,7 +428,8 @@ const massing: FeatureDef<MassingSettings> = {
   // A massing model is photographed three-quarter aerial, which is a landscape
   // composition whatever the plot shape — there is no input canvas to inherit.
   aspectRatio: () => '3:2',
-  sendTargets: ['render'],
+  // Typed brief → white massing → rendered in a reference's language.
+  sendTargets: ['render', 'massingRender'],
   poolLabel: 'Massing studies',
   galleryLabel: 'Massing',
   ui: {
@@ -1555,6 +1558,103 @@ const wireframeRender: FeatureDef<WireframeRenderSettings> = {
   ],
 };
 
+/**
+ * A massing model and a reference image → the massing, rendered in the
+ * reference's materials, light and setting. The geometry is the design and the
+ * reference is only a mood.
+ *
+ * Two images, like Place Object, and positional for the same reason: the prompt
+ * names "the FIRST" and "the SECOND", so the order the shell sends them in is
+ * part of the contract. The primary input is the massing; the extra slot is the
+ * reference.
+ */
+const massingRender: FeatureDef<MassingRenderSettings> = {
+  key: 'massingRender',
+  category: 'visualization',
+  name: 'Massing to Render',
+  blurb: 'Massing Model + Reference to Render',
+  verb: 'Render it like the reference',
+  // A photographed study model, a clay render or a viewport is a `model`; a
+  // white massing straight out of the Massing tool is labelled `building`, and
+  // taking that one step further is exactly the chain this tool exists for.
+  inputKind: ['model', 'building'],
+  outputKind: 'building',
+  icon: Boxes,
+  inputMode: 'images',
+  maxReferences: 0,
+  extraInputs: [
+    {
+      label: 'Input · the reference',
+      hint: 'A finished building photo or render whose materials, light and landscape you want — its form is ignored',
+    },
+  ],
+  defaultSettings: { take: 'everything', openings: 'recesses', entourage: false },
+  quick: [
+    {
+      kind: 'choice',
+      key: 'take',
+      label: 'Take from the reference',
+      hint: 'The reference never contributes its form — only what you pick here.',
+      options: [
+        { value: 'everything', label: 'Everything', hint: 'Its materials, its light and sky, and its landscape.' },
+        { value: 'materials', label: 'Materials only', hint: 'Its cladding, under neutral overcast daylight.' },
+        { value: 'atmosphere', label: 'Light & setting only', hint: 'Its light, sky and landscape, on plain pale concrete.' },
+      ],
+    },
+    {
+      kind: 'choice',
+      key: 'openings',
+      label: 'Openings',
+      options: [
+        {
+          value: 'recesses',
+          label: 'Glaze the recesses',
+          hint: 'Glazing only inside voids and recesses the model already has — never a new opening.',
+        },
+        { value: 'solid', label: 'Keep it solid', hint: 'No glazing anywhere. The building reads as pure form.' },
+      ],
+    },
+    {
+      kind: 'toggle',
+      key: 'entourage',
+      label: 'People for scale',
+      hint: 'A few figures at the base, so a sculptural massing reads as a building.',
+    },
+  ],
+  buildPrompt: (s) => buildMassingRenderPrompt(s),
+  sendTargets: ['atmosphere', 'humanScale', 'upscale'],
+  poolLabel: 'Renders',
+  galleryLabel: 'Massing render',
+  ui: {
+    eyebrow: 'Visualization',
+    title: 'Massing Model → Render, Like the Reference',
+    description:
+      'Drop a massing model and a building you like the look of. The massing comes back rendered in that reference’s materials, light, sky and landscape — and its form stays exactly as modelled.',
+    inputLabel: 'Input · the massing',
+    inputHint: 'A white study model photo, a clay render or a viewport screenshot',
+    outputCaption: 'The massing, rendered',
+    emptyIcon: Boxes,
+    emptyTitle: 'No render yet',
+    emptyDescription: 'Add the massing and a reference image, then press Generate.',
+    compare: { before: 'Massing', after: 'Render' },
+  },
+  blockedReason: (_s, hasInput) => (hasInput ? null : 'Upload the massing model to begin.'),
+  // The geometry is fixed and the reference is a mood: a reasonable render can
+  // still drift towards the reference's own building, and the panels look
+  // equally convincing either way.
+  accuracyWarning: () =>
+    'Compare the outline against your massing before using this. The reference has a form of its own, and a render that quietly borrowed it can look just as convincing.',
+  toOptions: (_s, ctx) => ({ variations: 1, refine: ctx.refine || undefined }),
+  promptContracts: [
+    { name: 'massing render states there are two images', pattern: /TWO IMAGES ARE ATTACHED/ },
+    { name: 'massing render puts geometry above style', pattern: /GEOMETRY PRESERVATION TAKES PRIORITY/ },
+    { name: 'massing render refuses to build the reference', pattern: /DO NOT BUILD THE REFERENCE/ },
+    { name: 'massing render names the roof drift', pattern: /THE ROOF IS THE PART THAT DRIFTS/ },
+    { name: 'massing render strips the model photograph', pattern: /not a model on a table/ },
+    { name: 'massing render checks against both images', pattern: /Against the SECOND image/ },
+  ],
+};
+
 const renderRefine: FeatureDef<RenderRefineSettings> = {
   key: 'renderRefine',
   category: 'visualization',
@@ -2259,6 +2359,7 @@ export const REGISTRY = {
   birdsEye,
   urbanContext,
   wireframeRender,
+  massingRender,
   renderRefine,
   atmosphere,
   facadeMaterial,

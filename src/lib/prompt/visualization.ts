@@ -15,7 +15,7 @@
 
 import { LIGHTING, MATERIAL_PRESETS, MOODS, SEASONS } from '../scene';
 import { NO_TEXT } from './clauses';
-import type { WatercolourPalette } from '../../store/generation';
+import type { MassingOpenings, ReferenceTake, WatercolourPalette } from '../../store/generation';
 
 export type { WatercolourPalette };
 import type {
@@ -121,6 +121,99 @@ export function buildWireframeRenderPrompt(a: SceneOptions & { keepBackground: b
     NO_TEXT,
   );
   return parts.join(' ');
+}
+
+// --- Massing model + reference → render ------------------------------------
+
+const TAKE_CLAUSE: Record<ReferenceTake, string> = {
+  everything:
+    'From the SECOND image take its material language, its light, its sky and its landscape — and nothing else. ' +
+    'Clad the existing surfaces of the massing in the reference’s materials: the same colour, tone, texture, ' +
+    'weathering and joint pattern, at a believable full-scale module. Recreate the reference’s time of day, sky, ' +
+    'direction and softness of light, shadow quality and colour grade. Build the ground, hard landscape, planting and ' +
+    'water around the building in the reference’s character.',
+  materials:
+    'From the SECOND image take ONLY its material language. Clad the existing surfaces of the massing in the ' +
+    'reference’s materials — the same colour, tone, texture, weathering and joint pattern, at a believable full-scale ' +
+    'module. Do NOT take its light, sky or setting: render under soft, even overcast daylight in a restrained, neutral ' +
+    'setting of plain paving and a little planting, so the material reads honestly.',
+  atmosphere:
+    'From the SECOND image take ONLY its light, sky and landscape. Recreate its time of day, sky, direction and ' +
+    'softness of light, shadow quality and colour grade, and build its kind of ground, planting and water around the ' +
+    'building. Do NOT take its materials: render the massing in one neutral, honest material — fine-grained pale ' +
+    'fair-faced concrete — so the form and the light are what read.',
+};
+
+const OPENINGS_CLAUSE: Record<MassingOpenings, string> = {
+  recesses:
+    'A massing model carries no windows, so do not invent a facade. Where the model ALREADY has a recess, a void or a ' +
+    'set-back, you may glaze it with deeply recessed, dark-framed glazing that sits inside its exact boundary — never ' +
+    'enlarging it, never filling it flush, never adding an opening where the model has a solid face.',
+  solid:
+    'Keep every face solid, exactly as modelled: add no windows, doors, glazing, openings or facade pattern anywhere. ' +
+    'The building reads as pure form.',
+};
+
+/**
+ * A massing model (a photographed white study model, a clay render, a 3D
+ * viewport) plus a REFERENCE image → the massing, rendered in the reference's
+ * materials, light and setting.
+ *
+ * Two images arrive, and they pull in opposite directions. The first is the
+ * design and must not move. The second is a finished building with a form of
+ * its own, and that form is the strongest thing in it — a model told to "render
+ * it like this" will happily hand back the REFERENCE building with the massing's
+ * proportions, because that is the easiest image to make. So the prompt names
+ * that failure outright, scopes the reference to surface and atmosphere, and
+ * closes with two checks: one against each image.
+ *
+ * The roof sentence is here from day one. Every lock in this app that did not
+ * name the roof lost it — Exploded Axonometric (run 08) and Atmosphere (W1)
+ * both handed back a flat roof as a hipped one — and a massing model, all
+ * planes and tilts, has more to lose than either.
+ */
+export function buildMassingRenderPrompt(a: {
+  take: ReferenceTake;
+  openings: MassingOpenings;
+  entourage: boolean;
+}): string {
+  return [
+    'TWO IMAGES ARE ATTACHED. The FIRST is a massing model — a physical study model, a clay render or a 3D viewport ' +
+      'view — and it is the design. The SECOND is a reference image, and it is only a mood: where the look comes from, ' +
+      'never what gets built. Produce a finished photorealistic architectural render of the FIRST image’s building.',
+    'STEP 1 — READ THE MASSING FIRST. Identify every volume and how it sits: its proportions, its rotation and tilt, ' +
+      'what it rests on, where it cantilevers, where two volumes overlap or touch, every recess and every void. Note ' +
+      'the outline against the background and the exact direction you are looking from.',
+    'STEP 2 — LOCK THE MASSING. GEOMETRY PRESERVATION TAKES PRIORITY OVER EVERY STYLISTIC CHOICE BELOW. Build exactly ' +
+      'the volumes shown, at the same proportions, the same angles and the same relative positions, with the same ' +
+      'contact points, cantilevers, overlaps and voids. Keep the same silhouette and the same viewing direction, so the ' +
+      'massing stays directly recognisable. Do not straighten a tilted volume, square up an angle, change a ' +
+      'dimension, add a floor or a wing, fill a void, or smooth a step away. THE ROOF IS THE PART THAT DRIFTS: every ' +
+      'top surface keeps its exact plane — a flat top stays flat, a tilted one stays tilted at the same angle — and ' +
+      'you must not give this building a pitched, hipped or gabled roof that the model does not have.',
+    'STEP 3 — DO NOT BUILD THE REFERENCE. The second image shows a different building with its own form, and that ' +
+      'form is not yours to use. Do not copy its massing, its outline, its facade layout, its window grid, its floor ' +
+      'count or its atrium onto the model. If your result looks like the reference building, you have failed the task, ' +
+      'however good it looks.',
+    `STEP 4 — ONLY THEN RENDER IT. ${TAKE_CLAUSE[a.take]}`,
+    OPENINGS_CLAUSE[a.openings],
+    // The scale jump is its own failure: a photographed table-top model comes
+    // back as a photographed table-top model — macro blur, paper texture, the
+    // board's edge — unless the prompt says what to take away.
+    'This is a full-scale building, not a model on a table. Remove everything that belongs to the model photograph: ' +
+      'the tabletop or base board and its edges, the paper or card texture, any glue lines, scale figures, handwritten ' +
+      'notes and the studio backdrop. Replace them with real ground at the building’s true scale, continuing out to a ' +
+      'real horizon, and arrange any landscape AROUND the building without hiding its silhouette or changing its ' +
+      'footprint. Render with deep focus throughout — no macro shallow depth of field, no tilt-shift look.',
+    a.entourage
+      ? 'Include a few people at true scale near the base, occupied and not looking at the camera, so the size reads.'
+      : 'No people.',
+    PHOTO_FINISH,
+    'Before you finish, run two checks. Against the FIRST image: trace the outline, count the volumes and compare ' +
+      'every angle and contact point — if any of it has moved, rebuild it. Against the SECOND image: if your building ' +
+      'has taken on the reference building’s form, layout or window pattern, rebuild it from the massing.',
+    NO_TEXT,
+  ].join(' ');
 }
 
 // --- Render refinement ------------------------------------------------------

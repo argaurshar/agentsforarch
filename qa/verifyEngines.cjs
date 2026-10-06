@@ -343,6 +343,16 @@ const check = (name, ok, detail = '') => {
   await navTo('placeObject');
   check('placeObject offers two separate image inputs', (await page.locator('input[type=file]').count()) >= 2);
 
+  // Massing to Render is the second two-image tool, and the order matters just
+  // as much: the prompt says the FIRST image is the design and the SECOND only a
+  // mood. Two dropzones, and the second one is named as the reference.
+  await navTo('massingRender');
+  check('massingRender offers two separate image inputs', (await page.locator('input[type=file]').count()) >= 2);
+  check(
+    'and names the second one as the reference',
+    /the reference/i.test(await page.locator('main').innerText()),
+  );
+
   // 12. The navigation shell. The sidebar lists CATEGORIES now — a row per tool
   //     was right at five and wrong at eleven — so reachability is two hops, and
   //     both have to hold or a tool ships invisible.
