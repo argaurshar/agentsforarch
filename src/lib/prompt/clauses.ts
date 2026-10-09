@@ -96,3 +96,30 @@ export const SHELL_CHECK =
   'compare opening by opening. If any window or door has appeared, vanished, moved or changed size or its number of ' +
   'panes, or if a wall that was blank now carries a window, a glazed panel or a curtain, rebuild it — matching the ' +
   'room’s existing architecture matters more than any styling instruction above.';
+
+/** A marked rectangle, as fractions (0–1) of the image's width and height. */
+export interface Region {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+const pct = (v: number) => `${Math.round(Math.min(1, Math.max(0, v)) * 100)}%`;
+
+/**
+ * Where a marked box sits, in words. Q4 drew the box on a neighbour's ground
+ * floor and got the café in the main house instead: "the rectangle" alone did
+ * not outweigh the subject of the picture. A position stated in words does.
+ */
+export function describeRegion(r: Region): string {
+  const cx = r.x + r.w / 2;
+  const cy = r.y + r.h / 2;
+  const across = cx < 0.34 ? 'left' : cx > 0.66 ? 'right' : 'centre';
+  const down = cy < 0.34 ? 'upper' : cy > 0.66 ? 'lower' : 'middle';
+  const where = down === 'middle' && across === 'centre' ? 'the centre' : down === 'middle' ? `the ${across}` : across === 'centre' ? `the ${down} centre` : `the ${down} ${across}`;
+  return (
+    `in ${where} of the image — from ${pct(r.x)} to ${pct(r.x + r.w)} of the way across, and from ${pct(r.y)} to ` +
+    `${pct(r.y + r.h)} of the way down`
+  );
+}

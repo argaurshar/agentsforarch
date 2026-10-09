@@ -187,22 +187,24 @@ const SYSTEM: Record<SystemsCutawaySettings['system'], { intro: string; show: st
   climate: {
     intro: 'how it works with the climate',
     show:
-      'STEP 3 — SHOW THE SYSTEM with bold, flat, colour-coded arrows over the cut. Sun: the summer sun at a high angle ' +
-      'and the winter sun at a low angle, as yellow rays reaching the glazing, showing what the overhangs shade and ' +
+      'STEP 3 — SHOW THE SYSTEM with bold, flat, colour-coded arrows over the cut. Sun: from ONE side only — the ' +
+      'equator side — the summer sun at a high angle and the winter sun at a low angle, as yellow rays reaching the glazing, showing what the overhangs shade and ' +
       'what they let in. Air: blue arrows for cool air entering low on the windward side, turning red as warm air ' +
       'rises through the section and leaves through high-level openings or the roof. Keep the building in muted tones ' +
       'so the arrows are the focal point.',
     labels: 'SUMMER SUN, WINTER SUN, COOL AIR IN, HOT AIR OUT',
     check:
-      'Do warm-air arrows rise and leave high, and cool-air arrows enter low? Is the summer sun steeper than the winter sun?',
+      'Do warm-air arrows rise and leave high, and cool-air arrows enter low? Is the summer sun steeper than the winter ' +
+      'sun, and do both come from the same side?',
   },
   green: {
     intro: 'how its planting is kept alive',
     show:
       'STEP 3 — SHOW THE SYSTEM. Cut through the balconies, planters and roof garden to reveal the soil substrate, the ' +
       'drainage layer, the root systems and the hidden irrigation pipes. Show rainwater collected from the roof, stored ' +
-      'in tanks and pumped back up to the planting, with blue flow arrows. Draw it as a scientific illustration, the ' +
-      'palette limited to greens and concrete grey, so the living parts and the structure read apart.',
+      'in tanks and pumped back up to the planting, with blue flow arrows. Draw it as a scientific illustration in a ' +
+      'palette of greens and concrete grey ONLY — the facade’s own colours and patterns are redrawn in grey — so the ' +
+      'living parts and the structure read apart.',
     labels: 'SOIL SUBSTRATE, DRAINAGE LAYER, ROOTS, IRRIGATION, RAINWATER TANK',
     check: 'Are the roots in the soil, and does the water run from the roof to the tank and back to the planting?',
   },
@@ -227,7 +229,12 @@ export function buildSystemsCutawayPrompt(a: SystemsCutawaySettings): string {
       'camera angle.',
     'STEP 2 — CUT IT OPEN. Same building, same camera — but slice away the nearest part along a vertical cut plane so ' +
       'the inside is revealed: floor slabs, rooms, stairs and voids in section, with cut surfaces as clean solid fills. ' +
-      'The rest of the building — its form, facade and materials — stays exactly as in the input.',
+      'The rest of the building — its form, openings and facade layout — stays exactly as in the input.',
+    // U1 tidied an asymmetric house into a symmetric one and dropped its garage;
+    // U2 invented three storeys beneath a planted building.
+    'KEEP EVERY PART AND NOTHING MORE: every wing, garage, cantilever and asymmetry of the input stays — a tidier, ' +
+      'symmetrical version is a different building — and nothing is added that the input does not show: no extra ' +
+      'floors, basements or plant rooms below it.',
     sys.show,
     a.labels
       ? `Label each element in a clean sans-serif with thin leader lines — for example ${sys.labels} — with a small ` +

@@ -54,6 +54,8 @@ interface Run {
   input: string | null;
   /** Sent as `hasMarker` to buildPrompt — the input must ALREADY carry the box. */
   marked?: boolean;
+  /** Where that box was burned, as the screen would pass it (fractions). */
+  markerRect?: { x: number; y: number; w: number; h: number };
   /** A tool's own second image (`extraInputs`), sent positionally after the input. */
   extra?: string;
   /** Settings overrides — the non-default variant, when that IS the risk. */
@@ -428,6 +430,22 @@ const NEW_TOOLS: Run[] = [
     ],
   },
   // Phase 2a — all on guide inputs (test-only).
+  {
+    id: 'Q4b', tool: 'groundFloor', input: MARKED_STREET, marked: true, markerRect: { x: 0.005, y: 0.545, w: 0.21, h: 0.2 },
+    title: 'FIX CHECK — the box on the brick neighbour, now located in words. Does the café go THERE?',
+    verdicts: [
+      'PASS — a lit café in the brick building’s ground floor at the lower left; the house and its garage unchanged; no red line',
+      'FAIL — the café in the house again, or anything outside the box changed',
+    ],
+  },
+  {
+    id: 'U1b', tool: 'systemsCutaway', input: 'ex-human-scale.jpg',
+    title: 'FIX CHECK — the same house, garage and all, with the sun from one side?',
+    verdicts: [
+      'PASS — the asymmetric house with its garage wing, sliced; summer and winter sun from the same side; air physics right',
+      'FAIL — a symmetric house, the garage gone, or sun from both sides',
+    ],
+  },
   {
     id: 'Z1', tool: 'siteLinework', input: 'guide:uc32-input1.jpg',
     title: 'Satellite to linework. Does it OVERLAY the tile, with no text and no trees?',
@@ -838,6 +856,7 @@ function dataUrl(file: string): string {
       useMoodboard: false,
       useStyleRef: false,
       hasMarker: run.marked ?? false,
+      marker: run.markerRect,
       hasImage: Boolean(run.input),
       extras: run.extra ? [true] : [],
     });

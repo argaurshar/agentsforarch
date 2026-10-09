@@ -203,6 +203,7 @@ import type {
 } from '../../store/generation';
 import { baseRun } from '../../store/generation';
 import type { FeatureMode } from '../../store/generation';
+import type { Region } from '../../lib/prompt/clauses';
 import type { CategoryKey, CategoryTab, FeatureKind, InputKind } from './keys';
 import { CATEGORY_BLURB, CATEGORY_KEYS, CATEGORY_LABEL, FEATURE_KEYS, categoryTab } from './keys';
 
@@ -225,6 +226,9 @@ export interface PromptContext {
    *  The prompt has to say so — an unexplained red box in the image is just
    *  something for the model to faithfully reproduce in its output. */
   hasMarker?: boolean;
+  /** Where that rectangle is, as fractions of the image — for a prompt that
+   *  must say it in words (Ground Floor, after Q4). */
+  marker?: Region;
   /** An input image is attached. Only matters to a tool whose image is
    *  OPTIONAL (`inputMode: 'optional'`): its prompt says different things with
    *  and without one, and the builder cannot see the store. Every caller that
@@ -3551,7 +3555,7 @@ const groundFloor: FeatureDef<GroundFloorSettings> = {
     },
     { kind: 'toggle', key: 'people', label: 'People', hint: 'Staff and customers, so the frontage reads as active.' },
   ],
-  buildPrompt: (s) => buildGroundFloorPrompt(s),
+  buildPrompt: (s, ctx) => buildGroundFloorPrompt({ ...s, region: ctx.hasMarker ? ctx.marker : undefined }),
   sendTargets: ['humanScale', 'atmosphere', 'upscale'],
   poolLabel: 'Renders',
   galleryLabel: 'Ground floor',
@@ -3576,6 +3580,7 @@ const groundFloor: FeatureDef<GroundFloorSettings> = {
   },
   toOptions: (_s, ctx) => plainOptions(ctx),
   promptContracts: [
+    { name: 'ground floor: the rectangle outranks the main building', pattern: /THE RECTANGLE DECIDES, NOT THE PICTURE/ },
     { name: 'ground floor reads the box as an instruction', pattern: /It is an instruction, not part of the building/ },
     { name: 'ground floor locks everything outside the box', pattern: /LOCK EVERYTHING OUTSIDE THE RECTANGLE/ },
     { name: 'ground floor takes its grid from above', pattern: /lines up with the columns and bays above/ },
@@ -3641,6 +3646,7 @@ const systemsCutaway: FeatureDef<SystemsCutawaySettings> = {
   blockedReason: (_s, hasInput) => (hasInput ? null : 'Upload the building to begin.'),
   toOptions: (_s, ctx) => plainOptions(ctx),
   promptContracts: [
+    { name: 'cutaway keeps every part and adds none', pattern: /KEEP EVERY PART AND NOTHING MORE/ },
     { name: 'cutaway reads the building first', pattern: /READ THE BUILDING FIRST/ },
     { name: 'cutaway cuts rather than overlays', pattern: /CUT IT OPEN/ },
     { name: 'cutaway keeps the camera', pattern: /Same building, same camera/ },

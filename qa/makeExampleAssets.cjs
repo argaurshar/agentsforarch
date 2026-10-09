@@ -66,6 +66,12 @@ const MANIFEST = [
   ['run-Y2b-output.png', 'ex-bubble-plan.jpg', 'bubblePlan — labelled, which is now the default'],
   ['run-Z9-output.png', 'ex-site-photo.jpg', 'sitePhoto — an ordinary street, text-only, search sources listed'],
   ['run-Z8-output.png', 'ex-site-photo-landmark.jpg', 'sitePhoto — the landmark rule, at the White House'],
+  ['run-Q1-output-02.png', 'ex-phasing-frame.jpg', 'phasing — stage 2 of Q1'],
+  ['run-Q1-output-03.png', 'ex-phasing-envelope.jpg', 'phasing — stage 3 of Q1'],
+  ['run-Q2-output.png', 'ex-reframe-story.jpg', 'reframe — 16:9 to 9:16'],
+  ['run-Q3-output.png', 'ex-reframe-banner.jpg', 'reframe — 3:2 to 21:9'],
+  ['run-U3-output.png', 'ex-marketing-board.jpg', 'marketingBoard — only the typed facts'],
+  ['run-U4-output.png', 'ex-magazine.jpg', 'magazine — one small typo, recorded in the note'],
   ['run-Z10-output.png', 'ex-site-history.jpg', 'siteHistory — Taj Mahal, named; Z11/Z11b (unnamed) found wrong sites, so the name is now required'],
 ];
 

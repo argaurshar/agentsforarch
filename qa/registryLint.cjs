@@ -214,13 +214,9 @@ const AWAITING_LIVE_RUN = {
   siteAnalysis3d: 'passed on guide #56 with and without its reference (Z4, Z5, test-only); publishable input still to source',
   urbanLayers: 'passed on guide #58, both steps chained (Z6 then Z7, test-only); publishable aerial still to source',
   // Build plan, Phase 3a — our own inputs throughout, publishable on a pass.
-  phasing: 'new; fixture ex-human-scale.jpg, awaiting one approved paid run of three stages (Q1)',
-  reframe: 'new; fixtures ex-human-scale.jpg, ex-massing.jpg, awaiting approved paid runs (Q2, Q3)',
-  groundFloor: 'new; fixture fixture-street-marked.png (qa/canvasOps.cjs burn), awaiting one approved paid run (Q4)',
+  groundFloor: 'Q4 failed live (frontage in the wrong building); fixed, Q4b re-test awaiting approval',
   // Build plan, Phase 3b.
-  systemsCutaway: 'new; fixture ex-human-scale.jpg (U1, climate); green systems on guide #51 (U2, test-only)',
-  marketingBoard: 'new; fixture ex-atmosphere.jpg, awaiting one approved paid run (U3)',
-  magazine: 'new; fixture interior-stage.jpg, awaiting one approved paid run (U4)',
+  systemsCutaway: 'U1/U2 partial live; fixed, U1b re-test awaiting approval',
   // Build plan, Phase 4. Text-first tools — an example needs no published input.
   materialPoster: 'new; text-only and with guide #59 photo (K1, K2), awaiting approved paid runs',
   architectTimeline: 'new; text-only, awaiting one approved paid run (K3)',
