@@ -75,6 +75,8 @@ const MANIFEST = [
   ['run-K5-output.png', 'ex-red-pen.jpg', 'redPen — constructive'],
   ['run-K6-output.png', 'ex-red-pen-roast.jpg', 'redPen — roast'],
   ['run-K3-output.png', 'ex-architect-timeline.jpg', 'architectTimeline — text-only, Zaha Hadid'],
+  ['run-K1b-output.png', 'ex-material-poster.jpg', 'materialPoster — the fixed run, nothing repeated'],
+  ['run-K4b-output.png', 'ex-blueprint-evolution.jpg', 'blueprintEvolution — the fixed run, one label per stage'],
   ['run-Z10-output.png', 'ex-site-history.jpg', 'siteHistory — Taj Mahal, named; Z11/Z11b (unnamed) found wrong sites, so the name is now required'],
 ];
 

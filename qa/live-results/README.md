@@ -572,3 +572,26 @@ run live**: the "What we check" badges read passed, passed with a caveat, or
 fixed with a re-test pending — none says "not live-tested yet".
 
 Phase 4 calls: 6.
+
+## Retries after Phases 3 and 4 — 9 October 2026
+
+Four approved calls, `liveRuns --new --runs=Q4b,U1b,K1b,K4b`.
+
+| Run | Tool | Verdict |
+|---|---|---|
+| Q4b | Ground-Floor Program | **FAIL again.** With the box's position stated in words, the café still went into the house's garage; the boxed brick neighbour was left as it was. Two runs, same mistake: the model goes for the obvious ground floor in the middle of the picture, whatever the text says. |
+| U1b | Systems Cutaway | **Better, still PARTIAL.** The asymmetry survives this time (stone volume left, double-height centre, lower right wing) and the air physics is right, but the garage door is gone and summer sun still comes from both sides. |
+| K1b | Material Poster | **PASS, with a caveat.** Nothing repeated: one heading per panel. The "Indus Valley" origin claim came back — and search ran, so it comes from the sources (supplier sites), which the app lists under the poster. |
+| K4b | Blueprint Evolution | **PASS, with a caveat.** One style-and-date label per stage, no sentences, seven stages in date order rising from drafting to models. The farthest labels blur a little; one date reads early. |
+
+### Where this leaves them
+
+- **Material Poster** and **Blueprint Evolution** ship their fixed runs as
+  examples, with caveats on the "What we check" badge.
+- **Ground Floor** and **Systems Cutaway** are marked **known issue** on the
+  badge, with the limitation in words. Prompt wording has had its two tries.
+  The likely fix for Ground Floor is mechanical rather than verbal: crop the
+  boxed area, generate only that, and paste it back — the way Reframe already
+  pastes the original back exactly. That is a design change, put to the user.
+
+Retry calls: 4.
