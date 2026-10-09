@@ -1,5 +1,7 @@
 import { ArrowRight, ChevronDown, Sparkles, Wand2 } from 'lucide-react';
 import { useState } from 'react';
+import { CHECKS } from '../../lib/checks';
+import type { ToolChecks } from '../../lib/checks';
 import { EXAMPLES, TRY_INPUT, loadExampleInput } from '../../lib/examples';
 import type { ExampleCase } from '../../lib/examples';
 import { useProjectStore } from '../../store/useProjectStore';
@@ -77,6 +79,62 @@ function CasePanel({ example }: { example: ExampleCase }) {
   );
 }
 
+const LIVE: Record<ToolChecks['live'], { label: string; tone: string }> = {
+  passed: { label: 'Live-tested · passed', tone: 'bg-success-soft text-success' },
+  caveat: { label: 'Live-tested · passed with a caveat', tone: 'bg-warning-soft text-warning' },
+  pending: { label: 'Not live-tested yet', tone: 'bg-drafting text-mist' },
+};
+
+const ROW = 'grid gap-1 sm:grid-cols-[minmax(0,0.8fr)_minmax(0,1fr)_minmax(0,1fr)] sm:gap-4';
+
+/**
+ * What a good result must get right, as before (what you give) → after (what
+ * comes back): the checks the paid live runs are judged on, in the user's
+ * words. Stacks to one column on a phone, each cell carrying its own label.
+ */
+function CheckTable({ checks }: { checks: ToolChecks }) {
+  const live = LIVE[checks.live];
+  return (
+    <div className="flex flex-col gap-3 rounded-field border border-hairline bg-paper p-4 sm:col-span-full" data-check-table>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h3 className="section-heading">What we check</h3>
+        <span className={`rounded-full px-2.5 py-0.5 text-caption ${live.tone}`} data-live={checks.live}>
+          {live.label}
+        </span>
+      </div>
+      <div role="table" aria-label="What we check" className="flex flex-col text-caption">
+        <div role="row" className={`${ROW} hidden border-b border-hairline pb-2 text-mist sm:grid`}>
+          <span role="columnheader">Check</span>
+          <span role="columnheader">Before — you give</span>
+          <span role="columnheader">After — a good result</span>
+        </div>
+        {checks.rows.map((r) => (
+          <div role="row" key={r.check} className={`${ROW} border-b border-hairline py-2.5 last:border-b-0`}>
+            <span role="cell" className="font-medium text-graphite">
+              {r.check}
+            </span>
+            {/* An empty "before" is a column filler on a wide screen; stacked,
+                it would be a line that says nothing. */}
+            <span role="cell" className={`leading-relaxed text-mist ${r.before === '—' ? 'hidden sm:block' : ''}`}>
+              <span className="text-mist sm:hidden">Before: </span>
+              {r.before}
+            </span>
+            <span role="cell" className="leading-relaxed text-graphite">
+              <span className="text-mist sm:hidden">After: </span>
+              {r.after}
+            </span>
+          </div>
+        ))}
+      </div>
+      {checks.note || checks.live === 'pending' ? (
+        <p className="text-caption leading-relaxed text-mist">
+          {checks.note ?? 'These are the checks its first paid run will be judged on.'}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
 /**
  * "What does this tab do?" — real input → output pairs this app produced on
  * Nano Banana Pro, shipped as static assets. Costs no API call to look at, and
@@ -85,11 +143,12 @@ function CasePanel({ example }: { example: ExampleCase }) {
  */
 export function ExampleShowcase({ feature, defaultOpen = false }: ExampleShowcaseProps) {
   const set = EXAMPLES[feature];
+  const checks = CHECKS[feature];
   const setFeatureInput = useProjectStore((s) => s.setFeatureInput);
   const [open, setOpen] = useState(defaultOpen);
   const [loading, setLoading] = useState(false);
 
-  if (!set) return null;
+  if (!set && !checks) return null;
 
   const tryInput = TRY_INPUT[feature];
 
@@ -113,7 +172,9 @@ export function ExampleShowcase({ feature, defaultOpen = false }: ExampleShowcas
           </span>
           <div className="min-w-0">
             <h2 className="section-heading">See what this does</h2>
-            <p className="mt-1 max-w-2xl text-body leading-relaxed text-graphite">{set.summary}</p>
+            <p className="mt-1 max-w-2xl text-body leading-relaxed text-graphite">
+              {set?.summary ?? 'No worked example yet — here is what a good result must get right.'}
+            </p>
           </div>
         </div>
 
@@ -143,7 +204,11 @@ export function ExampleShowcase({ feature, defaultOpen = false }: ExampleShowcas
               />
             }
           >
-            {open ? 'Hide examples' : `Show ${set.cases.length} examples`}
+            {open
+              ? 'Hide'
+              : set
+                ? `Show ${set.cases.length} example${set.cases.length > 1 ? 's' : ''} and checks`
+                : 'Show what we check'}
           </Button>
         </div>
       </div>
@@ -155,16 +220,19 @@ export function ExampleShowcase({ feature, defaultOpen = false }: ExampleShowcas
         // of the one image that answers "what does this tool do".
         <div
           className={`grid gap-4 border-t border-hairline p-5 ${
-            set.cases.length > 1 ? 'sm:grid-cols-2' : 'sm:grid-cols-1'
+            set && set.cases.length > 1 ? 'sm:grid-cols-2' : 'sm:grid-cols-1'
           }`}
         >
-          {set.cases.map((example) => (
+          {set?.cases.map((example) => (
             <CasePanel key={example.label} example={example} />
           ))}
-          <p className="text-caption leading-relaxed text-mist sm:col-span-full">
-            Real runs from this app on Nano&nbsp;Banana&nbsp;Pro — shown from bundled images, so browsing them costs
-            nothing. Your own results will differ with your inputs and settings.
-          </p>
+          {checks ? <CheckTable checks={checks} /> : null}
+          {set ? (
+            <p className="text-caption leading-relaxed text-mist sm:col-span-full">
+              Real runs from this app on Nano&nbsp;Banana&nbsp;Pro — shown from bundled images, so browsing them costs
+              nothing. Your own results will differ with your inputs and settings.
+            </p>
+          ) : null}
         </div>
       ) : null}
     </section>

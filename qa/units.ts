@@ -9,6 +9,9 @@ import type { GenerateContentResponse } from '../src/providers/gemini';
 import { formatCoordinates, formatLatitude, parseCoordinates } from '../src/lib/coords';
 import { placement, ratioValue } from '../src/lib/reframe';
 import { dataUrlSize, effectiveAspect, nearestAspect } from '../src/providers/options';
+import { CHECKS } from '../src/lib/checks';
+import { EXAMPLES } from '../src/lib/examples';
+import { FEATURE_KEYS } from '../src/features/registry/keys';
 import { readFileSync } from 'node:fs';
 
 const results: { ok: boolean; name: string }[] = [];
@@ -119,6 +122,22 @@ check('9:16 is nearest for a phone portrait', nearestAspect(893, 1600) === '9:16
 check('two images pin to the FIRST image’s shape', effectiveAspect(undefined, [massing, wideRef]) === '3:2');
 check('a ratio the tool asked for still wins', effectiveAspect('1:1', [massing, wideRef]) === '1:1');
 check('one image is left to follow itself', effectiveAspect(undefined, [massing]) === undefined);
+
+// --- "What we check" tables --------------------------------------------------
+
+const thin = FEATURE_KEYS.filter((k) => CHECKS[k].rows.length < 3 || CHECKS[k].rows.length > 5);
+check('every tool says what a good result gets right, in 3–5 checks', thin.length === 0, thin.join(', '));
+const cells = FEATURE_KEYS.flatMap((k) => CHECKS[k].rows.flatMap((r) => [r.check, r.before, r.after].map((c) => [k, c])));
+const bad = cells.filter(([, c]) => !c.trim() || c.length > 64);
+check('every check cell is filled and short enough to scan', bad.length === 0, bad.map(([k, c]) => `${k}: ${c}`).join('\n      '));
+const dupes = FEATURE_KEYS.filter((k) => new Set(CHECKS[k].rows.map((r) => r.check)).size !== CHECKS[k].rows.length);
+check('no tool lists the same check twice', dupes.length === 0, dupes.join(', '));
+// A worked example is a live run that passed; a tool cannot ship one and still
+// claim it has not been run.
+const claimsUnrun = FEATURE_KEYS.filter((k) => CHECKS[k].live === 'pending' && EXAMPLES[k]);
+check('a tool with a shipped example does not say it is untested', claimsUnrun.length === 0, claimsUnrun.join(', '));
+const caveatSilent = FEATURE_KEYS.filter((k) => CHECKS[k].live === 'caveat' && !CHECKS[k].note);
+check('every caveat is spelled out', caveatSilent.length === 0, caveatSilent.join(', '));
 
 // ---------------------------------------------------------------------------
 const failed = results.filter((r) => !r.ok).length;
