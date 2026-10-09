@@ -357,7 +357,8 @@ export function buildMaterialPosterPrompt(a: { topic: string; search: boolean; h
       'Use only facts you are confident are true; leave out anything uncertain rather than guessing a number.',
     a.hasPhoto
       ? 'STEP 2 — READ THE PHOTO. The input image shows the real material. Every depiction of it on the poster — colour, ' +
-        'texture, pattern and proportion — matches this photo.'
+        'texture, pattern and proportion — matches this photo. Where it has a pattern or perforation, draw THE PHOTO’S ' +
+        'OWN SHAPES, copied — not new shapes in the same spirit.'
       : '',
     'STEP 3 — LAY OUT ONE POSTER as a bento-box grid on a textured paper background:',
     '1. Top left — a photorealistic close-up of the raw material’s texture and colour.',
@@ -366,9 +367,13 @@ export function buildMaterialPosterPrompt(a: { topic: string; search: boolean; h
       'arrows (blue for cool air, red for heat).',
     '4. Remaining panels — short bullet summaries of its performance and sustainability benefits, and a brief history.',
     `Title “${title}” in large, legible sans-serif; bullets under twelve words each.`,
+    // K1 printed a whole panel twice; K2 copied the performance bullets under
+    // sustainability and labelled the assembly twice.
+    'SAY EACH THING ONCE: every panel has its own heading, used once, and no bullet or label appears in two places.',
     'Spell every word correctly and keep every word legible. No made-up statistics. Do not add any watermark or signature.',
-    'CHECK before you finish: is every panel about this material? Is every bullet a plain, true statement? Is the title ' +
-      'spelled exactly?',
+    'CHECK before you finish: is every panel about this material? Is every bullet a plain, true statement — history ' +
+      'included, which states only what is well documented? Does any heading, bullet or label appear twice? Is the ' +
+      'title spelled exactly?',
   ]
     .filter(Boolean)
     .join(' ');
@@ -464,11 +469,14 @@ export function buildBlueprintEvolutionPrompt(a: { typology: string; stages: Blu
     `STEP 4 — SCALE AND TOOLS. A 2D drafted human figure beside stage 1 becomes a 3D miniature figure by stage ${n}, at ` +
       'consistent scale. A compass, protractor, mechanical pencil and T-square rest on the flat zones, touching the ' +
       'lines they draw.',
-    'STEP 5 — ANNOTATE like a drafter: grid lines, dimension strings, and for each stage its style name and date range ' +
-      'plus one short callout on what changed. Drafting lettering. Spell every word correctly and keep every word legible.',
+    // K4: a sentence per stage came back garbled ("Ray Change", "Key Obenger")
+    // and every stage was captioned twice. Fewer, larger words survive.
+    'STEP 5 — ANNOTATE like a drafter: grid lines and dimension strings, and ONE label per stage, printed once — its ' +
+      'style name and date range only (for example “GOTHIC REVIVAL · c. 1840–1900”), large and clear. No sentences, no ' +
+      'callouts, no second copy of any label. Spell every word correctly.',
     'ONE image only. Do not add any watermark or signature.',
-    'CHECK before you finish: do the stages run in date order? Does each add dimension and realism? Is every style name ' +
-      'spelled correctly?',
+    'CHECK before you finish: do the stages run in date order? Does each add dimension and realism? Does each stage ' +
+      'have exactly one label, spelled correctly?',
   ].join(' ');
 }
 

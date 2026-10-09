@@ -3831,6 +3831,7 @@ const materialPoster: FeatureDef<MaterialPosterSettings> = {
   blockedReason: (s) => (s.topic.trim() ? null : 'Name the material or system to begin.'),
   toOptions: (s, ctx) => ({ ...plainOptions(ctx), grounding: searching(s.search) || undefined }),
   promptContracts: [
+    { name: 'poster says each thing once', pattern: /SAY EACH THING ONCE/ },
     { name: 'poster researches first', pattern: /RESEARCH FIRST/ },
     { name: 'poster leaves out what it is unsure of', pattern: /leave out anything uncertain/ },
     { name: 'poster is a bento grid', pattern: /bento-box grid/ },
@@ -3959,6 +3960,7 @@ const blueprintEvolution: FeatureDef<BlueprintEvolutionSettings> = {
   blockedReason: (s) => (s.typology.trim() ? null : 'Name the typology to begin.'),
   toOptions: (s, ctx) => ({ ...plainOptions(ctx), grounding: searching(s.search) || undefined }),
   promptContracts: [
+    { name: 'blueprint labels each stage once, no sentences', pattern: /ONE label per stage, printed once/ },
     { name: 'blueprint researches the lineage', pattern: /RESEARCH THE LINEAGE FIRST/ },
     { name: 'blueprint draws different buildings', pattern: /DIFFERENT building from the lineage/ },
     { name: 'blueprint rises in realism', pattern: /more three-dimensional and more real/ },

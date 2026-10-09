@@ -592,6 +592,46 @@ export const EXAMPLES: Partial<Record<FeatureKind, ExampleSet>> = {
     ],
   },
 
+  redPen: {
+    summary:
+      'A render or room photo comes back marked up like a design review: red circles on what is visibly wrong, short ' +
+      'hand-lettered notes, the image underneath untouched. Critique or roast.',
+    cases: [
+      {
+        label: 'Constructive review',
+        note: 'Five notes on things you can see — pendant scale, a chair in the view, repeating texture, art too low.',
+        input: asset('interior-stage.jpg'),
+        inputLabel: 'Room photo',
+        output: asset('ex-red-pen.jpg'),
+        outputLabel: 'Marked up',
+      },
+      {
+        label: 'The roast',
+        note: '“Beige on beige on beige. How bold.” Sarcasm about the design only — never the people — and the room unchanged.',
+        input: asset('interior-restyle.jpg'),
+        inputLabel: 'Room photo',
+        output: asset('ex-red-pen-roast.jpg'),
+        outputLabel: 'Roasted',
+      },
+    ],
+  },
+
+  architectTimeline: {
+    summary:
+      'An architect’s name in, their built work out as one illustrated timeline — real buildings, real years, in order, ' +
+      'drawn as one family. Check every date before you publish.',
+    cases: [
+      {
+        label: 'Zaha Hadid, angles to curves',
+        note:
+          'Vitra Fire Station 1993, Phaeno 2005, Guangzhou Opera House 2010, London Aquatics Centre 2011, Heydar ' +
+          'Aliyev Center 2012, Morpheus Hotel 2018 — all real, all in order, one drawing style.',
+        output: asset('ex-architect-timeline.jpg'),
+        outputLabel: 'Timeline',
+      },
+    ],
+  },
+
   renderRefine: {
     summary: 'Cleans up an image you have already approved. It resolves execution, it does not redesign.',
     cases: [

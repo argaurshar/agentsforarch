@@ -72,6 +72,9 @@ const MANIFEST = [
   ['run-Q3-output.png', 'ex-reframe-banner.jpg', 'reframe — 3:2 to 21:9'],
   ['run-U3-output.png', 'ex-marketing-board.jpg', 'marketingBoard — only the typed facts'],
   ['run-U4-output.png', 'ex-magazine.jpg', 'magazine — one small typo, recorded in the note'],
+  ['run-K5-output.png', 'ex-red-pen.jpg', 'redPen — constructive'],
+  ['run-K6-output.png', 'ex-red-pen-roast.jpg', 'redPen — roast'],
+  ['run-K3-output.png', 'ex-architect-timeline.jpg', 'architectTimeline — text-only, Zaha Hadid'],
   ['run-Z10-output.png', 'ex-site-history.jpg', 'siteHistory — Taj Mahal, named; Z11/Z11b (unnamed) found wrong sites, so the name is now required'],
 ];
 

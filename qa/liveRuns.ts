@@ -447,6 +447,22 @@ const NEW_TOOLS: Run[] = [
     ],
   },
   {
+    id: 'K1b', tool: 'materialPoster', input: null, settings: { topic: 'Terracotta jali blocks' },
+    title: 'FIX CHECK — each thing said once, and only well-documented history?',
+    verdicts: [
+      'PASS — the bento poster with no panel, heading or bullet repeated, and no doubtful origin claim',
+      'FAIL — any panel or bullet repeated, or an invented history',
+    ],
+  },
+  {
+    id: 'K4b', tool: 'blueprintEvolution', input: null, settings: { typology: 'Gothic to contemporary church design' },
+    title: 'FIX CHECK — one clean label per stage, nothing garbled or doubled?',
+    verdicts: [
+      'PASS — seven stages in order, each with ONE legible label (style · dates), no sentences',
+      'FAIL — garbled lettering, or any stage labelled twice',
+    ],
+  },
+  {
     id: 'Z1', tool: 'siteLinework', input: 'guide:uc32-input1.jpg',
     title: 'Satellite to linework. Does it OVERLAY the tile, with no text and no trees?',
     verdicts: [

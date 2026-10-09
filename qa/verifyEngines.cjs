@@ -320,10 +320,10 @@ const check = (name, ok, detail = '') => {
   // "What we check": every tool page states what a good result gets right,
   // including the tools with no worked example yet — and on a phone the table
   // stacks instead of pushing the page sideways.
-  await mob.goto(BASE + '#/redPen', { waitUntil: 'domcontentloaded' });
+  await mob.goto(BASE + '#/materialPoster', { waitUntil: 'domcontentloaded' });
   await mob.waitForTimeout(500);
   check('a tool with no example still shows what we check', (await mob.locator('[data-check-table]').count()) === 1);
-  check('and says it is not live-tested yet', (await mob.locator('[data-live="pending"]').count()) === 1);
+  check('and says it was fixed and awaits a re-test', (await mob.locator('[data-live="fixed"]').count()) === 1);
   check(
     'the check table never widens the phone page',
     await mob.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
