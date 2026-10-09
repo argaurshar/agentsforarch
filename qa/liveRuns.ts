@@ -617,6 +617,17 @@ const OWED: Run[] = [
       'FAIL — the camera drops again, the reference house’s doors return, or the frame is not 3:2',
     ],
   },
+  // X1b kept the camera and the frame but split the courtyard block into
+  // separate stepped buildings and cut windows into solid faces. Now: openings
+  // default to solid, and "THE BLOCK DOES NOT SPLIT" is in the lock.
+  {
+    id: 'X1c', tool: 'massingRender', input: 'ex-massing.jpg', extra: 'elev-rendered.jpg',
+    title: 'FIX CHECK — solid by default, the block named as one. One building now?',
+    verdicts: [
+      'PASS — one continuous courtyard block with its steps, high aerial camera, 3:2, solid faces clad like the reference',
+      'FAIL — the block splits into separate buildings again, windows cut into faces, or the camera drops',
+    ],
+  },
   {
     id: 'O3b', tool: 'placeObject', input: 'guide:uc25-input1.jpg', extra: 'guide:uc25-input2.jpg',
     settings: { kind: 'artwork', placement: 'add', target: '' },

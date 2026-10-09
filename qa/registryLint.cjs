@@ -200,7 +200,6 @@ const NO_FIXTURE = {
 // generation that has not been approved yet. `node qa/liveRuns.ts --new`
 // produces it; the stale check below then forces the name off this list.
 const AWAITING_LIVE_RUN = {
-  massingRender: 'new; fixtures exist (ex-massing.jpg + elev-rendered.jpg), awaiting one approved paid run',
   // Build plan, Phase 1. Each has a publishable input already: our own massing,
   // our own Moodboard output, a bubble diagram drawn by qa/makeBubble.cjs. The
   // inspiration photo for the concept board is the one still to choose.

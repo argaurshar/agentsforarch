@@ -396,6 +396,24 @@ export const EXAMPLES: Partial<Record<FeatureKind, ExampleSet>> = {
     ],
   },
 
+  massingRender: {
+    summary:
+      'A white massing model and a building whose look you like: the massing comes back clad, lit and landscaped like ' +
+      'the reference — its own form, its own camera, its own frame. The reference lends a mood, never a shape.',
+    cases: [
+      {
+        label: 'Courtyard massing, rendered like a house',
+        note:
+          'The reference was a two-storey house with a garage. What came back is the courtyard block, every step intact, ' +
+          'clad in its render, stone and dark coping, seen from the model’s own high angle.',
+        input: asset('ex-massing.jpg'),
+        inputLabel: 'Massing model',
+        output: asset('ex-massing-render.jpg'),
+        outputLabel: 'Rendered like the reference',
+      },
+    ],
+  },
+
   renderRefine: {
     summary: 'Cleans up an image you have already approved. It resolves execution, it does not redesign.',
     cases: [

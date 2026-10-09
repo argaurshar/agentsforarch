@@ -262,7 +262,9 @@ export function buildMassingRenderPrompt(a: {
       'you must not give this building a pitched, hipped or gabled roof that the model does not have. THE CAMERA ' +
       'DRIFTS TOO: render from the model photograph’s own viewpoint — the same height, the same angle looking down, ' +
       'the same direction and the same framing. A model photographed from above is rendered seen from above; do not ' +
-      'drop the camera to street level.',
+      'drop the camera to street level. THE BLOCK DOES NOT SPLIT EITHER: volumes that are joined in the model stay ' +
+      'joined as one continuous building — never separated into a cluster of individual houses or blocks with gaps ' +
+      'between them — and the same number of separate buildings comes back as went in.',
     'STEP 3 — DO NOT BUILD THE REFERENCE. The second image shows a different building with its own form, and that ' +
       'form is not yours to use. Do not copy its massing, its outline, its facade layout, its window grid, its doors ' +
       'and garage doors, its roof overhangs, its floor count or its atrium onto the model. If your result looks like the reference building, you have failed the task, ' +

@@ -139,7 +139,29 @@
         "run-O3b-output.png"
       ],
       "note": "output not committed: derived from a test-only guide fixture"
+    },
+    {
+      "id": "X1c",
+      "tool": "massingRender",
+      "input": "ex-massing.jpg",
+      "extra": "elev-rendered.jpg",
+      "title": "FIX CHECK \u2014 solid by default, the block named as one. One building now?",
+      "verdicts": [
+        "PASS \u2014 one continuous courtyard block with its steps, high aerial camera, 3:2, solid faces clad like the reference",
+        "FAIL \u2014 the block splits into separate buildings again, windows cut into faces, or the camera drops"
+      ],
+      "status": "generated",
+      "calls": 1,
+      "labels": [
+        "Massing render"
+      ],
+      "files": [
+        "run-X1c-output.png"
+      ],
+      "sources": [],
+      "searchQueries": [],
+      "failures": []
     }
   ],
-  "generations": 6
+  "generations": 7
 }

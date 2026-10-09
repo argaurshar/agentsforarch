@@ -60,6 +60,7 @@ const MANIFEST = [
   ['run-W3-output.png', 'ex-reflection.jpg', 'reflection'],
   ['run-W4-output.png', 'ex-render-refine.jpg', 'renderRefine'],
   ['run-W5-output.png', 'ex-program-diagram.jpg', 'programDiagram'],
+  ['run-X1c-output.png', 'ex-massing-render.jpg', 'massingRender — the FIXED run; X1 dropped the camera, X1b split the block'],
 ];
 
 function encode(srcFile, tmpDir) {

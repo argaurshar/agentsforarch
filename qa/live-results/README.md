@@ -323,6 +323,23 @@ named in "do not build the reference". The closing check compares the viewpoint.
 | O3b | **PASS.** The 9:16 portrait room came back 9:16 (0.558 in, 0.558 out), same camera, the same mountain painting hung on the wall, nothing else changed. The two-image frame fix works. |
 | X1b | **Better, still FAIL.** Fixed: the high aerial camera is kept, the frame is the massing's 3:2 (1.49 → 1.491), and there is no garage door. Still wrong: the single courtyard block comes back split into separate stepped buildings, and windows are cut into faces the model shows as solid. Its one retry is spent; the next prompt change waits for approval. |
 
+### X1c — the fix that held (approved separately, 1 call)
+
+Two changes after X1b: **openings default to "Keep it solid"** (given leave to
+glaze recesses, the model glazed solid faces too, under a glazed reference), and
+the lock names the split — **"THE BLOCK DOES NOT SPLIT EITHER: volumes that are
+joined in the model stay joined as one continuous building."**
+
+**X1c: PASS.** One continuous courtyard block with every stepped terrace, solid
+faces with no windows, the model's own high aerial camera, the massing's 3:2
+frame (1.491), clad in the reference's render, stone base and dark coping in its
+warm low light. Minor: the sky reads as a warm studio backdrop rather than a real
+horizon. Massing to Render now ships its worked example (`ex-massing-render.jpg`)
+and leaves AWAITING_LIVE_RUN.
+
+The three Massing to Render images are kept side by side — `run-X1`, `run-X1b`,
+`run-X1c` — so each fix can be seen against the failure it answered.
+
 ### Earlier: retries blocked by the account, not the code
 
 X1b and O3b (the reserve) were refused with **HTTP 429 RESOURCE_EXHAUSTED: "Your

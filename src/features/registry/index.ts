@@ -1708,7 +1708,10 @@ const massingRender: FeatureDef<MassingRenderSettings> = {
       hint: 'A finished building photo or render whose materials, light and landscape you want — its form is ignored',
     },
   ],
-  defaultSettings: { take: 'everything', openings: 'recesses', entourage: false },
+  // Solid by default since live run X1b: given leave to glaze recesses, the
+  // model cut windows into solid faces too, under a glazed reference house.
+  // Pure form first; glazing is one tap away.
+  defaultSettings: { take: 'everything', openings: 'solid', entourage: false },
   quick: [
     {
       kind: 'choice',
@@ -1726,12 +1729,12 @@ const massingRender: FeatureDef<MassingRenderSettings> = {
       key: 'openings',
       label: 'Openings',
       options: [
+        { value: 'solid', label: 'Keep it solid', hint: 'No glazing anywhere. The building reads as pure form.' },
         {
           value: 'recesses',
           label: 'Glaze the recesses',
           hint: 'Glazing only inside voids and recesses the model already has — never a new opening.',
         },
-        { value: 'solid', label: 'Keep it solid', hint: 'No glazing anywhere. The building reads as pure form.' },
       ],
     },
     {
@@ -1776,6 +1779,8 @@ const massingRender: FeatureDef<MassingRenderSettings> = {
     // reference house's garage door. Both are now named.
     { name: 'massing render names the camera drift', pattern: /THE CAMERA DRIFTS TOO/ },
     { name: 'massing render refuses the reference’s doors', pattern: /its doors and garage doors/ },
+    // X1b split one courtyard block into separate stepped buildings.
+    { name: 'massing render keeps one block one block', pattern: /THE BLOCK DOES NOT SPLIT/ },
   ],
 };
 
