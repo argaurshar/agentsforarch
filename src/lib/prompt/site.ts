@@ -500,6 +500,15 @@ export function buildUrbanLayersPrompt(a: UrbanLayersSettings & { marked: boolea
 
 // --- Site photo from coordinates (guide #07) --------------------------------
 
+/**
+ * Z11 searched Battersea Power Station's coordinates and drew Buckingham
+ * Palace, two kilometres north: search answers with the famous place NEAR a
+ * point as readily as the one AT it. So the point outranks fame, and a name.
+ */
+const COORDS_DECIDE =
+  'The coordinates decide the site, not fame: find what stands at THIS exact point, within about 100 m. A better-' +
+  'known place a kilometre or two away is not the site, even if a search result names it first.';
+
 const PHOTO_LIGHT: Record<SitePhotoSettings['light'], string> = {
   overcast: 'soft overcast daylight',
   sunny: 'clear midday sun with crisp shadows',
@@ -526,6 +535,7 @@ export function buildSitePhotoPrompt(a: {
       (a.search
         ? 'Use Google Search to look these coordinates up. '
         : 'From what you know about these coordinates, work out where they are. ') +
+      `${COORDS_DECIDE} ` +
       'Determine the country, the city and the kind of neighbourhood at that exact spot — city centre, inner suburb, ' +
       'industrial edge, village, rural. From that, decide the local building types, their typical height, age, ' +
       'materials and roof forms; the street width, paving and kerbs; the street furniture; the climate; and the native ' +
@@ -574,6 +584,9 @@ export function buildSiteHistoryPrompt(a: {
         ? 'Use Google Search to identify what stands at these coordinates and the key moments in its history: '
         : 'From what you reliably know, identify what stands at these coordinates and the key moments in its history: ') +
       'when it was first built on or laid out, major construction phases, expansions, losses, and its state today. ' +
+      (named
+        ? `The site is ${named}: research that place. `
+        : `${COORDS_DECIDE} `) +
       `Choose the ${n} moments that show the biggest physical changes. ` +
       (a.search ? 'Use only dates you found; ' : 'Use only dates you are confident of; ') +
       'if a date is uncertain, write it as a circa date (c. 1650). Never invent an event.',
@@ -585,10 +598,13 @@ export function buildSiteHistoryPrompt(a: {
         : 'Style: clean vector map — flat pastel fills, no texture, crisp thin outlines. ') +
       'What exists at that date is drawn; what does not yet exist is absent; what was later demolished appears in its ' +
       'panel and is gone afterwards. Each diagram has a small north arrow in the same corner, pointing the same way.',
-    'STEP 3 — LABEL. Above each diagram, the year in bold; below it, one sentence of under 15 words on what happened. ' +
+    'STEP 3 — LABEL. Above the whole sequence, one short line naming the place you identified, so the reader can ' +
+      'check it is the right site. Above each diagram, the year in bold; below it, one sentence of under 15 words on ' +
+      'what happened. ' +
       'Clean sans-serif. Spell every word correctly and keep every word legible.',
     `Arrange the ${n} left to right in date order, evenly spaced, on one white sheet. Do not add any watermark or signature.`,
-    `CHECK before you finish: is the extent and orientation identical in all ${n}? Do the years increase left to right? ` +
-      'Does the last panel match the site today?',
+    `CHECK before you finish: is the place you drew really AT these coordinates, not a better-known one nearby? Is ` +
+      `the extent and orientation identical in all ${n}? Do the years increase left to right? Does the last panel ` +
+      'match the site today?',
   ].join(' ');
 }

@@ -207,16 +207,12 @@ const AWAITING_LIVE_RUN = {
   // Build plan, Phase 2a. All three are tested on guide inputs (Z1-Z3,
   // test-only): Google imagery and the guide's site photo cannot be published,
   // so each example will need a public-domain aerial or our own site photo.
-  siteLinework: 'new; tested on guide #32 (Z1, test-only); publishable public-domain aerial still to source',
-  siteAnalysis: 'new; tested on guide #44 (Z2, test-only); publishable public-domain aerial still to source',
-  placeInSite: 'new; tested on guide #46 (Z3, test-only); a publishable site photo still to source',
+  siteLinework: 'passed on guide #32 (Z1, test-only); publishable public-domain aerial still to source',
+  siteAnalysis: 'passed on guide #44 (Z2, test-only); publishable public-domain aerial still to source',
+  placeInSite: 'passed on guide #46 (Z3, test-only); a publishable site photo still to source',
   // Build plan, Phase 2b.
-  siteAnalysis3d: 'new; tested on guide #56 with and without its reference (Z4, Z5, test-only)',
-  urbanLayers: 'new; tested on guide #58, both steps chained (Z6 then Z7, test-only)',
-  // Text-only: no input to publish, so these can earn an example from their
-  // first passing run.
-  sitePhoto: 'new; text-only, awaiting approved paid runs (Z8 landmark rule, Z9 ordinary street)',
-  siteHistory: 'new; text-only, awaiting approved paid runs (Z10 Taj Mahal, Z11 Battersea)',
+  siteAnalysis3d: 'passed on guide #56 with and without its reference (Z4, Z5, test-only); publishable input still to source',
+  urbanLayers: 'passed on guide #58, both steps chained (Z6 then Z7, test-only); publishable aerial still to source',
   // Build plan, Phase 3a — our own inputs throughout, publishable on a pass.
   phasing: 'new; fixture ex-human-scale.jpg, awaiting one approved paid run of three stages (Q1)',
   reframe: 'new; fixtures ex-human-scale.jpg, ex-massing.jpg, awaiting approved paid runs (Q2, Q3)',

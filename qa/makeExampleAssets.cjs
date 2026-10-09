@@ -64,6 +64,9 @@ const MANIFEST = [
   ['run-Y3-output.png', 'ex-moodboard-space.jpg', 'moodboardSpace — our own Moodboard output, back into a room'],
   ['run-Y1b-output.png', 'ex-concept-diagram.jpg', 'conceptDiagram — moves read from the form; accepted with its invented last move'],
   ['run-Y2b-output.png', 'ex-bubble-plan.jpg', 'bubblePlan — labelled, which is now the default'],
+  ['run-Z9-output.png', 'ex-site-photo.jpg', 'sitePhoto — an ordinary street, text-only, search sources listed'],
+  ['run-Z8-output.png', 'ex-site-photo-landmark.jpg', 'sitePhoto — the landmark rule, at the White House'],
+  ['run-Z10-output.png', 'ex-site-history.jpg', 'siteHistory — Taj Mahal, named; Z11 (unnamed) found the wrong site'],
 ];
 
 function encode(srcFile, tmpDir) {

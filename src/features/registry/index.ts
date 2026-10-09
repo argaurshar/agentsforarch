@@ -3247,6 +3247,7 @@ const sitePhoto: FeatureDef<SitePhotoSettings> = {
   promptContracts: [
     { name: 'site photo works out the place first', pattern: /WORK OUT THE PLACE FIRST/ },
     { name: 'site photo never invents a landmark', pattern: /Do not invent landmarks/ },
+    { name: 'site photo: the coordinates outrank a famous neighbour', pattern: /The coordinates decide the site/ },
     { name: 'site photo keeps signs unreadable', pattern: /generic and unreadable/ },
   ],
 };
@@ -3328,6 +3329,8 @@ const siteHistory: FeatureDef<SiteHistorySettings> = {
     { name: 'site history researches first', pattern: /RESEARCH FIRST/ },
     { name: 'site history writes uncertain dates as circa', pattern: /circa date/ },
     { name: 'site history never invents an event', pattern: /Never invent an event/ },
+    { name: 'site history: the coordinates outrank a famous neighbour', pattern: /The coordinates decide the site|The site is .+: research that place/ },
+    { name: 'site history names the place it found', pattern: /naming the place you identified/ },
     { name: 'site history keeps one frame', pattern: /SAME area at the same scale/ },
     { name: 'site history insists on spelling', pattern: /Spell every word correctly/ },
   ],

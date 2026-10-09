@@ -425,3 +425,50 @@ columns. Output kept locally (guide fixture), so Concept Board still waits for
 a publishable inspiration photo for its example.
 
 Phase 1 calls: 4 planned + 3 retries + 1 (Y4c) = 8.
+
+## Build plan, Phase 2 — 9 October 2026
+
+Eleven approved calls, `liveRuns --new --runs=Z1…Z11`. Z1–Z7 use guide images
+(Google imagery and the guide's own photos), so their outputs are **kept
+locally and not committed**; their report entries were reconstructed after the
+first job was stopped at its 10-minute limit before writing the report (the
+harness now saves the report after every run and removes its temp files on a
+signal). Z8 was mid-call when that job stopped and was run again, so it may
+have been billed twice: **12 calls billed at most.**
+
+| Run | Tool | Verdict |
+|---|---|---|
+| Z1 | Site Linework | **PASS, with a caveat.** Clean black-on-white linework of the satellite tile: roads, plots and footprints, no text, no trees. The geometry is tidied rather than traced — a site drawing, not a survey. |
+| Z2 | Site Analysis | **PASS, with a caveat.** The site stays where the red line put it, Maps UI gone, north arrow added; sun arc along the bottom rising on the right; access arrows on the real roads. Labels are generic (MAJOR ROAD, RESIDENTIAL AREA) — no invented street names — but "RAILWAY LINE" is not clearly in the input. |
+| Z3 | Place in Site | **PASS.** The white villa from the second image on the outlined plot, at the scale of the trees and houses, its shadows agreeing with the photo; the hillside unchanged and the red line gone. |
+| Z4 | 3D Site Analysis | **PASS.** One isometric coin; compass W top-left, N top-right, E bottom-right, S bottom-left — clockwise; wind arrows from the NW as typed; sun arc leaning south. The guide's #56 input is a facade render rather than a top-down map, so the coin reads the building, not a site plan. |
+| Z5 | 3D Site Analysis + reference | **PASS.** The reference's lighter look, not its place; no wind arrows (none asked for). |
+| Z6 | Urban Layers | **PASS, with a caveat.** Four discs of one circle (figure-ground, green, circulation, blocks) that share the India Gate hexagon and radial roads; the building footprints are stylised, not traced. |
+| Z7 | Urban Layers (stack) | **PASS.** Step two on step one's own sheet: the same four discs stacked in order, dotted alignment lines, four titles spelled. |
+| Z8 | Site Photo | **PASS.** The White House from Pennsylvania Avenue — there because it stands at those coordinates. No search ran (no queries, no sources): the model knew the place. |
+| Z9 | Site Photo | **PASS.** An ordinary Shoreditch street: brick warehouses, plane tree, red bus, unreadable signs, no landmark moved in. Search ran (3 queries) and the sources are listed. **Grounding works** — this settles the open question from G1. |
+| Z10 | Site History | **PASS.** Taj Mahal complex: c. 1631, 1648, 1653, 2024 in one frame, the Yamuna north in every panel, captions spelled. Search ran, 3 sources. |
+| Z11 | Site History, unnamed | **FAIL — the wrong site.** Battersea Power Station's coordinates came back as **Buckingham Palace**, 2 km north (1703, c. 1830, 1847, c. 1913 — right for the palace, wrong for the point). The search queries show it: after two coordinate queries it switched to "Buckingham Palace historical maps". |
+
+### Fix for Z11 (no calls spent)
+
+- Site History and Site Photo: "The coordinates decide the site, not fame:
+  find what stands at THIS exact point, within about 100 m. A better-known
+  place a kilometre or two away is not the site, even if a search result names
+  it first." Site History's CHECK asks the same.
+- Site History prints **one line naming the place it identified** above the
+  panels, so a wrong site is visible at a glance instead of hidden in plausible
+  dates.
+- The place name is now **recommended** on the screen, with a note on why.
+- New contracts for all three; 25 prompt variants changed (sitePhoto and
+  siteHistory only).
+
+A retry of Z11 (1 call) awaits approval.
+
+### Examples
+
+Z8–Z10 are text-only, so they ship: `ex-site-photo.jpg` (Z9),
+`ex-site-photo-landmark.jpg` (Z8), `ex-site-history.jpg` (Z10). The five
+image-input site tools still need a publishable aerial or site photo.
+
+Phase 2 calls: 11 planned + Z8 again after the interruption = 12 at most.

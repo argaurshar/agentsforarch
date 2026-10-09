@@ -709,9 +709,21 @@ const PLACEHOLDER =
  * The key travels in a 0600 header FILE, never on the command line, where any
  * process listing would show it.
  */
+// A run stopped mid-call (a time limit, Ctrl-C) never reaches curlFetch's
+// `finally`, and the header file in its temp dir holds the API key. Live run
+// Z8 was stopped exactly there. So every dir is tracked and removed on signal.
+const tempDirs = new Set<string>();
+for (const sig of ['SIGTERM', 'SIGINT', 'SIGHUP'] as const) {
+  process.on(sig, () => {
+    for (const d of tempDirs) fs.rmSync(d, { recursive: true, force: true });
+    process.exit(128 + (sig === 'SIGINT' ? 2 : sig === 'SIGHUP' ? 1 : 15));
+  });
+}
+
 async function curlFetch(input: string | URL | Request, init?: RequestInit): Promise<Response> {
   const url = String(input instanceof Request ? input.url : input);
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'and-curl-'));
+  tempDirs.add(dir);
   const hdr = path.join(dir, 'h');
   const body = path.join(dir, 'b');
   try {
@@ -727,6 +739,7 @@ async function curlFetch(input: string | URL | Request, init?: RequestInit): Pro
     return new Response(stdout.slice(0, cut), { status: Number(stdout.slice(cut + 1)) || 599 });
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
+    tempDirs.delete(dir);
   }
 }
 
@@ -760,7 +773,40 @@ function dataUrl(file: string): string {
   if (!provider) throw new Error('No active provider after configuring the key.');
 
   fs.mkdirSync(OUT, { recursive: true });
-  const report: unknown[] = [];
+  const reportName = process.argv.includes('--owed')
+    ? 'report-owed.json'
+    : process.argv.includes('--probe')
+    ? 'report-probe.json'
+    : process.argv.includes('--new')
+    ? 'report-new.json'
+    : process.argv.includes('--skipped')
+    ? 'report-skipped.json'
+    : process.argv.includes('--verify')
+      ? 'report-verify.json'
+      : 'report.json';
+  // Written after EVERY run and merged by id into what the file already holds:
+  // a stopped run used to lose the whole report (Phase 2, Z1-Z7), and running
+  // a subset used to overwrite the earlier runs' entries.
+  const reportPath = path.join(OUT, reportName);
+  const earlier: { runs?: { id: string }[]; generations?: number } = fs.existsSync(reportPath)
+    ? JSON.parse(fs.readFileSync(reportPath, 'utf8'))
+    : {};
+  const report: { id: string }[] = [];
+  const saveReport = () => {
+    if (dry) return;
+    const mine = new Set(report.map((r) => r.id));
+    fs.writeFileSync(
+      reportPath,
+      JSON.stringify(
+        {
+          runs: [...(earlier.runs ?? []).filter((r) => !mine.has(r.id)), ...report],
+          generations: (earlier.generations ?? 0) + spent,
+        },
+        null,
+        2,
+      ),
+    );
+  };
   let spent = 0;
   let planned = 0;
 
@@ -831,6 +877,7 @@ function dataUrl(file: string): string {
       for (const f of failures) console.log(`    FAILED  ${f.label} — ${f.error.slice(0, 160)}`);
       if (!result.images.length) {
         report.push({ ...run, status: 'no-image', calls: jobs.length, failures });
+        saveReport();
         continue;
       }
       // Every panel is saved, not just the first: a six-view sheet that agrees
@@ -865,23 +912,13 @@ function dataUrl(file: string): string {
       console.log(`    ERROR — ${String(err).slice(0, 200)}`);
       report.push({ ...run, status: 'error', calls: jobs.length, why: String(err).slice(0, 400) });
     }
+    saveReport();
   }
 
   if (dry) {
     console.log(`\n${planned} API call(s) would be billed. Nothing was sent.`);
     return;
   }
-  const reportName = process.argv.includes('--owed')
-    ? 'report-owed.json'
-    : process.argv.includes('--probe')
-    ? 'report-probe.json'
-    : process.argv.includes('--new')
-    ? 'report-new.json'
-    : process.argv.includes('--skipped')
-    ? 'report-skipped.json'
-    : process.argv.includes('--verify')
-      ? 'report-verify.json'
-      : 'report.json';
-  fs.writeFileSync(path.join(OUT, reportName), JSON.stringify({ runs: report, generations: spent }, null, 2));
+  saveReport();
   console.log(`\n${spent} generation(s) attempted. Results in qa/live-results/`);
 })();
