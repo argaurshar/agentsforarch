@@ -506,6 +506,92 @@ export const EXAMPLES: Partial<Record<FeatureKind, ExampleSet>> = {
     ],
   },
 
+  phasing: {
+    summary:
+      'A finished render becomes its own construction sequence — excavation, frame, envelope — from the identical ' +
+      'camera, so the stages overlay the final image.',
+    cases: [
+      {
+        label: 'Stage 2 · Structural frame',
+        note:
+          'The bare concrete frame at the house’s own floor levels, its centre bay and overhanging roofs; the street, ' +
+          'kerb and trees unmoved from the finished render.',
+        input: asset('ex-human-scale.jpg'),
+        inputLabel: 'Finished render',
+        output: asset('ex-phasing-frame.jpg'),
+        outputLabel: 'Structural frame',
+      },
+      {
+        label: 'Stage 3 · Envelope',
+        note: 'Garage door, stone and glazing arrive exactly where the render has them; scaffold still up.',
+        input: asset('ex-human-scale.jpg'),
+        inputLabel: 'Finished render',
+        output: asset('ex-phasing-envelope.jpg'),
+        outputLabel: 'Envelope',
+      },
+    ],
+  },
+
+  reframe: {
+    summary:
+      'Any image to any ratio: your picture is pasted back untouched, and only the new margins are painted — more of ' +
+      'the same sky, ground or backdrop, with no seam.',
+    cases: [
+      {
+        label: '16:9 render → 9:16 story',
+        note: 'Sky above and road below continue the render’s light and tree shadows; no seam at either join.',
+        input: asset('ex-human-scale.jpg'),
+        inputLabel: 'Original 16:9',
+        output: asset('ex-reframe-story.jpg'),
+        outputLabel: '9:16',
+      },
+      {
+        label: '3:2 model photo → 21:9 banner',
+        note: 'The white model untouched; the base board, backdrop and grey context blocks continue left and right.',
+        input: asset('ex-massing.jpg'),
+        inputLabel: 'Original 3:2',
+        output: asset('ex-reframe-banner.jpg'),
+        outputLabel: '21:9',
+      },
+    ],
+  },
+
+  marketingBoard: {
+    summary:
+      'A render becomes a presentation board whose type and layout suit the building — and it prints only the facts ' +
+      'you typed.',
+    cases: [
+      {
+        label: 'Hillside House',
+        note:
+          'Title and facts typed as “Hillside House” and “Bengaluru, India · 320 m² · 2026”; the night render is the ' +
+          'hero, unchanged, with two detail crops taken from it. No invented awards, areas or architects.',
+        input: asset('ex-atmosphere.jpg'),
+        inputLabel: 'Night render',
+        output: asset('ex-marketing-board.jpg'),
+        outputLabel: 'Presentation board',
+      },
+    ],
+  },
+
+  magazine: {
+    summary:
+      'An interior or building becomes an editorial feature page: your image leads, detail crops come from it, and the ' +
+      'text is real English with no brands or prices. Proofread the small print.',
+    cases: [
+      {
+        label: 'A staged living room',
+        note:
+          'Headline, standfirst, three short columns and a tips box, all readable; the crops are this room. One typo ' +
+          'slipped into the smallest text (“atmosphers”).',
+        input: asset('interior-stage.jpg'),
+        inputLabel: 'Room photo',
+        output: asset('ex-magazine.jpg'),
+        outputLabel: 'Feature page',
+      },
+    ],
+  },
+
   renderRefine: {
     summary: 'Cleans up an image you have already approved. It resolves execution, it does not redesign.',
     cases: [

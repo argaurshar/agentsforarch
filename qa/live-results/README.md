@@ -495,3 +495,45 @@ Z10 — named — is the run that passed. e2e checks that coordinates alone do n
 run and that naming the place does. No further calls.
 
 Phase 2 total: 12 calls at most, plus Z11b = 13.
+
+## Build plan, Phase 3 — 9 October 2026
+
+Ten approved calls, `liveRuns --new --runs=Q1,Q2,Q3,Q4,U1,U2,U3,U4` (Q1 is three
+stages). All on our own images except U2 (guide #51, test-only; output kept
+locally).
+
+| Run | Tool | Verdict |
+|---|---|---|
+| U1 | Systems Cutaway (climate) | **PARTIAL.** Physics right — summer sun steeper than winter, cool air in low, hot air out high, labels spelled. But the house came back **symmetric, its garage wing gone**, and summer sun arrives from **both** sides. |
+| U2 | Systems Cutaway (green) | **PARTIAL.** Roof planter cut to show substrate, drainage and roots; rainwater to tank to pump to irrigation, all labelled. But it **invented three storeys** below the building, and kept the facade's copper and tile instead of green-and-grey. |
+| U3 | Marketing Board | **PASS.** Night render as hero, unchanged; "HILLSIDE HOUSE · BENGALURU, INDIA · 320 M² · 2026" and nothing else numeric; detail crops and captions true to the image. |
+| U4 | Magazine Layout | **PASS, one typo.** Led by our room, crops from it, real English, no brands or prices — but "the calm atmosphers" in the smallest text. |
+| Q1 | Construction Phasing (3) | **PASS, with a caveat.** One street camera throughout, kerb and trees unmoved; the frame matches the house's floor levels and roofs; the envelope brings in garage, stone and glass where the render has them. The excavation pit is wider than the footprint. |
+| Q2 | Reframe 16:9 → 9:16 | **PASS.** Exact 9:16; sky and road continue the light and shadows; no seam at either join when zoomed; nothing new in the sky. |
+| Q3 | Reframe 3:2 → 21:9 | **PASS.** White model untouched; base board and backdrop extended, with pale grey stepped blocks of the same family as the existing context. |
+| Q4 | Ground-Floor Program | **FAIL.** The box was on the **brick neighbour's** ground floor at the far left; the café went into the **house's garage** instead, outside the box. The red line was removed. |
+
+### Fixes (no calls spent)
+
+- **Ground Floor:** the prompt now says where the box is, in words, from the
+  marker the screen already stores ("in the left of the image — from 1% to 22%
+  of the way across, and from 55% to 75% of the way down"), and opens with "THE
+  RECTANGLE DECIDES, NOT THE PICTURE: it may sit on a neighbouring building
+  rather than the main subject". Q4 told the model "the ground floor of the
+  building", and the picture's building is the house.
+- **Systems Cutaway:** "KEEP EVERY PART AND NOTHING MORE" — every wing, garage
+  and asymmetry stays; no floors or basements added. The sun comes from one
+  side, the equator side; the green palette is greens and grey only.
+- Prompt snapshot: 14 variants changed (groundFloor, systemsCutaway). New
+  contracts for both; unit checks for the region wording.
+
+Re-tests defined and awaiting approval: **Q4b** (ground floor, box located) and
+**U1b** (cutaway, our house) — 2 calls.
+
+### Examples
+
+Q1 (frame, envelope), Q2, Q3, U3 and U4 ship as worked examples; the "What we
+check" badges now read passed (Reframe, Marketing Board), passed with a caveat
+(Phasing, Magazine) and fixed, re-test pending (Ground Floor, Systems Cutaway).
+
+Phase 3 calls: 10.

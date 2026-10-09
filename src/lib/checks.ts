@@ -25,8 +25,9 @@ export interface ToolCheck {
 
 export interface ToolChecks {
   rows: ToolCheck[];
-  /** passed · passed with a caveat (said in `note`) · not yet run live. */
-  live: 'passed' | 'caveat' | 'pending';
+  /** passed · passed with a caveat · failed live and fixed, re-test pending
+   *  (both said in `note`) · not yet run live. */
+  live: 'passed' | 'caveat' | 'fixed' | 'pending';
   note?: string;
 }
 
@@ -276,7 +277,10 @@ export const CHECKS: Record<FeatureKind, ToolChecks> = {
     ],
   },
   groundFloor: {
-    live: 'pending',
+    live: 'fixed',
+    note:
+      'The first live run put the new frontage in the main building, not the boxed neighbour. The box’s ' +
+      'position is now stated in words; the re-test is pending.',
     rows: [
       { check: 'Box is an instruction', before: 'A facade with a red box', after: 'New ground floor inside the box; box removed' },
       { check: 'Rest untouched', before: NONE, after: 'Everything outside the box unchanged' },
@@ -301,7 +305,10 @@ export const CHECKS: Record<FeatureKind, ToolChecks> = {
     ],
   },
   phasing: {
-    live: 'pending',
+    live: 'caveat',
+    note:
+      'One camera and the house’s own floor levels throughout; the excavation stage can spread wider than ' +
+      'the footprint.',
     rows: [
       { check: 'One camera', before: 'A finished render', after: 'Every stage from the identical viewpoint' },
       { check: 'Same footprint', before: NONE, after: 'The building grows on one footprint' },
@@ -318,7 +325,7 @@ export const CHECKS: Record<FeatureKind, ToolChecks> = {
     ],
   },
   reframe: {
-    live: 'pending',
+    live: 'passed',
     rows: [
       { check: 'Original kept', before: 'Any image and a new ratio', after: 'Your picture untouched, pasted back exactly' },
       { check: 'Seamless', before: 'Grey margins to fill', after: 'No seam, no repeated pattern at the join' },
@@ -421,7 +428,10 @@ export const CHECKS: Record<FeatureKind, ToolChecks> = {
     ],
   },
   systemsCutaway: {
-    live: 'pending',
+    live: 'fixed',
+    note:
+      'The first live runs tidied an asymmetric house and added floors below another. Fixed to keep every ' +
+      'part and add none; the re-test is pending.',
     rows: [
       { check: 'Cut, not overlaid', before: 'A building image', after: 'The building sliced open from the same camera' },
       { check: 'Physics right', before: 'The systems you choose', after: 'Summer sun steeper; cool air low, hot air out high' },
@@ -462,7 +472,7 @@ export const CHECKS: Record<FeatureKind, ToolChecks> = {
     ],
   },
   marketingBoard: {
-    live: 'pending',
+    live: 'passed',
     rows: [
       { check: 'Hero kept', before: 'A render', after: 'Your render as the hero, unchanged' },
       { check: 'Only true text', before: 'Name, place, area, year', after: 'Exactly those facts — nothing invented' },
@@ -470,7 +480,10 @@ export const CHECKS: Record<FeatureKind, ToolChecks> = {
     ],
   },
   magazine: {
-    live: 'pending',
+    live: 'caveat',
+    note:
+      'Real sentences throughout, but small body text can still carry an odd typo — proofread before you ' +
+      'publish.',
     rows: [
       { check: 'Subject kept', before: 'An interior or building image', after: 'The page led by your image, unchanged' },
       { check: 'Real words', before: NONE, after: 'Readable English — no placeholder text' },

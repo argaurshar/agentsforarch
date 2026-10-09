@@ -12,6 +12,8 @@ import { dataUrlSize, effectiveAspect, nearestAspect } from '../src/providers/op
 import { CHECKS } from '../src/lib/checks';
 import { EXAMPLES } from '../src/lib/examples';
 import { FEATURE_KEYS } from '../src/features/registry/keys';
+import { describeRegion } from '../src/lib/prompt/clauses';
+import { buildGroundFloorPrompt } from '../src/lib/prompt/visualization';
 import { readFileSync } from 'node:fs';
 
 const results: { ok: boolean; name: string }[] = [];
@@ -123,6 +125,16 @@ check('two images pin to the FIRST image’s shape', effectiveAspect(undefined, 
 check('a ratio the tool asked for still wins', effectiveAspect('1:1', [massing, wideRef]) === '1:1');
 check('one image is left to follow itself', effectiveAspect(undefined, [massing]) === undefined);
 
+// --- A marked box, located in words (Q4) -------------------------------------
+
+const q4 = { x: 0.005, y: 0.545, w: 0.21, h: 0.2 };
+check('a box on the left is said to be on the left', /in the left of the image/.test(describeRegion(q4)), describeRegion(q4));
+check('with its span across and down', /from 1% to 22% of the way across, and from 55% to 75% of the way down/.test(describeRegion(q4)));
+check('a lower-right box is the lower right', /the lower right/.test(describeRegion({ x: 0.7, y: 0.7, w: 0.2, h: 0.2 })));
+const gf = { program: 'cafe', customProgram: '', materials: 'complement', people: true } as Parameters<typeof buildGroundFloorPrompt>[0];
+check('ground floor says where the box is when it knows', /The rectangle is in the left of the image/.test(buildGroundFloorPrompt({ ...gf, region: q4 })));
+check('and claims no position when it does not', !/The rectangle is in/.test(buildGroundFloorPrompt(gf)));
+
 // --- "What we check" tables --------------------------------------------------
 
 const thin = FEATURE_KEYS.filter((k) => CHECKS[k].rows.length < 3 || CHECKS[k].rows.length > 5);
@@ -136,8 +148,8 @@ check('no tool lists the same check twice', dupes.length === 0, dupes.join(', ')
 // claim it has not been run.
 const claimsUnrun = FEATURE_KEYS.filter((k) => CHECKS[k].live === 'pending' && EXAMPLES[k]);
 check('a tool with a shipped example does not say it is untested', claimsUnrun.length === 0, claimsUnrun.join(', '));
-const caveatSilent = FEATURE_KEYS.filter((k) => CHECKS[k].live === 'caveat' && !CHECKS[k].note);
-check('every caveat is spelled out', caveatSilent.length === 0, caveatSilent.join(', '));
+const caveatSilent = FEATURE_KEYS.filter((k) => (CHECKS[k].live === 'caveat' || CHECKS[k].live === 'fixed') && !CHECKS[k].note);
+check('every caveat and every fix is spelled out', caveatSilent.length === 0, caveatSilent.join(', '));
 
 // ---------------------------------------------------------------------------
 const failed = results.filter((r) => !r.ok).length;

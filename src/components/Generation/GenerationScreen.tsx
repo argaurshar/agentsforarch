@@ -115,6 +115,7 @@ export function GenerationScreen<K extends FeatureKind>({
             useMoodboard,
             useStyleRef,
             hasMarker: marker !== null,
+            marker: marker ?? undefined,
             hasImage: input !== null,
             extras: (def.extraInputs ?? []).map((_, i) => Boolean(extraInputs[i])),
           }),

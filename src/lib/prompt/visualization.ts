@@ -14,7 +14,7 @@
 // instead.
 
 import { LIGHTING, MATERIAL_PRESETS, MOODS, SEASONS } from '../scene';
-import { NO_TEXT } from './clauses';
+import { NO_TEXT, describeRegion, type Region } from './clauses';
 import type {
   GroundFloorSettings,
   GroundProgram,
@@ -840,15 +840,22 @@ export function buildGroundFloorPrompt(a: {
   customProgram: string;
   materials: GroundFloorSettings['materials'];
   people: boolean;
+  /** Where the box is, when the screen knows: it is said in words (Q4). */
+  region?: Region;
 }): string {
   const p =
     a.program === 'custom'
       ? { name: a.customProgram.trim() || 'the new use the architect has in mind', inside: 'the fit-out that use needs' }
       : PROGRAM[a.program];
   return [
-    `You are redesigning the ground floor of the building in the input to test a new use: ${p.name}.`,
+    `You are redesigning one ground floor in the input — the one inside the red rectangle — to test a new use: ${p.name}.`,
     'A RED RECTANGLE has been drawn on the image. It marks the only area you may change. It is an instruction, not part ' +
-      'of the building — remove it completely in the output.',
+      'of the building — remove it completely in the output.' +
+      (a.region ? ` The rectangle is ${describeRegion(a.region)}.` : ''),
+    // Q4: the box sat on a neighbour, and the café went into the main house.
+    'THE RECTANGLE DECIDES, NOT THE PICTURE: it may sit on a neighbouring building rather than the main subject. ' +
+      'Change the ground floor of whichever building the rectangle is on, and leave every other building — the main ' +
+      'one included — exactly as it is.',
     'STEP 1 — READ THE IMAGE FIRST. Note the building above the rectangle — facade material, window rhythm, column and ' +
       'bay lines, floor levels — and the street in front: pavement, kerb, trees, street furniture. Note the camera ' +
       'position, lens and crop.',
@@ -863,7 +870,7 @@ export function buildGroundFloorPrompt(a: {
     // caught that pairing with NO_TEXT, and Urban Context's live run V1 showed
     // blank fascias are what keeps a street free of garbled lettering.
     `The fascia above the shopfront is left blank — a sign panel with no lettering on it. ${NO_TEXT}`,
-    'CHECK before you finish: compare everything outside the rectangle with the input — any difference is a mistake. ' +
-      'Is the red rectangle gone?',
+    'CHECK before you finish: is the new frontage where the rectangle was, and nowhere else? Compare everything outside ' +
+      'the rectangle with the input — any difference is a mistake. Is the red rectangle gone?',
   ].join(' ');
 }

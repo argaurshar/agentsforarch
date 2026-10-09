@@ -82,6 +82,7 @@ function CasePanel({ example }: { example: ExampleCase }) {
 const LIVE: Record<ToolChecks['live'], { label: string; tone: string }> = {
   passed: { label: 'Live-tested · passed', tone: 'bg-success-soft text-success' },
   caveat: { label: 'Live-tested · passed with a caveat', tone: 'bg-warning-soft text-warning' },
+  fixed: { label: 'Live-tested · fixed, re-test pending', tone: 'bg-warning-soft text-warning' },
   pending: { label: 'Not live-tested yet', tone: 'bg-drafting text-mist' },
 };
 
