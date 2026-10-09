@@ -203,7 +203,8 @@ import type {
 } from '../../store/generation';
 import { baseRun } from '../../store/generation';
 import type { FeatureMode } from '../../store/generation';
-import type { Region } from '../../lib/prompt/clauses';
+import type { Region } from '../../lib/region';
+import { cropFrame, within } from '../../lib/region';
 import type { CategoryKey, CategoryTab, FeatureKind, InputKind } from './keys';
 import { CATEGORY_BLURB, CATEGORY_KEYS, CATEGORY_LABEL, FEATURE_KEYS, categoryTab } from './keys';
 
@@ -462,6 +463,8 @@ export function plainOptions(ctx: RunContext): GenerateOptions {
 /** What the shell knows about a run that the settings alone do not. */
 export interface RunContext {
   refine: boolean;
+  /** The marked box, as fractions — for a tool that edits only inside it. */
+  marker?: Region;
   referenceImages?: string[];
   styleVariants?: { label: string; clause: string }[];
 }
@@ -3555,7 +3558,14 @@ const groundFloor: FeatureDef<GroundFloorSettings> = {
     },
     { kind: 'toggle', key: 'people', label: 'People', hint: 'Staff and customers, so the frontage reads as active.' },
   ],
-  buildPrompt: (s, ctx) => buildGroundFloorPrompt({ ...s, region: ctx.hasMarker ? ctx.marker : undefined }),
+  // The run sends a crop around the box (src/lib/region.ts), so the prompt
+  // places the box within that crop.
+  buildPrompt: (s, ctx) =>
+    buildGroundFloorPrompt({
+      ...s,
+      region: ctx.hasMarker && ctx.marker ? within(ctx.marker, cropFrame(ctx.marker)) : undefined,
+      cropped: Boolean(ctx.hasMarker && ctx.marker),
+    }),
   sendTargets: ['humanScale', 'atmosphere', 'upscale'],
   poolLabel: 'Renders',
   galleryLabel: 'Ground floor',
@@ -3578,7 +3588,7 @@ const groundFloor: FeatureDef<GroundFloorSettings> = {
     if (s.program === 'custom' && !s.customProgram.trim()) return 'Say what the new use is.';
     return null;
   },
-  toOptions: (_s, ctx) => plainOptions(ctx),
+  toOptions: (_s, ctx) => ({ ...plainOptions(ctx), crop: ctx.marker }),
   promptContracts: [
     { name: 'ground floor: the rectangle outranks the main building', pattern: /THE RECTANGLE DECIDES, NOT THE PICTURE/ },
     { name: 'ground floor reads the box as an instruction', pattern: /It is an instruction, not part of the building/ },

@@ -439,6 +439,14 @@ const NEW_TOOLS: Run[] = [
     ],
   },
   {
+    id: 'Q4c', tool: 'groundFloor', input: MARKED_STREET, marked: true, markerRect: { x: 0.005, y: 0.545, w: 0.21, h: 0.2 },
+    title: 'CROP FIX — only the boxed corner is sent, and pasted back. Café in the brick building at last?',
+    verdicts: [
+      'PASS — a lit café in the brick building’s ground floor; outside the crop the image is pixel-identical; no visible seam; no red line',
+      'FAIL — the frontage ignores the box, a visible seam or misalignment at the paste, or the red line left in',
+    ],
+  },
+  {
     id: 'U1b', tool: 'systemsCutaway', input: 'ex-human-scale.jpg',
     title: 'FIX CHECK — the same house, garage and all, with the sun from one side?',
     verdicts: [
@@ -867,7 +875,7 @@ function dataUrl(file: string): string {
     if (only.length && !only.includes(run.id)) continue;
     const def = featureDef(run.tool);
     const settings = { ...def.defaultSettings, ...(run.settings ?? {}) } as never;
-    const ctx = { refine: false };
+    const ctx = { refine: false, marker: run.markerRect };
     const prompt = def.buildPrompt(settings, {
       useMoodboard: false,
       useStyleRef: false,
@@ -913,6 +921,21 @@ function dataUrl(file: string): string {
       req.inputImages[0] = dataUrl(padded);
     }
 
+    // A boxed edit (Ground Floor): the app crops in runFeature, so the same
+    // canvas code crops here, and pastes back below.
+    const box = req.options.crop;
+    let cropPx = '';
+    if (box && run.input && !frame) {
+      original = resolveInput(run.input);
+      const cropped = path.join(OUT, `run-${run.id}-crop.png`);
+      cropPx = execFileSync(
+        'node',
+        [path.join(ROOT, 'qa', 'canvasOps.cjs'), 'crop', original, `${box.x},${box.y},${box.w},${box.h}`, cropped],
+        { encoding: 'utf8' },
+      );
+      req.inputImages[0] = dataUrl(cropped);
+    }
+
     try {
       const result = await provider.generate(req);
       spent += jobs.length;
@@ -937,6 +960,11 @@ function dataUrl(file: string): string {
           // what the user gets.
           const final = `run-${run.id}-final${suffix}.jpg`;
           execFileSync('node', [path.join(ROOT, 'qa', 'canvasOps.cjs'), 'paste', original, path.join(OUT, file), place, path.join(OUT, final)]);
+          saved.push(final);
+        }
+        if (cropPx) {
+          const final = `run-${run.id}-final${suffix}.jpg`;
+          execFileSync('node', [path.join(ROOT, 'qa', 'canvasOps.cjs'), 'pasteregion', original, path.join(OUT, file), cropPx, path.join(OUT, final)]);
           saved.push(final);
         }
         console.log(`    OK  ${img.label}  ${Math.round((b64.length * 0.75) / 1024)}KB  → ${file}`);

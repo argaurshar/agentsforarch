@@ -595,3 +595,27 @@ Four approved calls, `liveRuns --new --runs=Q4b,U1b,K1b,K4b`.
   pastes the original back exactly. That is a design change, put to the user.
 
 Retry calls: 4.
+
+## Ground Floor: crop and paste back — 9 October 2026 (no calls spent)
+
+Decided with the user after Q4 and Q4b: stop asking the model to stay inside
+the box, and make it unable to do anything else. `src/lib/region.ts`:
+
+- **Crop.** The marked image is cut around the box — a little to the sides,
+  more above and below (the floors the frontage aligns to, the pavement) — and
+  grown to the nearest ratio the engine accepts, so the result scales back
+  without stretching. Only that crop is sent. The first free test used the same
+  margin all round and reached into the house's garage, the very place the café
+  had gone twice; the side margin is now a fifth of the box.
+- **Paste back.** The result is scaled to the crop and pasted over its own
+  place with a feathered edge (the helper Reframe already used, now shared).
+  Outside the crop the user's own pixels come back: a free test with a solid
+  stand-in result changed nothing outside it beyond JPEG noise (max 7/255).
+- **Prompt.** It says the input is a close crop that will be pasted back, so
+  its edges must match, and places the box within the crop.
+- The live harness runs the same code through `qa/canvasOps.cjs crop` and
+  `pasteregion`. Unit checks cover the geometry (box inside, image bounds,
+  accepted ratio, context above, little to the side).
+
+**Q4c** (1 call) is defined to confirm it live, awaiting approval. The "What we
+check" badge reads "fixed, re-test pending" until then.

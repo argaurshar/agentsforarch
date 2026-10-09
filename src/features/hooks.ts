@@ -1,6 +1,8 @@
 import { useCallback, useMemo } from 'react';
 import { getActiveProvider } from '../providers';
 import { padToRatio, pasteBack } from '../lib/reframe';
+import { cropToRegion, pasteRegion } from '../lib/region';
+import type { PixelRect } from '../lib/region';
 import type { Placement } from '../lib/reframe';
 import type { GenerateRequest, GenerateResult } from '../providers';
 import { poolFromProject, useProjectStore } from '../store/useProjectStore';
@@ -78,7 +80,22 @@ export async function runFeature(req: GenerateRequest): Promise<RunOutcome> {
       place = padded.place;
       sent = { ...req, inputImages: [padded.dataURL, ...req.inputImages.slice(1)] };
     }
+    // A boxed edit sends only the box and its surroundings, and pastes the
+    // result back — so nothing outside the crop can change (Q4, Q4b).
+    const box = req.options.crop;
+    let cropAt: PixelRect | null = null;
+    if (box && original && !frame) {
+      const cropped = await cropToRegion(original, box);
+      cropAt = cropped.px;
+      sent = { ...req, inputImages: [cropped.dataURL, ...req.inputImages.slice(1)] };
+    }
     const result = await provider.generate(sent, controller.signal);
+    if (cropAt && original) {
+      const at = cropAt;
+      result.images = await Promise.all(
+        result.images.map(async (img) => ({ ...img, url: await pasteRegion(original, img.url, at) })),
+      );
+    }
     if (frame?.keepOriginal && original && place) {
       const at = place;
       result.images = await Promise.all(

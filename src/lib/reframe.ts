@@ -98,36 +98,50 @@ export async function pasteBack(original: string, result: string, place: Placeme
   const l = layer.getContext('2d');
   if (!l) throw new Error('Canvas unavailable.');
   l.drawImage(orig, 0, 0);
-  l.globalCompositeOperation = 'destination-in';
   // Edges that touch the canvas border keep full opacity: there is no
   // generated pixel beyond them to blend into.
   const left = place.x > 0 ? f : 0;
   const right = place.x + place.w < place.W ? f : 0;
   const top = place.y > 0 ? f : 0;
   const bottom = place.y + place.h < place.H ? f : 0;
-  const mask = (x0: number, y0: number, x1: number, y1: number) => {
+  featherEdges(l, place.w, place.h, { left, right, top, bottom });
+  ctx.drawImage(layer, place.x, place.y);
+  return c.toDataURL('image/jpeg', 0.92);
+}
+
+/**
+ * Fade a layer's edges to transparent over the given widths (0 = keep the edge
+ * hard). Four ramps multiplied together with destination-in. Shared by
+ * Reframe's paste-back and the Ground Floor crop's paste-back.
+ */
+export function featherEdges(
+  l: CanvasRenderingContext2D,
+  w: number,
+  h: number,
+  e: { left: number; right: number; top: number; bottom: number },
+): void {
+  l.globalCompositeOperation = 'destination-in';
+  const ramp = (x0: number, y0: number, x1: number, y1: number) => {
     const g = l.createLinearGradient(x0, y0, x1, y1);
     g.addColorStop(0, 'rgba(0,0,0,0)');
     g.addColorStop(1, 'rgba(0,0,0,1)');
     return g;
   };
-  // Multiply four ramps together: destination-in with each in turn.
-  if (left) {
-    l.fillStyle = mask(0, 0, left, 0);
-    l.fillRect(0, 0, place.w, place.h);
+  if (e.left) {
+    l.fillStyle = ramp(0, 0, e.left, 0);
+    l.fillRect(0, 0, w, h);
   }
-  if (right) {
-    l.fillStyle = mask(place.w, 0, place.w - right, 0);
-    l.fillRect(0, 0, place.w, place.h);
+  if (e.right) {
+    l.fillStyle = ramp(w, 0, w - e.right, 0);
+    l.fillRect(0, 0, w, h);
   }
-  if (top) {
-    l.fillStyle = mask(0, 0, 0, top);
-    l.fillRect(0, 0, place.w, place.h);
+  if (e.top) {
+    l.fillStyle = ramp(0, 0, 0, e.top);
+    l.fillRect(0, 0, w, h);
   }
-  if (bottom) {
-    l.fillStyle = mask(0, place.h, 0, place.h - bottom);
-    l.fillRect(0, 0, place.w, place.h);
+  if (e.bottom) {
+    l.fillStyle = ramp(0, h, 0, h - e.bottom);
+    l.fillRect(0, 0, w, h);
   }
-  ctx.drawImage(layer, place.x, place.y);
-  return c.toDataURL('image/jpeg', 0.92);
+  l.globalCompositeOperation = 'source-over';
 }

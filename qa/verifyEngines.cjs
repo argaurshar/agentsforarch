@@ -320,7 +320,7 @@ const check = (name, ok, detail = '') => {
   // "What we check": every tool page states what a good result gets right,
   // including the tools with no worked example yet — and on a phone the table
   // stacks instead of pushing the page sideways.
-  await mob.goto(BASE + '#/groundFloor', { waitUntil: 'domcontentloaded' });
+  await mob.goto(BASE + '#/systemsCutaway', { waitUntil: 'domcontentloaded' });
   await mob.waitForTimeout(500);
   check('a tool with no example still shows what we check', (await mob.locator('[data-check-table]').count()) === 1);
   check('and owns up to its known issue', (await mob.locator('[data-live="issue"]').count()) === 1);
