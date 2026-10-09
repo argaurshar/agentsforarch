@@ -1,6 +1,6 @@
 import { newId } from '../lib/images';
 import { getEngine, getKieApiKey, KIE_MODEL } from './runtimeConfig';
-import { kieAspect } from './options';
+import { effectiveAspect, kieAspect } from './options';
 import type { AspectRatio, Resolution } from './options';
 import { abortableDelay, FALLBACK_PROMPT, jobsFor } from './shared';
 import type { GenerateFailure, GeneratedImage, GenerateRequest, GenerateResult, ImageProvider } from './types';
@@ -219,7 +219,16 @@ export class KieProvider implements ImageProvider {
       const job = jobs[i];
       try {
         images.push(
-          await generateOne(key, job.prompt, imageUrls, job.label, signal, req.options.aspectRatio, req.options.resolution),
+          await generateOne(
+            key,
+            job.prompt,
+            imageUrls,
+            job.label,
+            signal,
+            // Same model underneath: two images make it follow the last one's shape.
+            effectiveAspect(req.options.aspectRatio, req.inputImages),
+            req.options.resolution,
+          ),
         );
       } catch (err) {
         if (signal?.aborted) break;

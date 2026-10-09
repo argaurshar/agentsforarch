@@ -1708,7 +1708,10 @@ const massingRender: FeatureDef<MassingRenderSettings> = {
       hint: 'A finished building photo or render whose materials, light and landscape you want — its form is ignored',
     },
   ],
-  defaultSettings: { take: 'everything', openings: 'recesses', entourage: false },
+  // Solid by default since live run X1b: given leave to glaze recesses, the
+  // model cut windows into solid faces too, under a glazed reference house.
+  // Pure form first; glazing is one tap away.
+  defaultSettings: { take: 'everything', openings: 'solid', entourage: false },
   quick: [
     {
       kind: 'choice',
@@ -1726,12 +1729,12 @@ const massingRender: FeatureDef<MassingRenderSettings> = {
       key: 'openings',
       label: 'Openings',
       options: [
+        { value: 'solid', label: 'Keep it solid', hint: 'No glazing anywhere. The building reads as pure form.' },
         {
           value: 'recesses',
           label: 'Glaze the recesses',
           hint: 'Glazing only inside voids and recesses the model already has — never a new opening.',
         },
-        { value: 'solid', label: 'Keep it solid', hint: 'No glazing anywhere. The building reads as pure form.' },
       ],
     },
     {
@@ -1772,6 +1775,12 @@ const massingRender: FeatureDef<MassingRenderSettings> = {
     { name: 'massing render names the roof drift', pattern: /THE ROOF IS THE PART THAT DRIFTS/ },
     { name: 'massing render strips the model photograph', pattern: /not a model on a table/ },
     { name: 'massing render checks against both images', pattern: /Against the SECOND image/ },
+    // Live run X1 dropped an aerial model to street level and borrowed the
+    // reference house's garage door. Both are now named.
+    { name: 'massing render names the camera drift', pattern: /THE CAMERA DRIFTS TOO/ },
+    { name: 'massing render refuses the reference’s doors', pattern: /its doors and garage doors/ },
+    // X1b split one courtyard block into separate stepped buildings.
+    { name: 'massing render keeps one block one block', pattern: /THE BLOCK DOES NOT SPLIT/ },
   ],
 };
 
@@ -2547,6 +2556,9 @@ const conceptDiagram: FeatureDef<ConceptDiagramSettings> = {
     { name: 'concept diagram holds one camera', pattern: /SAME axonometric camera angle/ },
     { name: 'concept diagram ends on the input', pattern: /last panel must match the input/ },
     { name: 'concept diagram insists on spelling', pattern: /Spell every word correctly/ },
+    // Live run Y1 drew two rows of four and ended on a tidy symmetric ring.
+    { name: 'concept diagram draws one row', pattern: /Exactly ONE ROW of/ },
+    { name: 'concept diagram keeps the asymmetry', pattern: /and its asymmetries too/ },
   ],
 };
 
@@ -2611,6 +2623,10 @@ const conceptBoard: FeatureDef<ConceptBoardSettings> = {
     { name: 'concept board has exactly three parts', pattern: /exactly three parts/ },
     { name: 'concept board shows one building throughout', pattern: /All three parts show the SAME building/ },
     { name: 'concept board insists on spelling', pattern: /Spell every word correctly/ },
+    // Live run Y4 printed "TOP SECTION (CONCEPT):" and built the pavilion from jali blocks.
+    { name: 'concept board names no parts on the board', pattern: /No headings, no labels for the parts/ },
+    { name: 'concept board checks the title letter by letter', pattern: /title letter by letter/ },
+    { name: 'concept board does not build from the component', pattern: /do not simply build the pavilion out of that component/ },
   ],
 };
 
@@ -2632,7 +2648,10 @@ const bubblePlan: FeatureDef<BubblePlanSettings> = {
   maxReferences: 0,
   accuracyWarning: () =>
     'Room sizes and walls are interpreted from a loose diagram — check the dimensions before you rely on them.',
-  defaultSettings: { furnished: true, walls: 'poche', roomNames: false },
+  // Names ON by default since live runs Y2 and Y2b: names written on a bubble
+  // diagram came back as labels both times, even under "do not letter the
+  // rooms". The labels were right and spelled right; off stays best-effort.
+  defaultSettings: { furnished: true, walls: 'poche', roomNames: true },
   quick: [
     {
       kind: 'toggle',
@@ -2653,7 +2672,7 @@ const bubblePlan: FeatureDef<BubblePlanSettings> = {
       kind: 'toggle',
       key: 'roomNames',
       label: 'Room names',
-      hint: 'Off keeps the plan text-free, which is what the diagram’s handwriting is removed for.',
+      hint: 'On by default. Off asks for a text-free plan, but names written on the diagram tend to come back anyway.',
     },
   ],
   buildPrompt: (s) => buildBubblePlanPrompt(s),
@@ -2681,6 +2700,8 @@ const bubblePlan: FeatureDef<BubblePlanSettings> = {
     { name: 'bubble plan holds the projection', pattern: /ORTHOGRAPHIC drawing/ },
     { name: 'bubble plan removes the diagram marks', pattern: /Remove every bubble/ },
     { name: 'bubble plan never blocks a door', pattern: /no furniture in front of a door/ },
+    // Live run Y2 kept the bubble names as room labels.
+    { name: 'bubble plan labels the rooms by default', pattern: /Label each room/ },
   ],
 };
 

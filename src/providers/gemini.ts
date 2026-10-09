@@ -1,6 +1,6 @@
 import { newId } from '../lib/images';
 import { getEngine, getGeminiApiKey, getGeminiModel } from './runtimeConfig';
-import { geminiAspect } from './options';
+import { effectiveAspect, geminiAspect } from './options';
 import type { AspectRatio } from './options';
 import { abortableDelay, FALLBACK_PROMPT, jobsFor, toInline } from './shared';
 import type { Inline } from './shared';
@@ -29,7 +29,10 @@ interface ResponsePart {
 interface ResponseCandidate {
   content?: { parts?: ResponsePart[] };
   finishReason?: string;
-  groundingMetadata?: { groundingChunks?: { web?: { uri?: string; title?: string } }[] };
+  groundingMetadata?: {
+    groundingChunks?: { web?: { uri?: string; title?: string } }[];
+    webSearchQueries?: string[];
+  };
 }
 export interface GenerateContentResponse {
   candidates?: ResponseCandidate[];
@@ -139,12 +142,14 @@ async function generateOne(
       }
       const mime = imagePart.inlineData.mimeType || 'image/png';
       const sources = groundingSources(json);
+      const queries = json.candidates?.[0]?.groundingMetadata?.webSearchQueries ?? [];
       return {
         id: newId('img'),
         url: `data:${mime};base64,${imagePart.inlineData.data}`,
         label,
         createdAt: Date.now(),
         ...(sources.length ? { sources } : {}),
+        ...(queries.length ? { searchQueries: queries } : {}),
       };
     }
 
@@ -206,7 +211,7 @@ export class GeminiProvider implements ImageProvider {
             inlines,
             job.label,
             signal,
-            req.options.aspectRatio,
+            effectiveAspect(req.options.aspectRatio, req.inputImages),
             req.options.grounding,
           ),
         );

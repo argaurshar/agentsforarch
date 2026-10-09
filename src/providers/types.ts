@@ -36,6 +36,8 @@ export interface GeneratedImage {
   createdAt: number;
   /** Web pages a search-grounded generation drew on, when the engine reports them. */
   sources?: GroundingSource[];
+  /** What a grounded generation searched for — proof that search ran at all. */
+  searchQueries?: string[];
 }
 
 export interface GroundingSource {

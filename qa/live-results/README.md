@@ -284,3 +284,144 @@ Every tool that can be tested from this environment has been. These three cannot
 be, until those files exist — I cannot fetch them (the egress proxy blocks image
 hosts) and generating them would make the fixtures too clean to be a real test,
 which is the mistake that let the original squared-off isometric through.
+
+## Build plan, Phase 0 — 9 October 2026
+
+Five planned calls: `liveRuns --probe` (G1) and `liveRuns --owed` (O1–O3, X1).
+Inputs marked *guide* are test-only fixtures from `qa/fixtures/guide/`.
+
+| Run | Tool | Verdict |
+|---|---|---|
+| G1 | Massing Study + Google Search | **PASS** (narrow): the image model accepts `tools: [{google_search: {}}]` and still returns an image. **No sources and no search queries were returned**, so it is not yet proven that a search ran. The harness now records `searchQueries`, and the first grounded run in Phase 2b settles it. |
+| O1 | Bird's Eye View (*guide* #32) | **NOT RUN.** Both attempts hit Node's built-in 300 s fetch header timeout: the model was still working when Node hung up. It is not known whether Google billed them. The harness now sends through `curl` (no 300 s cap; checked end to end with an invalid key, unbilled). |
+| O2 | Wireframe to Render, interior (*guide* #09) | **PASS.** Same room and camera; every modelled piece present (both sofas, round table, floating shelves, TV unit, palm, bookcase, mezzanine chair and plant); no rug, art or decor added. Minor: sofa forms simplified, a book stack on the table. |
+| O3 | Place Object, artwork (*guide* #25) | **PASS on the object, FAIL on the frame.** The same mountain painting, flat on the back wall at a believable size, room otherwise unchanged — but a 9:16 portrait room came back **square**. |
+| X1 | Massing to Render | **FAIL.** The camera dropped from the model's high aerial to near street level; the courtyard block came back as a cluster of stepped townhouses with the reference house's garage door and overhanging roofs; and the frame came back at the reference's 1.83 instead of the massing's 1.49. |
+
+### What O3 and X1 found: the second image decides the frame
+
+With two images and no `imageConfig`, Gemini sizes the output from the **last**
+image. O3: portrait room + square painting → square. X1: 3:2 massing + 1.83
+reference → 1.83. O2, with one image, kept its 1.265 exactly. Every two-image
+tool (Place Object, Massing to Render, Place in Real Site, 3D Site Analysis with
+a reference) was reframing the user's image to the reference's shape.
+
+**Fix:** `effectiveAspect()` pins a multi-image request with no ratio of its own
+to the FIRST image, read from the data URL's header (PNG or JPEG, no DOM, so it
+works in the browser and the harness alike). Both engines. Unit-checked, and
+e2e asserts a two-image request now asks for the first image's ratio.
+
+**Fix (X1 prompt):** the lock now names the camera as a drift — "a model
+photographed from above is rendered seen from above; do not drop the camera to
+street level" — and the reference's doors, garage doors and roof overhangs are
+named in "do not build the reference". The closing check compares the viewpoint.
+
+### Retries, after the spending cap was raised
+
+| Run | Verdict |
+|---|---|
+| O3b | **PASS.** The 9:16 portrait room came back 9:16 (0.558 in, 0.558 out), same camera, the same mountain painting hung on the wall, nothing else changed. The two-image frame fix works. |
+| X1b | **Better, still FAIL.** Fixed: the high aerial camera is kept, the frame is the massing's 3:2 (1.49 → 1.491), and there is no garage door. Still wrong: the single courtyard block comes back split into separate stepped buildings, and windows are cut into faces the model shows as solid. Its one retry is spent; the next prompt change waits for approval. |
+
+### O1 — Bird's Eye View, through curl (approved separately, 1 call)
+
+**PASS, with a caveat.** Returned in 67 s — so the two earlier 300 s timeouts
+were a stalled connection, not a slow model; curl would have caught either. A
+convincing oblique drone view at the tool's pinned 16:9: the Google Maps label
+and interface are gone, the diagonal street grid runs the same way as the tile,
+and the main road on the left is there. Caveat: individual parks and blocks
+cannot be matched one for one — it is plausibly the same district, not provably
+the same buildings. Output kept locally (derived from a Google Maps image).
+
+### X1c — the fix that held (approved separately, 1 call)
+
+Two changes after X1b: **openings default to "Keep it solid"** (given leave to
+glaze recesses, the model glazed solid faces too, under a glazed reference), and
+the lock names the split — **"THE BLOCK DOES NOT SPLIT EITHER: volumes that are
+joined in the model stay joined as one continuous building."**
+
+**X1c: PASS.** One continuous courtyard block with every stepped terrace, solid
+faces with no windows, the model's own high aerial camera, the massing's 3:2
+frame (1.491), clad in the reference's render, stone base and dark coping in its
+warm low light. Minor: the sky reads as a warm studio backdrop rather than a real
+horizon. Massing to Render now ships its worked example (`ex-massing-render.jpg`)
+and leaves AWAITING_LIVE_RUN.
+
+The three Massing to Render images are kept side by side — `run-X1`, `run-X1b`,
+`run-X1c` — so each fix can be seen against the failure it answered.
+
+### Earlier: retries blocked by the account, not the code
+
+X1b and O3b (the reserve) were refused with **HTTP 429 RESOURCE_EXHAUSTED: "Your
+project has exceeded its monthly spending cap."** Refused requests are not billed.
+They run as soon as the cap is raised at https://ai.studio/spend.
+
+Phase 0: **5 planned calls** (G1, O2, O3, X1 returned images; O1's two
+attempts timed out) and **2 reserve calls** (X1b, O3b — first refused by the
+spend cap, unbilled; then run once the cap was raised).
+
+O1, O2, O3 and O3b outputs are **not committed**: they were made from the guide's own
+images and reproduce them closely, and guide material stays out of this public
+repository. Their prompts and verdicts are here; the images were kept locally.
+
+## Build plan, Phase 1 — 9 October 2026
+
+Four approved calls, `liveRuns --new --runs=Y1,Y2,Y3,Y4`. Y1-Y3 on our own
+images; Y4 on the guide's jali photo (#59, test-only; output kept locally).
+
+| Run | Tool | Verdict |
+|---|---|---|
+| Y1 | Concept Diagram | **PARTIAL.** One camera throughout, one move per panel, captions spelled (EXTRUDE VOLUME, CARVE COURTYARD, STEP INSIDE, STEP OUTSIDE), ending on a stepped courtyard. But it drew **two rows** — each move twice — and the last panel is a tidy **symmetric** ring, not our asymmetric massing. |
+| Y2 | Bubble to Plan | **PARTIAL — nearly a pass.** The arrangement is the diagram's: the hall opens to both bedrooms, the bath and living; the bedrooms do not connect; kitchen + dining opens off living; balcony and entry where drawn. Title, note and north mark removed. But the **bubble names came back as room labels** (BED 1, LIVING…) under the no-text default. |
+| Y3 | Moodboard to Space | **PASS.** One room photograph built from the board — terracotta stucco and tile, linen, rattan, reclaimed wood, macramé, bronze, bougainvillea. No collage, no text. Ships as the tool's worked example. |
+| Y4 | Bio-Mimicry Concept Board | **PARTIAL.** Exactly three parts, one pavilion throughout, title spelled. But it **printed the prompt's own part names** ("TOP SECTION (CONCEPT):") as captions, and it built the pavilion **out of the jali blocks themselves** rather than translating their qualities. |
+
+### Fixes (no calls spent)
+
+- Concept Diagram: "Exactly ONE ROW of N panels — not two rows, and no panel
+  drawn twice"; the last panel keeps the input's **asymmetries** ("a tidier,
+  symmetrical version of it is a different building").
+- Bubble to Plan: "THE BUBBLE NAMES DO NOT SURVIVE: do not letter the rooms at
+  all" whenever room names are off — names written on the input read as content.
+- Concept Board: the part names are "instructions to you, not captions: never
+  print them"; and if the inspiration is a building component, "do not simply
+  build the pavilion out of that component".
+
+Each has a new contract; the snapshot changed in those three tools only (24
+variants). Retries Y1b, Y2b, Y4b await approval — 3 calls, one more than
+Phase 1's reserve of 2.
+
+### Phase 1 retries (3 approved calls)
+
+| Run | Verdict |
+|---|---|
+| Y1b Concept Diagram | **Better, still PARTIAL.** Fixed: one row of four, one camera, one move per panel, captions spelled (SITE VOLUME, CARVE COURTYARD, STEP TERRACES, CREATE TOWERS). Still wrong: the last move adds four symmetric corner towers our massing does not have. |
+| Y2b Bubble to Plan | **Same plan, same labels.** The adjacencies hold and every label is spelled right, but the room names came back again under an explicit "do not letter the rooms". Twice now: names written on a bubble diagram are kept, whatever the prompt says. |
+| Y4b Concept Board | **Better, still FAIL on text.** The pavilion now reads as folding screens and thresholds with dappled light rather than a wall of blocks, and no "TOP SECTION" captions — but it printed CONCEPT / MAIN RENDER / INTERIOR VIGNETTES as headings, and spelled the title "TERRACOTA". |
+
+Retries spent; nothing further run. Proposed next steps are in the PR thread.
+
+### Phase 1 — decisions and the last call
+
+Decided with the user after the retries:
+
+- **Bubble to Plan: room names ON by default.** Names written on a bubble
+  diagram came back as labels in both runs, correctly spelled; "off" is now
+  described as best-effort. Y2b — run under the old no-names default — is the
+  labelled plan the new default asks for, and ships as the worked example
+  (`ex-bubble-plan.jpg`), with that history recorded here.
+- **Concept Diagram: accepted as is.** One row, one camera, one move per panel;
+  the ending can be the model's own reading (Y1b's corner towers), so the screen
+  now says to type the moves for an exact sequence. Y1b ships as the example,
+  with that caveat in its note.
+- **Concept Board: rewritten, 1 call.** The three parts are described by
+  position (top, middle, bottom) and never named; a typed title is copied
+  letter for letter, an invented one kept to words the model can spell.
+
+**Y4c: PASS.** No headings or part names anywhere; title "FILTERED LIGHT
+PAVILION" and both captions spelled correctly; three parts, one pavilion that
+carries the jali into perforated screens, a dappled canopy and branching
+columns. Output kept locally (guide fixture), so Concept Board still waits for
+a publishable inspiration photo for its example.
+
+Phase 1 calls: 4 planned + 3 retries + 1 (Y4c) = 8.

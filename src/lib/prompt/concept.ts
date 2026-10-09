@@ -248,14 +248,16 @@ export function buildConceptDiagramPrompt(a: {
         'starting block. Begin with the plain extruded volume that fills the site, and let each later move make exactly ' +
         'ONE visible change — a carve, a lift, a step, a twist, a split, added greenery — chosen because you can SEE it ' +
         'in the final building. Do not invent moves the building does not show.',
-    `STEP 3 — DRAW THE SEQUENCE. ${n} panels side by side, left to right, each showing the same building from the SAME ` +
+    `STEP 3 — DRAW THE SEQUENCE. Exactly ONE ROW of ${n} panels side by side, left to right — not two rows, and no ` +
+      `panel drawn twice — each showing the same building from the SAME ` +
       'axonometric camera angle, at the same scale, on the same footprint. Draw the volume as a clean simplified massing ' +
       'model: no photorealism, no texture, no people, no context beyond a thin ground plane. In each panel show the move ' +
       'happening: a bold arrow for the push, pull or lift, the removed part as a ghosted outline, the new element ' +
       'picked out in colour. Every panel keeps everything the previous panel established.',
     `Colour: ${LOOK_CLAUSE[a.look]}. One palette across all ${n} panels, on a plain white background.`,
-    'The last panel must match the input building’s massing — same courtyard, same steps, same proportions. A sequence ' +
-      'that ends on a different building explains nothing.',
+    'The last panel must match the input building’s massing — same courtyard, same steps, same proportions, and its ' +
+      'asymmetries too: which parts are taller, which side is lower, where the steps fall. A tidier, symmetrical version ' +
+      'of it is a different building, and a sequence that ends on a different building explains nothing.',
     a.labels
       ? 'Under each panel, a short numbered caption of two to four words naming the move (for example 1. SITE VOLUME, ' +
         '2. CARVE COURTYARD) in a clean bold sans-serif. Spell every word correctly and keep every word legible.'
@@ -302,19 +304,27 @@ export function buildConceptBoardPrompt(a: { program: BoardProgram; customProgra
     'STEP 2 — TRANSLATE, DO NOT COPY. Design a building that carries those qualities into architecture — structure, ' +
       'envelope, light and circulation — so someone who knows the source would recognise the idea, but the building is ' +
       'not shaped like the object. Never reproduce the object literally, never show a face, head or recognisable ' +
-      'figure, and never paste the input image onto the board.',
+      'figure, and never paste the input image onto the board. If the inspiration is itself a building component — a ' +
+      'brick, a block, a screen, a tile — do not simply build the pavilion out of that component: carry its qualities ' +
+      'into the structure, the space and the light.',
+    // Parts are described by POSITION, never by name. Live runs Y4 and Y4b
+    // printed the names as headings — once as "TOP SECTION (CONCEPT):", once,
+    // after being told not to, as "CONCEPT" — so the names are simply gone.
     'STEP 3 — LAY OUT ONE BOARD with exactly three parts, on a background themed on the inspiration’s palette and ' +
-      'texture, in a structured international layout with generous margins:',
-    `1. CONCEPT — a loose, hand-painted colour sketch of the core idea, with ${
-      title ? `the title “${title}”` : 'the design’s title'
-    } above it.`,
-    '2. MAIN RENDER — the largest part: a realistic, photographic render of the building in use, with people, ' +
-      'circulation and a credible setting.',
-    '3. INTERIOR VIGNETTES — three or four small views of interior moments and details.',
-    'All three parts show the SAME building.',
-    'Text is limited to the title and at most one short line per part, in a clean sans-serif. Spell every word ' +
-      'correctly and keep every word legible. Do not add any watermark or signature.',
+      'texture, in a structured international layout with generous margins. At the top: a loose, hand-painted colour ' +
+      'sketch of the core idea, with the title above it. In the middle, the largest part: a realistic, photographic ' +
+      'render of the building in use, with people, circulation and a credible setting. Along the bottom: three or four ' +
+      'small views of interior moments and details. All three parts show the SAME building.',
+    // Y4b spelled its own title "TERRACOTA". A typed title is copied letter for
+    // letter; an invented one is kept to short, common words.
+    title
+      ? `The title is exactly “${title}” — copy it letter for letter.`
+      : 'The title is two or three short, common words that you can spell with certainty.',
+    'The only text on the board is the title and at most one short caption under each part. No headings, no labels for ' +
+      'the parts, no section names. Use a clean sans-serif. Spell every word correctly and keep every word legible. Do ' +
+      'not add any watermark or signature.',
     'CHECK before you finish: is the building clearly inspired by the input, yet not a copy of it? Are there exactly ' +
-      'three parts showing one building? Is the title spelled correctly?',
+      'three parts showing one building? Is there any heading or part name on the board — if so, remove it. Check the ' +
+      'title letter by letter.',
   ].join(' ');
 }

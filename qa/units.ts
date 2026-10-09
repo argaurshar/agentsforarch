@@ -8,6 +8,8 @@ import { geminiRequestBody, groundingSources } from '../src/providers/gemini';
 import type { GenerateContentResponse } from '../src/providers/gemini';
 import { formatCoordinates, formatLatitude, parseCoordinates } from '../src/lib/coords';
 import { placement, ratioValue } from '../src/lib/reframe';
+import { dataUrlSize, effectiveAspect, nearestAspect } from '../src/providers/options';
+import { readFileSync } from 'node:fs';
 
 const results: { ok: boolean; name: string }[] = [];
 function check(name: string, ok: boolean, detail = ''): void {
@@ -101,6 +103,22 @@ for (const r of ['9:16', '4:5', '1:1', '3:2', '16:9', '21:9']) {
   check(`the ${r} canvas really is ${r}`, Math.abs(p.W / p.H - ratioValue(r)) < 0.002, json(p));
   check(`and contains the original (${r})`, p.x >= 0 && p.y >= 0 && p.x + p.w <= p.W && p.y + p.h <= p.H, json(p));
 }
+
+// --- Two-image aspect pin (Phase 0 live finding: O3, X1) ---------------------
+
+const asData = (file: string) =>
+  `data:${file.endsWith('.png') ? 'image/png' : 'image/jpeg'};base64,${readFileSync(file).toString('base64')}`;
+const massing = asData('public/examples/ex-massing.jpg'); // 1200 x 805
+const wideRef = asData('public/examples/elev-rendered.jpg'); // 860 x 470
+const planPng = asData('test-assets/sample-plan.png'); // 1300 x 976
+check('reads a JPEG’s size from its header', json(dataUrlSize(massing)) === json({ w: 1200, h: 805 }), json(dataUrlSize(massing)));
+check('reads a PNG’s size from its header', json(dataUrlSize(planPng)) === json({ w: 1300, h: 976 }), json(dataUrlSize(planPng)));
+check('a remote URL has no readable size', dataUrlSize('https://example.org/a.png') === null);
+check('3:2 is nearest for 1200 × 805', nearestAspect(1200, 805) === '3:2');
+check('9:16 is nearest for a phone portrait', nearestAspect(893, 1600) === '9:16');
+check('two images pin to the FIRST image’s shape', effectiveAspect(undefined, [massing, wideRef]) === '3:2');
+check('a ratio the tool asked for still wins', effectiveAspect('1:1', [massing, wideRef]) === '1:1');
+check('one image is left to follow itself', effectiveAspect(undefined, [massing]) === undefined);
 
 // ---------------------------------------------------------------------------
 const failed = results.filter((r) => !r.ok).length;

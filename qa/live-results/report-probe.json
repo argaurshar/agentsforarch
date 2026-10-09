@@ -1,0 +1,33 @@
+{
+  "runs": [
+    {
+      "id": "G1",
+      "tool": "massing",
+      "input": null,
+      "options": {
+        "grounding": true
+      },
+      "settings": {
+        "brief": "A six-storey courtyard housing block on the empty corner plot, in the real context of this location",
+        "siteSize": "about 40m x 50m",
+        "context": "The streets around 51.5246° N, 0.0787° W in London — look up what is actually there"
+      },
+      "title": "GROUNDING PROBE — does the image model accept google_search and still return an image?",
+      "verdicts": [
+        "PASS — an image comes back (sources listed if the engine reports them)",
+        "FAIL — an HTTP error naming the tools field, or text instead of an image"
+      ],
+      "status": "generated",
+      "calls": 1,
+      "labels": [
+        "Massing"
+      ],
+      "files": [
+        "run-G1-output.png"
+      ],
+      "sources": [],
+      "failures": []
+    }
+  ],
+  "generations": 1
+}

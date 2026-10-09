@@ -1,0 +1,176 @@
+{
+  "runs": [
+    {
+      "id": "Y1",
+      "tool": "conceptDiagram",
+      "input": "ex-massing.jpg",
+      "title": "Moves read from the form. Same camera throughout, ending on THIS massing?",
+      "verdicts": [
+        "PASS \u2014 4 panels from one camera, one visible move each, the last matching the courtyard massing; captions spelled",
+        "FAIL \u2014 panels from different angles, a final form that is not the input, or garbled captions"
+      ],
+      "status": "generated",
+      "calls": 1,
+      "labels": [
+        "Concept diagram"
+      ],
+      "files": [
+        "run-Y1-output.png"
+      ],
+      "sources": [],
+      "searchQueries": [],
+      "failures": []
+    },
+    {
+      "id": "Y2",
+      "tool": "bubblePlan",
+      "input": "bubble-input.jpg",
+      "title": "Bubbles to rooms. Do touching bubbles share doors \u2014 and do apart ones not?",
+      "verdicts": [
+        "PASS \u2014 eight rooms in the diagram\u2019s arrangement; hall opens to both bedrooms, bath and living; bedrooms do not connect; no handwriting left",
+        "FAIL \u2014 a generic flat ignoring the bubbles, bedrooms opening into each other, or the title/note/N surviving"
+      ],
+      "status": "generated",
+      "calls": 1,
+      "labels": [
+        "Plan"
+      ],
+      "files": [
+        "run-Y2-output.png"
+      ],
+      "sources": [],
+      "searchQueries": [],
+      "failures": []
+    },
+    {
+      "id": "Y3",
+      "tool": "moodboardSpace",
+      "input": "board-boho.jpg",
+      "title": "Our own mood board back into a room. A room \u2014 or another board?",
+      "verdicts": [
+        "PASS \u2014 one living-room photograph in terracotta, linen, rattan and aged teak; no swatches, no text",
+        "FAIL \u2014 a grid or collage, the board hung as art, or a generic neutral room"
+      ],
+      "status": "generated",
+      "calls": 1,
+      "labels": [
+        "Interior"
+      ],
+      "files": [
+        "run-Y3-output.png"
+      ],
+      "sources": [],
+      "searchQueries": [],
+      "failures": []
+    },
+    {
+      "id": "Y4",
+      "tool": "conceptBoard",
+      "input": "guide:uc59-input1.jpg",
+      "title": "A perforated terracotta block as inspiration. Translated \u2014 or a building shaped like a block?",
+      "verdicts": [
+        "PASS \u2014 three parts showing one pavilion that uses perforation, light and terracotta as a language; title spelled",
+        "FAIL \u2014 a pavilion that is literally a jali block, the photo pasted on the board, or unrelated buildings per part"
+      ],
+      "status": "generated",
+      "calls": 1,
+      "labels": [
+        "Concept board"
+      ],
+      "sources": [],
+      "searchQueries": [],
+      "failures": [],
+      "files_kept_locally": [
+        "run-Y4-output.png"
+      ],
+      "note": "output not committed: made from a test-only guide fixture"
+    },
+    {
+      "id": "Y1b",
+      "tool": "conceptDiagram",
+      "input": "ex-massing.jpg",
+      "title": "FIX CHECK \u2014 one row, and the last panel keeps the asymmetry?",
+      "verdicts": [
+        "PASS \u2014 ONE row of 4 panels, same camera, ending on THIS massing with its uneven heights and steps; captions spelled",
+        "FAIL \u2014 two rows again, a repeated panel, or a tidy symmetric ending"
+      ],
+      "status": "generated",
+      "calls": 1,
+      "labels": [
+        "Concept diagram"
+      ],
+      "files": [
+        "run-Y1b-output.png"
+      ],
+      "sources": [],
+      "searchQueries": [],
+      "failures": []
+    },
+    {
+      "id": "Y2b",
+      "tool": "bubblePlan",
+      "input": "bubble-input.jpg",
+      "title": "FIX CHECK \u2014 the same plan, with no room names lettered in?",
+      "verdicts": [
+        "PASS \u2014 the adjacencies of Y2 kept, and no text anywhere on the plan",
+        "FAIL \u2014 room names or any other text on the plan, or the adjacencies lost"
+      ],
+      "status": "generated",
+      "calls": 1,
+      "labels": [
+        "Plan"
+      ],
+      "files": [
+        "run-Y2b-output.png"
+      ],
+      "sources": [],
+      "searchQueries": [],
+      "failures": []
+    },
+    {
+      "id": "Y4b",
+      "tool": "conceptBoard",
+      "input": "guide:uc59-input1.jpg",
+      "title": "FIX CHECK \u2014 no printed part names, and a pavilion that is more than a wall of blocks?",
+      "verdicts": [
+        "PASS \u2014 three parts, title and short lines only (no CONCEPT / MAIN RENDER / SECTION labels); the jali\u2019s light, rhythm and porosity carried into structure and space",
+        "FAIL \u2014 part names printed again, or the pavilion still simply built out of jali blocks"
+      ],
+      "status": "generated",
+      "calls": 1,
+      "labels": [
+        "Concept board"
+      ],
+      "sources": [],
+      "searchQueries": [],
+      "failures": [],
+      "files_kept_locally": [
+        "run-Y4b-output.png"
+      ],
+      "note": "output not committed: made from a test-only guide fixture"
+    },
+    {
+      "id": "Y4c",
+      "tool": "conceptBoard",
+      "input": "guide:uc59-input1.jpg",
+      "title": "FIX CHECK \u2014 parts placed by position, never named; the title spelled with certainty?",
+      "verdicts": [
+        "PASS \u2014 three parts with no headings or part names; title spelled correctly; one pavilion translating the jali",
+        "FAIL \u2014 any part name or heading printed, or a misspelled title"
+      ],
+      "status": "generated",
+      "calls": 1,
+      "labels": [
+        "Concept board"
+      ],
+      "sources": [],
+      "searchQueries": [],
+      "failures": [],
+      "files_kept_locally": [
+        "run-Y4c-output.png"
+      ],
+      "note": "output not committed: made from a test-only guide fixture"
+    }
+  ],
+  "generations": 8
+}
