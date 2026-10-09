@@ -537,3 +537,38 @@ check" badges now read passed (Reframe, Marketing Board), passed with a caveat
 (Phasing, Magazine) and fixed, re-test pending (Ground Floor, Systems Cutaway).
 
 Phase 3 calls: 10.
+
+## Build plan, Phase 4 — 9 October 2026
+
+Six approved calls, `liveRuns --new --runs=K1,K2,K3,K4,K5,K6`. K2 used the
+guide's jali photo (#59, test-only; output kept locally).
+
+| Run | Tool | Verdict |
+|---|---|---|
+| K1 | Material Poster (name only) | **PARTIAL.** A real bento poster — clay close-up, exploded assembly, airflow section, title spelled, no statistics. But the Material Properties panel is printed **twice**, and the history claims "ancient origins in the Indus Valley Civilization" and a "self-cleaning surface" — neither well documented. |
+| K2 | Material Poster (with photo) | **PARTIAL.** Colour right, history better (Mughal and regional). But the close-up draws **new** perforation patterns instead of the photo's, the Sustainability panel repeats the Performance bullets, and "MORTAR ASSEMBLY" is labelled twice. |
+| K3 | Architect Timeline | **PASS.** Vitra Fire Station 1993, Phaeno 2005, Guangzhou Opera House 2010, London Aquatics Centre 2011, Heydar Aliyev Center 2012, Morpheus Hotel 2018 — real, in order, spelled, one drawing style, sharp to fluid. |
+| K4 | Blueprint Evolution | **FAIL on text.** The sheet itself works — drafted Gothic to Renaissance, Baroque, Gothic Revival, modernist and contemporary models, in order. But the small captions are garbled ("Ray Change", "Key Obenger") and every stage is captioned **twice**, the second copy with broken dates. |
+| K5 | Red-Pen Review (critique) | **PASS.** Five legible notes on visible issues; the room underneath identical. |
+| K6 | Red-Pen Review (roast) | **PASS.** "Beige on beige on beige. How bold." — sarcasm about the design only, nothing about people, room unchanged. |
+
+### Fixes (no calls spent)
+
+- **Material Poster:** "SAY EACH THING ONCE" — every heading used once, no bullet
+  or label in two places; history only what is well documented; with a photo,
+  draw THE PHOTO'S OWN SHAPES, not new ones in the same spirit.
+- **Blueprint Evolution:** one label per stage, printed once — style name and
+  date range only, no sentences or callouts. K4's sentences were what garbled.
+- Prompt snapshot: 11 variants changed (materialPoster, blueprintEvolution);
+  new contracts for both.
+
+Re-tests defined and awaiting approval: **K1b** and **K4b** (2 calls; both
+text-only, so a pass can ship as the example).
+
+### Examples
+
+K3, K5 and K6 ship. With Phase 4 done, **every one of the 52 tools has now been
+run live**: the "What we check" badges read passed, passed with a caveat, or
+fixed with a re-test pending — none says "not live-tested yet".
+
+Phase 4 calls: 6.

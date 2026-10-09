@@ -447,7 +447,7 @@ export const CHECKS: Record<FeatureKind, ToolChecks> = {
     ],
   },
   redPen: {
-    live: 'pending',
+    live: 'passed',
     rows: [
       { check: 'Real issues only', before: 'A render', after: 'Circles on visible problems — none invented' },
       { check: 'Render untouched', before: NONE, after: 'The image underneath identical' },
@@ -463,7 +463,11 @@ export const CHECKS: Record<FeatureKind, ToolChecks> = {
     ],
   },
   materialPoster: {
-    live: 'pending',
+    live: 'fixed',
+    note:
+      'The first live runs repeated a panel and stated a doubtful history, and with a photo drew new ' +
+      'patterns rather than the photo’s. Fixed to say each thing once and copy the photo’s shapes; the ' +
+      're-test is pending.',
     rows: [
       { check: 'Researched', before: 'A material name, optional photo', after: 'Plain, true facts — nothing it is unsure of' },
       { check: 'No invented numbers', before: NONE, after: 'No made-up statistics' },
@@ -491,7 +495,7 @@ export const CHECKS: Record<FeatureKind, ToolChecks> = {
     ],
   },
   architectTimeline: {
-    live: 'pending',
+    live: 'passed',
     rows: [
       { check: 'Real works', before: 'An architect’s name', after: 'Built projects only — none invented' },
       { check: 'In order', before: NONE, after: 'Dates increase left to right' },
@@ -500,7 +504,10 @@ export const CHECKS: Record<FeatureKind, ToolChecks> = {
     ],
   },
   blueprintEvolution: {
-    live: 'pending',
+    live: 'fixed',
+    note:
+      'The first live run told the story well but its small captions came back garbled and doubled. Now one ' +
+      'short label per stage — style and dates only; the re-test is pending.',
     rows: [
       { check: 'Real lineage', before: 'A building type', after: 'Its historical styles, in date order' },
       { check: 'Different buildings', before: NONE, after: 'Each stage a distinct building of its era' },

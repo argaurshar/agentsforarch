@@ -218,10 +218,8 @@ const AWAITING_LIVE_RUN = {
   // Build plan, Phase 3b.
   systemsCutaway: 'U1/U2 partial live; fixed, U1b re-test awaiting approval',
   // Build plan, Phase 4. Text-first tools — an example needs no published input.
-  materialPoster: 'new; text-only and with guide #59 photo (K1, K2), awaiting approved paid runs',
-  architectTimeline: 'new; text-only, awaiting one approved paid run (K3)',
-  blueprintEvolution: 'new; text-only, awaiting one approved paid run (K4)',
-  redPen: 'new; fixtures interior-stage.jpg, interior-restyle.jpg, awaiting approved paid runs (K5, K6)',
+  materialPoster: 'K1/K2 partial live (repeats, doubtful history); fixed, K1b re-test awaiting approval',
+  blueprintEvolution: 'K4 failed on garbled, doubled captions; fixed, K4b re-test awaiting approval',
 };
 const exempt = (k) => k in NO_FIXTURE || k in AWAITING_LIVE_RUN;
 const documented = new Set(

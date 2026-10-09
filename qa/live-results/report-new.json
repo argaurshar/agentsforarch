@@ -629,7 +629,227 @@
       "sources": [],
       "searchQueries": [],
       "failures": []
+    },
+    {
+      "id": "K1",
+      "tool": "materialPoster",
+      "input": null,
+      "settings": {
+        "topic": "Terracotta jali blocks"
+      },
+      "title": "A researched poster from a name alone. True bullets, no invented numbers?",
+      "verdicts": [
+        "PASS — a bento poster: clay close-up, exploded block assembly, airflow section; plain true bullets; title spelled",
+        "FAIL — fabricated U-values or percentages, panels about something else, or garbled text"
+      ],
+      "status": "generated",
+      "calls": 1,
+      "labels": [
+        "Material poster"
+      ],
+      "files": [
+        "run-K1-output.png"
+      ],
+      "sources": [
+        {
+          "uri": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEu6iA_2vPQpXab8lHOHhFcgpuCdcevLF3wsFXMLGEbLOUAMUi0YCd4kvVFEhMDXlZBygrMox43flWn_hErTzFoEvNLVaeACE65rOIuW3tnIcAf8mSLqKp6itq3zTno3IY96S_YLEP7HKFIgUhEX9kCiP8Y5YH_BPRiZCuwB2vucfdZ5A6qLRgpoN_83zA9yl_CMZmF3OyThFdclw==",
+          "title": "pickardchilton.com"
+        },
+        {
+          "uri": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGP_q5U6xnHMMiZZ8Yo2XeErGLJZJlyxL81NPFy4h82PomncIIXfrvNaq7_93V1HcfmKnx_CpKIpYi7hIrZOfI1zmIk8ULNR8c18D5k6UmpbAb4AGyuU4PD5Dr8p253SNAQQjsFQumXWSHNpJwY",
+          "title": "scribd.com"
+        },
+        {
+          "uri": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHpkv12dC0ovy852VDjNiEIiUCcDUmXvnz6cVAPsDDcjB-dtBm9Wr6P7p_HAoh97BkE5ScUKy8Q6XVo1uRA88RtmLS_FPQhAHfstA==",
+          "title": "clayjali.in"
+        }
+      ],
+      "searchQueries": [
+        "TERRACOTTA JALI BLOCKS architectural properties history sustainability",
+        "how are terracotta jali blocks made and assembled",
+        "terracotta jali blocks thermal performance air flow diagram"
+      ],
+      "failures": []
+    },
+    {
+      "id": "K2",
+      "tool": "materialPoster",
+      "input": "guide:uc59-input1.jpg",
+      "settings": {
+        "topic": "Terracotta jali blocks"
+      },
+      "title": "The same poster, with a photo of THE jali. Does the poster draw that pattern?",
+      "verdicts": [
+        "PASS — the close-up and assembly show the photo’s colour and perforation pattern",
+        "FAIL — a generic jali unlike the photo"
+      ],
+      "status": "generated",
+      "calls": 1,
+      "labels": [
+        "Material poster"
+      ],
+      "files": [],
+      "sources": [
+        {
+          "uri": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEO8zUmsPh-KzRAtGkuwXDuB-EExJySYCCC4dOuIfvuhbMgSefZlHFFDVrYTn2Crw3yL8SOor86V9vO3XUIa2VJQ-9xBc9EcwIzAg==",
+          "title": "clayjali.in"
+        },
+        {
+          "uri": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEFDzHrvopEOOpinwDCYoBMNWV4U3VCnEZJwN1ZDezPV-X_0X20wo5VZbWPZmQBe-G1lmPmwGvZ0-cFiHY7T5_QsXq62UX8PX1mbWXMfGE2pJRXtMBRu2BpE_yoSBUONIiWFel0blT8Fkq0Svm6e-eyTk_Ah_JlCSD1N7LhfLUdsM7swoFwaexFWeNnHHTASFXU6A==",
+          "title": "jamesdysonaward.org"
+        },
+        {
+          "uri": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQG6ABVrb2HkdWZXrUWOatygMYQj7OfUTHZ6cSv7rTNbFEYjp8sAXyBqV_Qj54NmHovIg2Slrj2wqkK5wAjU29dEpKjQTL_p--KAAAS8eHKbQB6KBPNuuySeESFJTSTKxWD_gze76nS0HRhNibUi",
+          "title": "scribd.com"
+        }
+      ],
+      "searchQueries": [
+        "terracotta jali blocks material properties history sustainable benefits",
+        "terracotta jali block manufacturing and assembly",
+        "terracotta jali block passive cooling performance"
+      ],
+      "failures": [],
+      "note": "Output kept locally: the input is a guide image (test-only)."
+    },
+    {
+      "id": "K3",
+      "tool": "architectTimeline",
+      "input": null,
+      "settings": {
+        "architect": "Zaha Hadid",
+        "fromStyle": "sharp deconstructivist angles",
+        "toStyle": "fluid organic curves"
+      },
+      "title": "Six real buildings, real years, in order — and drawn as one family?",
+      "verdicts": [
+        "PASS — real built works (e.g. Vitra Fire Station 1993 … Heydar Aliyev Centre 2012) in date order, names spelled, one drawing style",
+        "FAIL — invented projects, wrong or out-of-order years, mixed styles, or a portrait of the architect"
+      ],
+      "status": "generated",
+      "calls": 1,
+      "labels": [
+        "Architect timeline"
+      ],
+      "files": [
+        "run-K3-output.png"
+      ],
+      "sources": [
+        {
+          "uri": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQG9jZHjDFGJxsZYQfUjvtYMUCGeHOuVi7Mj1Qcm6IUhCVk00yCPc6JZqJ1geBpMExl_hvj9boYD8qXydHRLKKPlOunmoaPCOgJ0T8kVem4khjo9Ql2djMdQuONHjDA4G9YXVHbi2Eo-G5ON01G5Sx91GuIPv_GedtY6lMdafq6yJSvvjPZHbqvKjPLL-E5HzSq-4xkUR8WaEw-LaVsgFa1eOa-wnFrQ-BjxCxKmqyXX6x9X7A==",
+          "title": "facebook.com"
+        },
+        {
+          "uri": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFg7aVyUubb5Sw79038mkK2ySqhJf47ly512pqQ6KEpSTcrkoIwoD33XeZwm8qG97CU2oolm7DuedEvyo5Resa9xpBMsyaV4i4GXfeyxJZ816z_PZfLke3fONCg29FOxrVZrYRpvXZkLSmKBHJaynYWAOyaScj0koZXN5itn3fZ",
+          "title": "webuildvalue.com"
+        },
+        {
+          "uri": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQH-ulNKePEun24BsZe5HII6rdCFk-1wCqKzdt8AxsQzU52fr1ykZ40wWUFoEBuARL-YgCqknzkCd73Zm-2NeNxXxHaogQMH_Bk7dti6vRqd66f3ZrMFMJ9j61-Bzq08N-pg7I2fZZS6RJKqTf6A0PRyn8VR4aAXLQfAhg0-ACM=",
+          "title": "scribd.com"
+        }
+      ],
+      "searchQueries": [
+        "Zaha Hadid built works architectural evolution timeline deconstructivist to fluid organic",
+        "Zaha Hadid Vitra Fire Station completion year",
+        "Zaha Hadid Phaeno Science Center completion year",
+        "Zaha Hadid Guangzhou Opera House completion year",
+        "Zaha Hadid London Aquatics Centre completion year",
+        "Zaha Hadid Heydar Aliyev Center completion year",
+        "Zaha Hadid Morpheus Hotel completion year"
+      ],
+      "failures": []
+    },
+    {
+      "id": "K4",
+      "tool": "blueprintEvolution",
+      "input": null,
+      "settings": {
+        "typology": "Gothic to contemporary church design"
+      },
+      "title": "Seven stages, flat to photo-real, each a different church in date order?",
+      "verdicts": [
+        "PASS — blueprint sheet; stage 1 a drafted plan, stage 7 a photo-real modern church; style names and dates in order",
+        "FAIL — one church repeated, dates out of order, or text soup"
+      ],
+      "status": "generated",
+      "calls": 1,
+      "labels": [
+        "Blueprint evolution"
+      ],
+      "files": [
+        "run-K4-output.png"
+      ],
+      "sources": [
+        {
+          "uri": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGOOBDjABy4r2RiUgJjBqU5HHhkz-I449Ym5WG2pgm4psiv3ckJjCCDYHsUQkhNWmHayv7EcBStW-kKtgdEa0e2xE39f7e3_BMctlO8IfHkOqhFVJSi0gXbUc9NxU8Ir7qdNJ5PV9JRW5kmXiEHV1kjqic0HiyvoAgYwChE1x83L28yHu9mk5Jbqx2hLmV4rQXtYQSiUfMfwVXSjFGKUOQO75mCvZGbTslKtee5uM4HcQ==",
+          "title": "archdaily.com"
+        },
+        {
+          "uri": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGVFKAEni3mbVwhCGv_z0RKcRlXj8MCIy96jenqulCSpuT0Hs4r8OPTEkdkOCwFjxOlXk0vIia5QfNPCEhaIOqNnMgmom2MCuNUXzEKNEiLcktYaxy_IpqUWrHS1qiZ8GICEHTFSJGv6cJ0--rLQ3NH623SiyOHMbMy55KcDPiQkzYXk-_Q6RK0",
+          "title": "churchgoers.com"
+        },
+        {
+          "uri": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHrbbq_yIXyVL8W21LT3DJVQOHHD0Ixk9AiVITbLTAWHWj64GH5hGHWMtwAxWEKMkgEB-WmIe0R0AXiIdLTK9YBeeEVvzbk9czVoJ_zId70ehbATHScZ9-cMrlXgtjSYfkOP7_iQAHGE-tO6vym5w==",
+          "title": "maverickframe.com"
+        }
+      ],
+      "searchQueries": [
+        "evolution of Gothic to Contemporary church design stages and dates",
+        "Gothic church architecture key features",
+        "High Gothic vs Late Gothic church design",
+        "Renaissance church architecture characteristics",
+        "Baroque church design changes",
+        "Neoclassical church architecture style",
+        "Gothic Revival church architecture",
+        "Modernist church architecture movement",
+        "Contemporary church design characteristics"
+      ],
+      "failures": []
+    },
+    {
+      "id": "K5",
+      "tool": "redPen",
+      "input": "interior-stage.jpg",
+      "title": "A constructive review of our staged room. Real flaws, room unchanged?",
+      "verdicts": [
+        "PASS — 4-6 red circles on visible issues, short legible block-capital notes, the room underneath identical",
+        "FAIL — the room redrawn, notes pointing at nothing, or illegible scrawl"
+      ],
+      "status": "generated",
+      "calls": 1,
+      "labels": [
+        "Red-pen review"
+      ],
+      "files": [
+        "run-K5-output.png"
+      ],
+      "sources": [],
+      "searchQueries": [],
+      "failures": []
+    },
+    {
+      "id": "K6",
+      "tool": "redPen",
+      "input": "interior-restyle.jpg",
+      "settings": {
+        "tone": "roast"
+      },
+      "title": "The roast. Funny about the DESIGN — and still about real flaws?",
+      "verdicts": [
+        "PASS — sarcastic one-liners about visible design choices, nothing about people, room unchanged",
+        "FAIL — invented flaws, insults aimed at people, or the room altered"
+      ],
+      "status": "generated",
+      "calls": 1,
+      "labels": [
+        "Red-pen review"
+      ],
+      "files": [
+        "run-K6-output.png"
+      ],
+      "sources": [],
+      "searchQueries": [],
+      "failures": []
     }
   ],
-  "generations": 32
+  "generations": 38
 }
