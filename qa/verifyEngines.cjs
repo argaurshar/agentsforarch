@@ -317,6 +317,17 @@ const check = (name, ok, detail = '') => {
   await connect.click();
   await mob.waitForTimeout(400);
   check('tapping Connect key opens Settings on mobile', (await mob.locator('[role="dialog"]').count()) === 1);
+  // "What we check": every tool page states what a good result gets right,
+  // including the tools with no worked example yet — and on a phone the table
+  // stacks instead of pushing the page sideways.
+  await mob.goto(BASE + '#/phasing', { waitUntil: 'domcontentloaded' });
+  await mob.waitForTimeout(500);
+  check('a tool with no example still shows what we check', (await mob.locator('[data-check-table]').count()) === 1);
+  check('and says it is not live-tested yet', (await mob.locator('[data-live="pending"]').count()) === 1);
+  check(
+    'the check table never widens the phone page',
+    await mob.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+  );
   check('no mobile page crashes', mobErr.length === 0, mobErr.slice(0, 2).join(' | '));
 
   // 10. The hardened request shape. These pin the wire format so the multi-image
@@ -940,7 +951,23 @@ const check = (name, ok, detail = '') => {
   await page.getByRole('switch', { name: /Look it up with Google Search/ }).click();
   await coords.fill('');
 
+  await navTo('massing');
+  // Earlier steps generated here, so the box may have opened collapsed.
+  const showChecks = page.getByRole('button', { name: /^Show .*(checks|what we check)/ });
+  if (await showChecks.count()) await showChecks.first().click();
+  await page.waitForTimeout(200);
+  check('tool 01 shows its example and what we check', (await page.locator('[data-check-table]').count()) === 1);
+  check('with its live result', (await page.locator('[data-live="passed"]').count()) === 1);
+  check(
+    'before and after for each check',
+    /Before — you give/.test(await page.locator('[data-check-table]').innerText()) &&
+      /A white model/.test(await page.locator('[data-check-table]').innerText()),
+  );
+
   await navTo('siteHistory');
+  if (await showChecks.count()) await showChecks.first().click();
+  await page.waitForTimeout(200);
+  check('a caveat is spelled out under the checks', /Needs the place name/.test(await page.locator('[data-check-table]').innerText()));
   await page.locator('#siteHistory-coords').fill('https://www.google.com/maps/place/Taj/@27.1751,78.0421,17z');
   await page.waitForTimeout(300);
   check('a Google Maps link is read as coordinates', (await page.locator('[data-coords-read]').getAttribute('data-coords-read')) === '27.1751° N, 78.0421° E');
