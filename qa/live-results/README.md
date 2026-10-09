@@ -478,3 +478,20 @@ Z8–Z10 are text-only, so they ship: `ex-site-photo.jpg` (Z9),
 image-input site tools still need a publishable aerial or site photo.
 
 Phase 2 calls: 11 planned + Z8 again after the interruption = 12 at most.
+
+### Z11b — after the cap was raised (1 approved call)
+
+**FAIL, differently.** The same Battersea coordinates, unnamed, came back as the
+**University of Roehampton** — 6 km south-west this time, not Buckingham Palace.
+The new place line did its job: "University of Roehampton Campus" is printed
+across the top, so the wrong site is plain at a glance. The search queries show
+the mechanism: it searches the numbers, finds nothing that names the point, and
+settles on a nearby place it can find. Two runs, two different wrong sites:
+search does not reverse-geocode, and no prompt wording changes that.
+
+**Decided with the user: the place name is required.** Generate stays disabled
+until the place is named; the coordinates still fix the frame and orientation.
+Z10 — named — is the run that passed. e2e checks that coordinates alone do not
+run and that naming the place does. No further calls.
+
+Phase 2 total: 12 calls at most, plus Z11b = 13.

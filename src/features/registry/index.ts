@@ -3312,18 +3312,23 @@ const siteHistory: FeatureDef<SiteHistorySettings> = {
     description:
       'The same piece of ground drawn in plan at three to five moments in its history — each with its year and what changed — researched, and framed identically so the panels compare.',
     inputLabel: 'Location',
-    inputHint: 'Coordinates or a Google Maps link, and optionally the name of the place',
+    inputHint: 'Coordinates or a Google Maps link, and the name of the place',
     outputCaption: 'The site chronology',
     emptyIcon: History,
     emptyTitle: 'No timeline yet',
-    emptyDescription: 'Paste coordinates and press Generate — the timeline appears here.',
+    emptyDescription: 'Paste coordinates, name the place and press Generate — the timeline appears here.',
   },
+  // Z11 and Z11b: coordinates alone were researched as Buckingham Palace, then
+  // as Roehampton — search cannot turn a bare point into a place. The name
+  // says WHAT to research; the coordinates still fix the frame.
   blockedReason: (s) =>
     !s.coords.trim()
       ? 'Enter the coordinates to begin.'
-      : parseCoordinates(s.coords)
-        ? null
-        : 'Those coordinates cannot be read — try 27.1751, 78.0421.',
+      : !parseCoordinates(s.coords)
+        ? 'Those coordinates cannot be read — try 27.1751, 78.0421.'
+        : !s.place.trim()
+          ? 'Name the place too — coordinates alone are too often matched to a different site.'
+          : null,
   toOptions: (s, ctx) => ({ ...plainOptions(ctx), grounding: searching(s.search) || undefined }),
   promptContracts: [
     { name: 'site history researches first', pattern: /RESEARCH FIRST/ },

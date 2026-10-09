@@ -17,7 +17,7 @@ export function SiteHistoryFeature() {
             />
             <div className="flex flex-col gap-2">
               <label htmlFor="siteHistory-place" className="mono-meta">
-                Name of the place · recommended
+                Name of the place
               </label>
               <input
                 id="siteHistory-place"
@@ -27,11 +27,11 @@ export function SiteHistoryFeature() {
                 aria-describedby="siteHistory-place-hint"
                 className="rounded-field border border-hairline bg-paper px-3.5 py-2.5 text-body text-graphite placeholder:text-mist"
               />
-              {/* Z11: Battersea Power Station's coordinates came back as
-                  Buckingham Palace. A name keeps the search on the right site. */}
+              {/* Z11, Z11b: coordinates alone came back as two different
+                  wrong sites, so the name is required. */}
               <p id="siteHistory-place-hint" className="text-caption text-mist">
-                Coordinates alone can be matched to a better-known place nearby — the name keeps the research on your
-                site. The timeline names the place it found; check it.
+                Search cannot reliably tell what stands at bare coordinates, so the name says what to research; the
+                coordinates fix the frame. The timeline prints the place it drew — check it.
               </p>
             </div>
           </div>
