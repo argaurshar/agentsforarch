@@ -214,7 +214,6 @@ const AWAITING_LIVE_RUN = {
   siteAnalysis3d: 'passed on guide #56 with and without its reference (Z4, Z5, test-only); publishable input still to source',
   urbanLayers: 'passed on guide #58, both steps chained (Z6 then Z7, test-only); publishable aerial still to source',
   // Build plan, Phase 3a — our own inputs throughout, publishable on a pass.
-  groundFloor: 'Q4 and Q4b both put the frontage in the main building, not the box; no example until a crop-and-paste fix',
   // Build plan, Phase 3b.
   systemsCutaway: 'U1/U1b partial (sun from both sides, garage dropped); no example until fixed',
   // Build plan, Phase 4. Text-first tools — an example needs no published input.

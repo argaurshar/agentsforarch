@@ -278,10 +278,10 @@ export const CHECKS: Record<FeatureKind, ToolChecks> = {
     ],
   },
   groundFloor: {
-    live: 'fixed',
+    live: 'passed',
     note:
-      'Twice the model put the new frontage in the main building, not the boxed one. Now only a crop around the ' +
-      'box is sent and pasted back, so nothing outside it can change; the re-test is pending.',
+      'Only a crop around the box is sent and pasted back, so nothing outside it can change. Before that, two ' +
+      'runs put the frontage in the main building instead.',
     rows: [
       { check: 'Box is an instruction', before: 'A facade with a red box', after: 'New ground floor inside the box; box removed' },
       { check: 'Rest untouched', before: NONE, after: 'Outside the crop, your own pixels — unchanged' },

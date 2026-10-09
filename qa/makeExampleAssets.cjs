@@ -77,6 +77,8 @@ const MANIFEST = [
   ['run-K3-output.png', 'ex-architect-timeline.jpg', 'architectTimeline — text-only, Zaha Hadid'],
   ['run-K1b-output.png', 'ex-material-poster.jpg', 'materialPoster — the fixed run, nothing repeated'],
   ['run-K4b-output.png', 'ex-blueprint-evolution.jpg', 'blueprintEvolution — the fixed run, one label per stage'],
+  ['fixture-street-marked.png', 'ground-floor-input.jpg', 'groundFloor — the marked input (our street render)'],
+  ['run-Q4c-final.jpg', 'ex-ground-floor.jpg', 'groundFloor — Q4c, the crop fix, pasted back'],
   ['run-Z10-output.png', 'ex-site-history.jpg', 'siteHistory — Taj Mahal, named; Z11/Z11b (unnamed) found wrong sites, so the name is now required'],
 ];
 
