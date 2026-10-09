@@ -842,6 +842,8 @@ export function buildGroundFloorPrompt(a: {
   people: boolean;
   /** Where the box is, when the screen knows: it is said in words (Q4). */
   region?: Region;
+  /** Only a crop around the box is sent, and pasted back (after Q4b). */
+  cropped?: boolean;
 }): string {
   const p =
     a.program === 'custom'
@@ -851,7 +853,11 @@ export function buildGroundFloorPrompt(a: {
     `You are redesigning one ground floor in the input — the one inside the red rectangle — to test a new use: ${p.name}.`,
     'A RED RECTANGLE has been drawn on the image. It marks the only area you may change. It is an instruction, not part ' +
       'of the building — remove it completely in the output.' +
-      (a.region ? ` The rectangle is ${describeRegion(a.region)}.` : ''),
+      (a.region ? ` The rectangle is ${describeRegion(a.region)}.` : '') +
+      (a.cropped
+        ? ' The input is a close crop of a larger street picture, cut around the rectangle; your result is pasted back ' +
+          'into it, so every edge of the image must match the input exactly.'
+        : ''),
     // Q4: the box sat on a neighbour, and the café went into the main house.
     'THE RECTANGLE DECIDES, NOT THE PICTURE: it may sit on a neighbouring building rather than the main subject. ' +
       'Change the ground floor of whichever building the rectangle is on, and leave every other building — the main ' +

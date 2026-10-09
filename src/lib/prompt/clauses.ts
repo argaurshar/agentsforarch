@@ -97,13 +97,8 @@ export const SHELL_CHECK =
   'panes, or if a wall that was blank now carries a window, a glazed panel or a curtain, rebuild it — matching the ' +
   'room’s existing architecture matters more than any styling instruction above.';
 
-/** A marked rectangle, as fractions (0–1) of the image's width and height. */
-export interface Region {
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-}
+import type { Region } from '../region';
+export type { Region };
 
 const pct = (v: number) => `${Math.round(Math.min(1, Math.max(0, v)) * 100)}%`;
 

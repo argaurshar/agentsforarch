@@ -278,13 +278,13 @@ export const CHECKS: Record<FeatureKind, ToolChecks> = {
     ],
   },
   groundFloor: {
-    live: 'issue',
+    live: 'fixed',
     note:
-      'Known issue: in two live runs the new frontage went into the main building rather than the boxed ' +
-      'neighbour. It works best when the box is on the picture’s main building; check the result.',
+      'Twice the model put the new frontage in the main building, not the boxed one. Now only a crop around the ' +
+      'box is sent and pasted back, so nothing outside it can change; the re-test is pending.',
     rows: [
       { check: 'Box is an instruction', before: 'A facade with a red box', after: 'New ground floor inside the box; box removed' },
-      { check: 'Rest untouched', before: NONE, after: 'Everything outside the box unchanged' },
+      { check: 'Rest untouched', before: NONE, after: 'Outside the crop, your own pixels — unchanged' },
       { check: 'Aligned to above', before: 'The bays and grid above', after: 'Openings line up with the floors over them' },
       { check: 'Active frontage', before: 'The use you choose', after: 'Lit, open, with people inside' },
     ],

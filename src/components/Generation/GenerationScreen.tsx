@@ -160,6 +160,7 @@ export function GenerationScreen<K extends FeatureKind>({
     if (!canGenerate) return;
     const ctx: RunContext = {
       refine: mode === 'refine',
+      marker: marker ?? undefined,
       referenceImages: refs,
       styleVariants: runExtras?.styleVariants,
     };

@@ -13,6 +13,7 @@ import { CHECKS } from '../src/lib/checks';
 import { EXAMPLES } from '../src/lib/examples';
 import { FEATURE_KEYS } from '../src/features/registry/keys';
 import { describeRegion } from '../src/lib/prompt/clauses';
+import { cropFrame, cropPixels, within } from '../src/lib/region';
 import { buildGroundFloorPrompt } from '../src/lib/prompt/visualization';
 import { readFileSync } from 'node:fs';
 
@@ -134,6 +135,23 @@ check('a lower-right box is the lower right', /the lower right/.test(describeReg
 const gf = { program: 'cafe', customProgram: '', materials: 'complement', people: true } as Parameters<typeof buildGroundFloorPrompt>[0];
 check('ground floor says where the box is when it knows', /The rectangle is in the left of the image/.test(buildGroundFloorPrompt({ ...gf, region: q4 })));
 check('and claims no position when it does not', !/The rectangle is in/.test(buildGroundFloorPrompt(gf)));
+
+// --- Ground Floor's crop (after Q4b) ----------------------------------------
+
+const frame = cropFrame(q4);
+check('the crop keeps the whole box inside it', frame.x <= q4.x && frame.y <= q4.y && frame.x + frame.w >= q4.x + q4.w && frame.y + frame.h >= q4.y + q4.h, json(frame));
+check('and stays inside the image', frame.x >= 0 && frame.y >= 0 && frame.x + frame.w <= 1 && frame.y + frame.h <= 1, json(frame));
+check('with context above the box for the floors to align to', q4.y - frame.y > q4.h * 0.5, json(frame));
+check('but little to the side, so the next building stays out', frame.x + frame.w - (q4.x + q4.w) < q4.w * 0.25, json(frame));
+const px = cropPixels(frame, 1200, 656);
+check('the pixel crop is a ratio the engine accepts', ['1:1', '2:3', '3:2', '3:4', '4:3', '4:5', '5:4', '9:16', '16:9', '21:9'].some((a) => {
+  const [x, y] = a.split(':').map(Number);
+  return Math.abs(px.w / px.h - x / y) < 0.01;
+}), json(px));
+check('and lies inside the image', px.x >= 0 && px.y >= 0 && px.x + px.w <= 1200 && px.y + px.h <= 656, json(px));
+check('and still holds the box', px.x <= q4.x * 1200 && px.x + px.w >= (q4.x + q4.w) * 1200 && px.y <= q4.y * 656 && px.y + px.h >= (q4.y + q4.h) * 656, json(px));
+const inside = within(q4, frame);
+check('the box is placed within the crop for the prompt', inside.x >= 0 && inside.x + inside.w <= 1.0001 && inside.y > 0, json(inside));
 
 // --- "What we check" tables --------------------------------------------------
 

@@ -5,12 +5,16 @@
 //   burn   — the red marker rectangle (src/lib/images.ts burnMarker)
 //   pad    — Reframe's grey-margin canvas (src/lib/reframe.ts padToRatio)
 //   paste  — Reframe's paste-back of the original (src/lib/reframe.ts pasteBack)
+//   crop   — a boxed edit's crop (src/lib/region.ts cropToRegion)
+//   pasteregion — its paste-back (src/lib/region.ts pasteRegion)
 // Reimplementing them here would test a copy. Instead both modules are bundled
 // to an IIFE and executed in Chromium, byte for byte the code the app ships.
 //
 //   node qa/canvasOps.cjs burn  <in> <x,y,w,h> <out.png>
 //   node qa/canvasOps.cjs pad   <in> <ratio> <anchor> <out.png>      → prints the placement JSON
 //   node qa/canvasOps.cjs paste <original> <result> '<placement>' <out.jpg>
+//   node qa/canvasOps.cjs crop  <in> <x,y,w,h> <out.png>                → prints the pixel rect JSON
+//   node qa/canvasOps.cjs pasteregion <base> <result> '<pixel rect>' <out.jpg>
 let chromium;
 try {
   ({ chromium } = require('playwright'));
@@ -30,7 +34,8 @@ function bundle() {
   fs.writeFileSync(
     entry,
     `export { burnMarker } from '${path.join(ROOT, 'src/lib/images').replace(/\\/g, '/')}';\n` +
-      `export { padToRatio, pasteBack } from '${path.join(ROOT, 'src/lib/reframe').replace(/\\/g, '/')}';\n`,
+      `export { padToRatio, pasteBack } from '${path.join(ROOT, 'src/lib/reframe').replace(/\\/g, '/')}';\n` +
+      `export { cropToRegion, pasteRegion } from '${path.join(ROOT, 'src/lib/region').replace(/\\/g, '/')}';\n`,
   );
   execFileSync('npx', ['esbuild', '--bundle', '--format=iife', '--global-name=AndCanvas', '--log-level=error', entry, `--outfile=${out}`], {
     cwd: ROOT,
@@ -71,8 +76,22 @@ const writeDataURL = (url, file) => fs.writeFileSync(file, Buffer.from(url.split
         JSON.parse(place),
       ]);
       writeDataURL(url, out);
+    } else if (op === 'crop') {
+      const [input, rect, out] = args;
+      const [x, y, w, h] = rect.split(',').map(Number);
+      const res = await page.evaluate(([u, r]) => window.AndCanvas.cropToRegion(u, r), [toDataURL(input), { x, y, w, h }]);
+      writeDataURL(res.dataURL, out);
+      process.stdout.write(JSON.stringify(res.px));
+    } else if (op === 'pasteregion') {
+      const [base, result, px, out] = args;
+      const url = await page.evaluate(([b, r, p]) => window.AndCanvas.pasteRegion(b, r, p), [
+        toDataURL(base),
+        toDataURL(result),
+        JSON.parse(px),
+      ]);
+      writeDataURL(url, out);
     } else {
-      throw new Error(`unknown op "${op}" — burn | pad | paste`);
+      throw new Error(`unknown op "${op}" — burn | pad | paste | crop | pasteregion`);
     }
   } finally {
     await browser.close();

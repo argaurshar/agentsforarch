@@ -44,6 +44,9 @@ export interface GenerateOptions {
    * `runFeature`, never by a provider — it is canvas work, not transport.
    */
   reframe?: { ratio: AspectRatio; anchor: 'centre' | 'top' | 'bottom'; keepOriginal: boolean };
+  /** Edit only this box: crop it (with context) before sending, paste the
+   *  result back after — src/lib/region.ts. Fractions of the input image. */
+  crop?: { x: number; y: number; w: number; h: number };
   /** Construction Phasing: one output per named stage, same camera. */
   stages?: string[];
 }
