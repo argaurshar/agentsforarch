@@ -400,3 +400,28 @@ Phase 1's reserve of 2.
 | Y4b Concept Board | **Better, still FAIL on text.** The pavilion now reads as folding screens and thresholds with dappled light rather than a wall of blocks, and no "TOP SECTION" captions — but it printed CONCEPT / MAIN RENDER / INTERIOR VIGNETTES as headings, and spelled the title "TERRACOTA". |
 
 Retries spent; nothing further run. Proposed next steps are in the PR thread.
+
+### Phase 1 — decisions and the last call
+
+Decided with the user after the retries:
+
+- **Bubble to Plan: room names ON by default.** Names written on a bubble
+  diagram came back as labels in both runs, correctly spelled; "off" is now
+  described as best-effort. Y2b — run under the old no-names default — is the
+  labelled plan the new default asks for, and ships as the worked example
+  (`ex-bubble-plan.jpg`), with that history recorded here.
+- **Concept Diagram: accepted as is.** One row, one camera, one move per panel;
+  the ending can be the model's own reading (Y1b's corner towers), so the screen
+  now says to type the moves for an exact sequence. Y1b ships as the example,
+  with that caveat in its note.
+- **Concept Board: rewritten, 1 call.** The three parts are described by
+  position (top, middle, bottom) and never named; a typed title is copied
+  letter for letter, an invented one kept to words the model can spell.
+
+**Y4c: PASS.** No headings or part names anywhere; title "FILTERED LIGHT
+PAVILION" and both captions spelled correctly; three parts, one pavilion that
+carries the jali into perforated screens, a dappled canopy and branching
+columns. Output kept locally (guide fixture), so Concept Board still waits for
+a publishable inspiration photo for its example.
+
+Phase 1 calls: 4 planned + 3 retries + 1 (Y4c) = 8.

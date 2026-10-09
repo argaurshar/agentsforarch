@@ -26,7 +26,7 @@ export function ConceptDiagramFeature() {
                   ? `${typed} moves typed — the diagram draws ${typed} panels, in your order.`
                   : typed === 1
                     ? 'One move is not a sequence — add another, or clear the box to read them from the form.'
-                    : 'Empty: the moves are read from the form, as many as Steps says.'}
+                    : 'Empty: the moves are read from the form, as many as Steps says. For an exact sequence, type your moves.'}
               </p>
             </div>
           </>

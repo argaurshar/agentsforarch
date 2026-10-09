@@ -62,6 +62,8 @@ const MANIFEST = [
   ['run-W5-output.png', 'ex-program-diagram.jpg', 'programDiagram'],
   ['run-X1c-output.png', 'ex-massing-render.jpg', 'massingRender — the FIXED run; X1 dropped the camera, X1b split the block'],
   ['run-Y3-output.png', 'ex-moodboard-space.jpg', 'moodboardSpace — our own Moodboard output, back into a room'],
+  ['run-Y1b-output.png', 'ex-concept-diagram.jpg', 'conceptDiagram — moves read from the form; accepted with its invented last move'],
+  ['run-Y2b-output.png', 'ex-bubble-plan.jpg', 'bubblePlan — labelled, which is now the default'],
 ];
 
 function encode(srcFile, tmpDir) {

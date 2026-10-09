@@ -203,9 +203,7 @@ const AWAITING_LIVE_RUN = {
   // Build plan, Phase 1. Each has a publishable input already: our own massing,
   // our own Moodboard output, a bubble diagram drawn by qa/makeBubble.cjs. The
   // inspiration photo for the concept board is the one still to choose.
-  conceptDiagram: 'new; fixture ex-massing.jpg, awaiting one approved paid run (liveRuns --new, Y1)',
-  bubblePlan: 'new; fixture bubble-input.jpg (qa/makeBubble.cjs), awaiting one approved paid run (Y2)',
-  conceptBoard: 'new; tested on guide #59 jali photo (Y4, test-only); a publishable inspiration photo is still to be chosen',
+  conceptBoard: 'passed live on guide #59 (Y4c, test-only); a publishable inspiration photo is still to be chosen',
   // Build plan, Phase 2a. All three are tested on guide inputs (Z1-Z3,
   // test-only): Google imagery and the guide's site photo cannot be published,
   // so each example will need a public-domain aerial or our own site photo.

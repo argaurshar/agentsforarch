@@ -396,6 +396,42 @@ export const EXAMPLES: Partial<Record<FeatureKind, ExampleSet>> = {
     ],
   },
 
+  conceptDiagram: {
+    summary:
+      'A finished form becomes the competition-board sequence — site volume, then each move that made it — from one ' +
+      'camera. Left empty, the moves are read from the image; type them for an exact sequence.',
+    cases: [
+      {
+        label: 'Moves read from a courtyard massing',
+        note:
+          'One row, one camera, one move per panel: site volume, carve courtyard, step terraces. The last move (corner ' +
+          'towers) is the model’s reading, not our massing — type your own moves when the ending must be exact.',
+        input: asset('ex-massing.jpg'),
+        inputLabel: 'Finished form',
+        output: asset('ex-concept-diagram.jpg'),
+        outputLabel: 'Concept diagram',
+      },
+    ],
+  },
+
+  bubblePlan: {
+    summary:
+      'A loose bubble diagram becomes a drafted, furnished plan in the same arrangement: bubbles that touch share a ' +
+      'door, bubbles that do not stay apart, and the handwriting is taken out.',
+    cases: [
+      {
+        label: 'Two-bed flat from a bubble diagram',
+        note:
+          'The hall opens to both bedrooms, the bath and the living room; the bedrooms do not connect; kitchen and ' +
+          'balcony sit where they were drawn. The title, note and north mark are gone; the rooms are named.',
+        input: asset('bubble-input.jpg'),
+        inputLabel: 'Bubble diagram',
+        output: asset('ex-bubble-plan.jpg'),
+        outputLabel: 'Drafted plan',
+      },
+    ],
+  },
+
   moodboardSpace: {
     summary:
       'A mood board becomes one room you could walk into — its palette, materials and furniture style built into a ' +

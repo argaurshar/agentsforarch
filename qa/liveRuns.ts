@@ -544,6 +544,14 @@ const NEW_TOOLS: Run[] = [
     ],
   },
   {
+    id: 'Y4c', tool: 'conceptBoard', input: 'guide:uc59-input1.jpg',
+    title: 'FIX CHECK — parts placed by position, never named; the title spelled with certainty?',
+    verdicts: [
+      'PASS — three parts with no headings or part names; title spelled correctly; one pavilion translating the jali',
+      'FAIL — any part name or heading printed, or a misspelled title',
+    ],
+  },
+  {
     id: 'Y1', tool: 'conceptDiagram', input: 'ex-massing.jpg',
     title: 'Moves read from the form. Same camera throughout, ending on THIS massing?',
     verdicts: [

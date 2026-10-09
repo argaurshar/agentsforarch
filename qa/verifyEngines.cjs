@@ -824,6 +824,7 @@ const check = (name, ok, detail = '') => {
   // Bubble to Plan: invents walls, so it says the sizes are interpreted.
   await navTo('bubblePlan');
   check('bubble plan keeps the diagram adjacencies', /the rooms share a wall with a door in it/.test(await page.locator('#bubblePlan-prompt').inputValue()));
+  check('bubble plan labels the rooms by default', /Label each room/.test(await page.locator('#bubblePlan-prompt').inputValue()));
   await page.setInputFiles('input[type=file]', PLAN);
   await page.waitForTimeout(400);
   await gen().click();
@@ -850,7 +851,8 @@ const check = (name, ok, detail = '') => {
   await page.waitForTimeout(400);
   await page.locator('#conceptBoard-title').fill('Seed Pavilion');
   await page.waitForTimeout(300);
-  check('a typed title reaches the concept board prompt', /the title “Seed Pavilion”/.test(await page.locator('#conceptBoard-prompt').inputValue()));
+  check('a typed title reaches the concept board prompt, to be copied exactly', /The title is exactly “Seed Pavilion” — copy it letter for letter/.test(await page.locator('#conceptBoard-prompt').inputValue()));
+  check('and the board names none of its parts', !/MAIN RENDER|INTERIOR VIGNETTES/.test(await page.locator('#conceptBoard-prompt').inputValue()));
   await page.getByRole('button', { name: 'Something else' }).click();
   await page.waitForTimeout(300);
   check('an undescribed program blocks the concept board', !(await gen().isEnabled()));

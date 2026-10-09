@@ -148,7 +148,29 @@
         "run-Y4b-output.png"
       ],
       "note": "output not committed: made from a test-only guide fixture"
+    },
+    {
+      "id": "Y4c",
+      "tool": "conceptBoard",
+      "input": "guide:uc59-input1.jpg",
+      "title": "FIX CHECK \u2014 parts placed by position, never named; the title spelled with certainty?",
+      "verdicts": [
+        "PASS \u2014 three parts with no headings or part names; title spelled correctly; one pavilion translating the jali",
+        "FAIL \u2014 any part name or heading printed, or a misspelled title"
+      ],
+      "status": "generated",
+      "calls": 1,
+      "labels": [
+        "Concept board"
+      ],
+      "sources": [],
+      "searchQueries": [],
+      "failures": [],
+      "files_kept_locally": [
+        "run-Y4c-output.png"
+      ],
+      "note": "output not committed: made from a test-only guide fixture"
     }
   ],
-  "generations": 7
+  "generations": 8
 }
