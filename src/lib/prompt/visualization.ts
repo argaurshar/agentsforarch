@@ -259,10 +259,13 @@ export function buildMassingRenderPrompt(a: {
       'massing stays directly recognisable. Do not straighten a tilted volume, square up an angle, change a ' +
       'dimension, add a floor or a wing, fill a void, or smooth a step away. THE ROOF IS THE PART THAT DRIFTS: every ' +
       'top surface keeps its exact plane — a flat top stays flat, a tilted one stays tilted at the same angle — and ' +
-      'you must not give this building a pitched, hipped or gabled roof that the model does not have.',
+      'you must not give this building a pitched, hipped or gabled roof that the model does not have. THE CAMERA ' +
+      'DRIFTS TOO: render from the model photograph’s own viewpoint — the same height, the same angle looking down, ' +
+      'the same direction and the same framing. A model photographed from above is rendered seen from above; do not ' +
+      'drop the camera to street level.',
     'STEP 3 — DO NOT BUILD THE REFERENCE. The second image shows a different building with its own form, and that ' +
-      'form is not yours to use. Do not copy its massing, its outline, its facade layout, its window grid, its floor ' +
-      'count or its atrium onto the model. If your result looks like the reference building, you have failed the task, ' +
+      'form is not yours to use. Do not copy its massing, its outline, its facade layout, its window grid, its doors ' +
+      'and garage doors, its roof overhangs, its floor count or its atrium onto the model. If your result looks like the reference building, you have failed the task, ' +
       'however good it looks.',
     `STEP 4 — ONLY THEN RENDER IT. ${TAKE_CLAUSE[a.take]}`,
     OPENINGS_CLAUSE[a.openings],
@@ -278,8 +281,8 @@ export function buildMassingRenderPrompt(a: {
       ? 'Include a few people at true scale near the base, occupied and not looking at the camera, so the size reads.'
       : 'No people.',
     PHOTO_FINISH,
-    'Before you finish, run two checks. Against the FIRST image: trace the outline, count the volumes and compare ' +
-      'every angle and contact point — if any of it has moved, rebuild it. Against the SECOND image: if your building ' +
+    'Before you finish, run two checks. Against the FIRST image: trace the outline, count the volumes, compare ' +
+      'every angle and contact point, and compare the viewpoint — if any of it has moved, rebuild it. Against the SECOND image: if your building ' +
       'has taken on the reference building’s form, layout or window pattern, rebuild it from the massing.',
     NO_TEXT,
   ].join(' ');

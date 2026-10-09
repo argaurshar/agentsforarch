@@ -1,0 +1,95 @@
+{
+  "runs": [
+    {
+      "id": "O1",
+      "tool": "birdsEye",
+      "input": "guide:uc32-input1.jpg",
+      "title": "A flat satellite tile becomes an aerial view. Is it the SAME place?",
+      "verdicts": [
+        "PASS \u2014 an oblique aerial of this street grid and these footprints, no map interface",
+        "FAIL \u2014 a generic city, streets that are not in the tile, or labels and UI left in"
+      ],
+      "status": "no-image",
+      "calls": 1,
+      "failures": [
+        {
+          "label": "Bird's eye",
+          "error": "Could not reach the Gemini API from the browser (network or CORS block). This app calls Gemini directly with no backend."
+        }
+      ]
+    },
+    {
+      "id": "O2",
+      "tool": "wireframeRender",
+      "input": "guide:uc09-input1.jpg",
+      "settings": {
+        "subject": "interior"
+      },
+      "title": "INTERIOR branch. Does it furnish what is modelled \u2014 and only that?",
+      "verdicts": [
+        "PASS \u2014 same room and camera; the modelled sofas, shelving, TV and plants, rendered; nothing added",
+        "FAIL \u2014 added rugs, art or decor, moved or redesigned furniture, or a changed camera"
+      ],
+      "status": "generated",
+      "calls": 1,
+      "labels": [
+        "Render"
+      ],
+      "sources": [],
+      "failures": [],
+      "files_kept_locally": [
+        "run-O2-output.png"
+      ],
+      "note": "output not committed: derived from a test-only guide fixture"
+    },
+    {
+      "id": "O3",
+      "tool": "placeObject",
+      "input": "guide:uc25-input1.jpg",
+      "extra": "guide:uc25-input2.jpg",
+      "settings": {
+        "kind": "artwork",
+        "placement": "add",
+        "target": ""
+      },
+      "title": "The artwork in the second image, hung in the room. THAT painting, at a real size?",
+      "verdicts": [
+        "PASS \u2014 the same mountain painting, flat on a wall, believable size, room otherwise unchanged",
+        "FAIL \u2014 a different painting, wrong perspective or scale, or the room altered"
+      ],
+      "status": "generated",
+      "calls": 1,
+      "labels": [
+        "Artwork"
+      ],
+      "sources": [],
+      "failures": [],
+      "files_kept_locally": [
+        "run-O3-output.png"
+      ],
+      "note": "output not committed: derived from a test-only guide fixture"
+    },
+    {
+      "id": "X1",
+      "tool": "massingRender",
+      "input": "ex-massing.jpg",
+      "extra": "elev-rendered.jpg",
+      "title": "Massing + a reference with a DIFFERENT form. Whose building comes back?",
+      "verdicts": [
+        "PASS \u2014 the courtyard block, every volume and step intact, clad and lit like the reference",
+        "FAIL \u2014 the reference house comes back, or the massing changed shape, or it is still a model on a table"
+      ],
+      "status": "generated",
+      "calls": 1,
+      "labels": [
+        "Massing render"
+      ],
+      "files": [
+        "run-X1-output.png"
+      ],
+      "sources": [],
+      "failures": []
+    }
+  ],
+  "generations": 4
+}

@@ -1772,6 +1772,10 @@ const massingRender: FeatureDef<MassingRenderSettings> = {
     { name: 'massing render names the roof drift', pattern: /THE ROOF IS THE PART THAT DRIFTS/ },
     { name: 'massing render strips the model photograph', pattern: /not a model on a table/ },
     { name: 'massing render checks against both images', pattern: /Against the SECOND image/ },
+    // Live run X1 dropped an aerial model to street level and borrowed the
+    // reference house's garage door. Both are now named.
+    { name: 'massing render names the camera drift', pattern: /THE CAMERA DRIFTS TOO/ },
+    { name: 'massing render refuses the reference’s doors', pattern: /its doors and garage doors/ },
   ],
 };
 

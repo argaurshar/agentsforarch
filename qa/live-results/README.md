@@ -284,3 +284,47 @@ Every tool that can be tested from this environment has been. These three cannot
 be, until those files exist — I cannot fetch them (the egress proxy blocks image
 hosts) and generating them would make the fixtures too clean to be a real test,
 which is the mistake that let the original squared-off isometric through.
+
+## Build plan, Phase 0 — 9 October 2026
+
+Five planned calls: `liveRuns --probe` (G1) and `liveRuns --owed` (O1–O3, X1).
+Inputs marked *guide* are test-only fixtures from `qa/fixtures/guide/`.
+
+| Run | Tool | Verdict |
+|---|---|---|
+| G1 | Massing Study + Google Search | **PASS** (narrow): the image model accepts `tools: [{google_search: {}}]` and still returns an image. **No sources and no search queries were returned**, so it is not yet proven that a search ran. The harness now records `searchQueries`, and the first grounded run in Phase 2b settles it. |
+| O1 | Bird's Eye View (*guide* #32) | **NOT RUN.** Both attempts hit Node's built-in 300 s fetch header timeout: the model was still working when Node hung up. It is not known whether Google billed them. The harness now sends through `curl` (no 300 s cap; checked end to end with an invalid key, unbilled). |
+| O2 | Wireframe to Render, interior (*guide* #09) | **PASS.** Same room and camera; every modelled piece present (both sofas, round table, floating shelves, TV unit, palm, bookcase, mezzanine chair and plant); no rug, art or decor added. Minor: sofa forms simplified, a book stack on the table. |
+| O3 | Place Object, artwork (*guide* #25) | **PASS on the object, FAIL on the frame.** The same mountain painting, flat on the back wall at a believable size, room otherwise unchanged — but a 9:16 portrait room came back **square**. |
+| X1 | Massing to Render | **FAIL.** The camera dropped from the model's high aerial to near street level; the courtyard block came back as a cluster of stepped townhouses with the reference house's garage door and overhanging roofs; and the frame came back at the reference's 1.83 instead of the massing's 1.49. |
+
+### What O3 and X1 found: the second image decides the frame
+
+With two images and no `imageConfig`, Gemini sizes the output from the **last**
+image. O3: portrait room + square painting → square. X1: 3:2 massing + 1.83
+reference → 1.83. O2, with one image, kept its 1.265 exactly. Every two-image
+tool (Place Object, Massing to Render, Place in Real Site, 3D Site Analysis with
+a reference) was reframing the user's image to the reference's shape.
+
+**Fix:** `effectiveAspect()` pins a multi-image request with no ratio of its own
+to the FIRST image, read from the data URL's header (PNG or JPEG, no DOM, so it
+works in the browser and the harness alike). Both engines. Unit-checked, and
+e2e asserts a two-image request now asks for the first image's ratio.
+
+**Fix (X1 prompt):** the lock now names the camera as a drift — "a model
+photographed from above is rendered seen from above; do not drop the camera to
+street level" — and the reference's doors, garage doors and roof overhangs are
+named in "do not build the reference". The closing check compares the viewpoint.
+
+### Retries — blocked by the account, not the code
+
+X1b and O3b (the reserve) were refused with **HTTP 429 RESOURCE_EXHAUSTED: "Your
+project has exceeded its monthly spending cap."** Refused requests are not billed.
+They run as soon as the cap is raised at https://ai.studio/spend.
+
+Phase 0 so far: **5 planned calls made** (G1, O2, O3, X1 returned images; O1's
+two attempts timed out), **2 reserve calls refused** by the spend cap.
+
+O2 and O3 outputs are **not committed**: they were made from the guide's own
+images and reproduce them closely, and guide material stays out of this public
+repository. Their prompts and verdicts are here; the images were kept locally.

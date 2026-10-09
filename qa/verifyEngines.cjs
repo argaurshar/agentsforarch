@@ -537,6 +537,13 @@ const check = (name, ok, detail = '') => {
     (twoBody.match(/"inlineData"/g) || []).length === 2,
     `${(twoBody.match(/"inlineData"/g) || []).length}`,
   );
+  // Live runs O3 and X1: with two images Gemini sizes the output from the LAST
+  // one. The request is pinned to the FIRST (sample-plan.png, 1300 × 976 → 4:3).
+  check(
+    'a two-input run asks for the FIRST image’s ratio',
+    JSON.parse(twoBody || '{}').generationConfig?.imageConfig?.aspectRatio === '4:3',
+    JSON.stringify(JSON.parse(twoBody || '{}').generationConfig),
+  );
 
   // 15b. Massing's image is OPTIONAL. It began as the one text-only tool and
   //      the typed path must still work exactly as it did — so this asserts
