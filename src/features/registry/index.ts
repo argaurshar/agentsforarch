@@ -1544,16 +1544,26 @@ const wireframeRender: FeatureDef<WireframeRenderSettings> = {
   icon: Camera,
   inputMode: 'image',
   maxReferences: 1,
-  defaultSettings: { keepBackground: false, scene: defaultScene() },
+  defaultSettings: { subject: 'building', keepBackground: false, scene: defaultScene() },
   quick: [
+    {
+      kind: 'choice',
+      key: 'subject',
+      label: 'The model shows',
+      options: [
+        { value: 'building', label: 'A building' },
+        { value: 'interior', label: 'An interior' },
+      ],
+    },
     {
       kind: 'toggle',
       key: 'keepBackground',
       label: 'Keep the viewport background',
-      hint: 'On: whatever is behind the model stays. Off: a plausible setting is built around it.',
+      hint: 'On: whatever is behind the model (or through its windows) stays. Off: a plausible setting is built around it.',
     },
   ],
-  buildPrompt: (s) => buildWireframeRenderPrompt({ ...s.scene, keepBackground: s.keepBackground }),
+  buildPrompt: (s) =>
+    buildWireframeRenderPrompt({ ...s.scene, keepBackground: s.keepBackground, subject: s.subject }),
   sendTargets: ['atmosphere', 'humanScale', 'upscale'],
   poolLabel: 'Renders',
   galleryLabel: 'Render',
@@ -1563,7 +1573,7 @@ const wireframeRender: FeatureDef<WireframeRenderSettings> = {
     description:
       'Give an untextured model materials, light and a setting. The geometry is fixed input — it renders what you modelled, not a better-balanced version of it.',
     inputLabel: 'Input',
-    inputHint: 'A wireframe, clay or shaded viewport screenshot',
+    inputHint: 'A wireframe, clay or shaded viewport screenshot — outside or inside',
     outputCaption: 'The finished render',
     emptyIcon: Camera,
     emptyTitle: 'No render yet',

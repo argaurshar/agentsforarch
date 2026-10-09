@@ -4,7 +4,14 @@ import { geminiAspect } from './options';
 import type { AspectRatio } from './options';
 import { abortableDelay, FALLBACK_PROMPT, jobsFor, toInline } from './shared';
 import type { Inline } from './shared';
-import type { GenerateFailure, GeneratedImage, GenerateRequest, GenerateResult, ImageProvider } from './types';
+import type {
+  GenerateFailure,
+  GeneratedImage,
+  GenerateRequest,
+  GenerateResult,
+  GroundingSource,
+  ImageProvider,
+} from './types';
 
 // Nano Banana Pro (Google Gemini 3 Pro Image) provider. The user's browser
 // calls the Generative Language API directly with their own key (this is a
@@ -22,8 +29,9 @@ interface ResponsePart {
 interface ResponseCandidate {
   content?: { parts?: ResponsePart[] };
   finishReason?: string;
+  groundingMetadata?: { groundingChunks?: { web?: { uri?: string; title?: string } }[] };
 }
-interface GenerateContentResponse {
+export interface GenerateContentResponse {
   candidates?: ResponseCandidate[];
   promptFeedback?: { blockReason?: string };
 }
@@ -38,26 +46,28 @@ function friendlyError(status: number, body: string, key: string): string {
   return `Gemini request failed (HTTP ${status}). ${safe.slice(0, 160)}`.trim();
 }
 
-async function generateOne(
-  key: string,
-  model: string,
+/**
+ * The request body, as a pure function so `qa/verifyGrounding` can check it
+ * without a network call.
+ */
+export function geminiRequestBody(
   prompt: string,
   images: Inline[],
-  label: string,
-  signal?: AbortSignal,
   aspectRatio?: AspectRatio,
-): Promise<GeneratedImage> {
-  // Key travels in a header, not the URL query string (URLs leak into devtools,
-  // logs, and referrers).
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+  grounding?: boolean,
+): Record<string, unknown> {
   // Inputs first, then references, so a prompt can address them positionally.
   // `images` may be EMPTY — a text-only tool sends the prompt alone.
   const parts: ({ text: string } | { inlineData: Inline })[] = [
     { text: prompt },
     ...images.map((inlineData) => ({ inlineData })),
   ];
-  const body = JSON.stringify({
+  return {
     contents: [{ role: 'user', parts }],
+    // Google Search grounding: the model may look things up before it draws.
+    // Only fact-stating tools ask for it; omitted entirely otherwise, so every
+    // existing tool sends exactly the body it always has.
+    ...(grounding ? { tools: [{ google_search: {} }] } : {}),
     // Image-only output — verified with gemini-3-pro-image-preview in production;
     // adding 'TEXT' risks the model returning prose instead of an image. The
     // optional aspect override (also live-verified) shapes e.g. the 4:5 board.
@@ -67,7 +77,36 @@ async function generateOne(
       // Omitting imageConfig makes an edit follow the input's own ratio.
       ...(geminiAspect(aspectRatio) ? { imageConfig: { aspectRatio: geminiAspect(aspectRatio) } } : {}),
     },
-  });
+  };
+}
+
+/** The web pages a grounded answer cites, de-duplicated, in the order given. */
+export function groundingSources(json: GenerateContentResponse): GroundingSource[] {
+  const seen = new Set<string>();
+  const out: GroundingSource[] = [];
+  for (const chunk of json.candidates?.[0]?.groundingMetadata?.groundingChunks ?? []) {
+    const uri = chunk.web?.uri;
+    if (!uri || seen.has(uri)) continue;
+    seen.add(uri);
+    out.push({ uri, title: chunk.web?.title || uri });
+  }
+  return out;
+}
+
+async function generateOne(
+  key: string,
+  model: string,
+  prompt: string,
+  images: Inline[],
+  label: string,
+  signal?: AbortSignal,
+  aspectRatio?: AspectRatio,
+  grounding?: boolean,
+): Promise<GeneratedImage> {
+  // Key travels in a header, not the URL query string (URLs leak into devtools,
+  // logs, and referrers).
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+  const body = JSON.stringify(geminiRequestBody(prompt, images, aspectRatio, grounding));
 
   // One retry on a transient 429/503 (rate limit / overload) with jitter.
   for (let attempt = 0; attempt < 2; attempt += 1) {
@@ -99,7 +138,14 @@ async function generateOne(
         );
       }
       const mime = imagePart.inlineData.mimeType || 'image/png';
-      return { id: newId('img'), url: `data:${mime};base64,${imagePart.inlineData.data}`, label, createdAt: Date.now() };
+      const sources = groundingSources(json);
+      return {
+        id: newId('img'),
+        url: `data:${mime};base64,${imagePart.inlineData.data}`,
+        label,
+        createdAt: Date.now(),
+        ...(sources.length ? { sources } : {}),
+      };
     }
 
     const retriable = res.status === 429 || res.status === 503;
@@ -152,7 +198,18 @@ export class GeminiProvider implements ImageProvider {
       }
       const job = jobs[i];
       try {
-        images.push(await generateOne(key, model, job.prompt, inlines, job.label, signal, req.options.aspectRatio));
+        images.push(
+          await generateOne(
+            key,
+            model,
+            job.prompt,
+            inlines,
+            job.label,
+            signal,
+            req.options.aspectRatio,
+            req.options.grounding,
+          ),
+        );
       } catch (err) {
         if (signal?.aborted) break; // cancellation — keep successes, stop
         failures.push({ label: job.label, error: err instanceof Error ? err.message : 'Generation failed.' });

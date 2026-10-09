@@ -43,15 +43,31 @@ const check = (name, ok, detail = '') => {
 
   // --- Gemini mock -----------------------------------------------------------
   const geminiBodies = [];
+  // Set to make the mock answer like a search-grounded generation.
+  const mock = { sources: false };
   await page.route('**generativelanguage.googleapis.com/**', (r) => {
     if (r.request().method() === 'OPTIONS') return r.fulfill({ status: 204, headers: CORS, body: '' });
     geminiBodies.push(r.request().postData() || '');
+    const grounding = mock.sources
+      ? {
+          groundingMetadata: {
+            groundingChunks: [
+              { web: { uri: 'https://example.org/history', title: 'Site history' } },
+              { web: { uri: 'https://example.org/plan', title: 'Survey plan' } },
+            ],
+          },
+        }
+      : {};
     return r.fulfill({
       status: 200,
       headers: { ...CORS, 'content-type': 'application/json' },
       body: JSON.stringify({
         candidates: [
-          { content: { parts: [{ inlineData: { mimeType: 'image/png', data: PNG_1PX.toString('base64') } }] }, finishReason: 'STOP' },
+          {
+            content: { parts: [{ inlineData: { mimeType: 'image/png', data: PNG_1PX.toString('base64') } }] },
+            finishReason: 'STOP',
+            ...grounding,
+          },
         ],
       }),
     });
@@ -738,6 +754,43 @@ const check = (name, ok, detail = '') => {
     }
     for (const re of patterns) check(`${key} prompt carries ${re.source.slice(0, 42)}`, re.test(text));
   }
+
+  // Wireframe to Render has an interior branch (build plan, Phase 0): the
+  // exterior prompt counts storeys; a room's failure is being FURNISHED.
+  await navTo('wireframeRender');
+  const wirePrompt = page.locator('#wireframeRender-prompt');
+  check('wireframe defaults to the exterior prompt', /architectural render from the untextured 3D model/.test(await wirePrompt.inputValue()));
+  await page.getByRole('button', { name: /^An interior$/ }).click();
+  await page.waitForTimeout(300);
+  const wireInt = await wirePrompt.inputValue();
+  check('choosing "An interior" switches to the interior prompt', /interior render from the untextured 3D model/.test(wireInt));
+  check('which forbids furnishing what is not modelled', /Do NOT add furniture, rugs, cushions, art, decor/.test(wireInt));
+  check('and counts the objects again before finishing', /object by object/.test(wireInt));
+  await page.setInputFiles('input[type=file]', PLAN);
+  await page.waitForTimeout(400);
+  const wireBefore = geminiBodies.length;
+  await page.getByRole('button', { name: /^Generate$/ }).click();
+  await page.waitForTimeout(2500);
+  const wireBody = geminiBodies.slice(wireBefore).join('');
+  check('the interior prompt is what reaches the engine', /object by object/.test(wireBody));
+  check('a tool that does not ask for search sends no tools field', wireBody.length > 0 && !/"tools"/.test(wireBody));
+  check('an ungrounded result shows no sources', (await page.locator('[data-grounding-sources]').count()) === 0);
+
+  // Google Search grounding (Phase 0, G3): when the engine reports sources, the
+  // result names them so the facts on the image can be checked.
+  mock.sources = true;
+  await page.getByRole('button', { name: /^Generate$/ }).click();
+  await page.waitForTimeout(2500);
+  mock.sources = false;
+  const src = page.locator('[data-grounding-sources]').first();
+  check('a grounded result lists its sources', (await src.count()) === 1 && /Sources \(2\)/.test(await src.innerText()));
+  check(
+    'each source is a real link to the page',
+    (await src.locator('a[href="https://example.org/history"]').count()) === 1,
+  );
+  // Settings persist per tool; later sections expect Wireframe's default.
+  await page.getByRole('button', { name: /^A building$/ }).click();
+  await page.waitForTimeout(200);
 
   // The shared lock must not name a thing the tool exists to change. This is the
   // contradiction that the static gate catches across all 624 variants; here it

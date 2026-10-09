@@ -184,13 +184,16 @@ check(
 // build rather than presenting a visitor with a blank panel and no explanation.
 //
 // The exemptions are not a convenience list. Each of these three needs an input
-// fixture that does not exist in this repo and cannot be fetched or credibly
-// generated, so no example CAN be produced for them yet. Deleting a name from
-// this list is how the gate is satisfied once its fixture lands.
+// that may be PUBLISHED in this repo, and none exists yet, so no example CAN be
+// produced for them. They can now be verified live — qa/fixtures/guide holds
+// test inputs from the paid guide (`liveRuns --owed`) — but those are test-only
+// and git-ignored: the repo is public, and a worked example republishes its
+// input. Deleting a name from this list is how the gate is satisfied once a
+// publishable input lands.
 const NO_FIXTURE = {
-  birdsEye: 'needs a top-down satellite or Maps screenshot',
-  wireframeRender: 'needs a SketchUp or 3D viewport screenshot',
-  placeObject: 'needs a product shot on plain ground as its second image',
+  birdsEye: 'needs a publishable top-down satellite tile (guide #32 is test-only; public-domain aerial planned)',
+  wireframeRender: 'needs a publishable viewport screenshot (guide #09 is test-only)',
+  placeObject: 'needs a publishable product shot as its second image (guide #25 is test-only)',
 };
 // A different reason, kept in a different list so the two cannot blur: these
 // tools have every fixture they need, but their worked example needs a PAID

@@ -20,3 +20,7 @@ npm-debug.log*
 # deliverable. Outputs and prompts are committed; nothing here is read at build
 # time, and no input images are copied in — the fixtures already ship in
 # public/examples/ and report.json names the one each run used.
+
+# Test inputs taken from the paid guide (qa/fixtures/README.md). The repo is
+# public; these are used to TEST prompts and are never committed or published.
+qa/fixtures/guide/

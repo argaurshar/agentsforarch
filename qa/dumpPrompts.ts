@@ -168,6 +168,11 @@ for (const materials of ['studio','glass-steel'] as const)
   for (const lighting of ['golden-hour','overcast'] as const)
     for (const keepBackground of [false,true]) for (const entourage of [false,true])
       add(`wire:${materials}:${lighting}:b${keepBackground}:e${entourage}`, buildWireframeRenderPrompt({ ...sc, materials, lighting, entourage, keepBackground }));
+// The interior branch: its own default palette, a preset carried onto the room,
+// and a typed palette — plus both background and people switches.
+for (const materials of ['studio','brick-timber','custom'] as const)
+  for (const keepBackground of [false,true]) for (const entourage of [false,true])
+    add(`wire-int:${materials}:b${keepBackground}:e${entourage}`, buildWireframeRenderPrompt({ ...sc, materials, customMaterials: materials === 'custom' ? 'terrazzo floor, walnut joinery, bouclé upholstery' : '', entourage, keepBackground, subject: 'interior' }));
 
 // Massing to Render: every take x openings x people. The reference's FORM must
 // be refused in all twelve, which is why the snapshot covers them all.

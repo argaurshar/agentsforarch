@@ -74,6 +74,11 @@ export function getEngine(): EngineKey {
   return engine;
 }
 
+/** Whether the active engine can ground a generation in Google Search. */
+export function engineSupportsGrounding(): boolean {
+  return getEngine() === 'gemini';
+}
+
 export function getGeminiApiKey(): string | undefined {
   return apiKey;
 }

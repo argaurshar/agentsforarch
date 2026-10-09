@@ -31,6 +31,13 @@ export interface GenerateOptions {
   aspectRatio?: AspectRatio;
   /** kie.ai hardcoded '1K'; the print-upscale tool needs to exceed it. */
   resolution?: Resolution;
+  /**
+   * Let the model look facts up with Google Search before it draws. Only the
+   * tools that STATE facts set it (dates, places, real buildings). Gemini only:
+   * kie.ai has no equivalent, so the kie provider ignores it and those tools
+   * say so through `engineSupportsGrounding()` rather than silently degrading.
+   */
+  grounding?: boolean;
 }
 
 const GEMINI_ACCEPTS = new Set<AspectRatio>(['1:1', '2:3', '3:2', '3:4', '4:3', '4:5', '5:4', '9:16', '16:9', '21:9']);

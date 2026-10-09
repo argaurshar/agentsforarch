@@ -152,7 +152,10 @@ export interface SpecSheetSettings {
 // so the settings are narrow by design: the axis being changed, and nothing
 // about the building.
 
+/** What the viewport shows: a building from outside, or a room from inside. */
+export type WireframeSubject = 'building' | 'interior';
 export interface WireframeRenderSettings {
+  subject: WireframeSubject;
   /** Keep the viewport's own background instead of inventing a setting. */
   keepBackground: boolean;
   scene: SceneOptions;

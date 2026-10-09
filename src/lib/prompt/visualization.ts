@@ -15,7 +15,7 @@
 
 import { LIGHTING, MATERIAL_PRESETS, MOODS, SEASONS } from '../scene';
 import { NO_TEXT } from './clauses';
-import type { MassingOpenings, ReferenceTake, WatercolourPalette } from '../../store/generation';
+import type { MassingOpenings, ReferenceTake, WatercolourPalette, WireframeSubject } from '../../store/generation';
 
 export type { WatercolourPalette };
 import type {
@@ -88,7 +88,10 @@ const PHOTO_FINISH =
  * to hold onto, which is exactly when it starts "improving" the massing and
  * adding windows that make the elevation look more balanced.
  */
-export function buildWireframeRenderPrompt(a: SceneOptions & { keepBackground: boolean }): string {
+export function buildWireframeRenderPrompt(
+  a: SceneOptions & { keepBackground: boolean; subject?: WireframeSubject },
+): string {
+  if (a.subject === 'interior') return buildInteriorWireframePrompt(a);
   const material =
     a.materials === 'custom'
       ? a.customMaterials.trim() || MATERIAL_PRESETS.studio.clause
@@ -122,6 +125,63 @@ export function buildWireframeRenderPrompt(a: SceneOptions & { keepBackground: b
   );
   return parts.join(' ');
 }
+
+/**
+ * The interior branch of Wireframe to Render.
+ *
+ * The exterior prompt counts storeys and guards the facade; an interior viewport
+ * has neither, and what drifts there is different — the model FURNISHES. Given a
+ * modelled sofa group and a shelf, it adds a rug, cushions, art and a plant
+ * because a "finished interior" has them. So the lock names objects and their
+ * count, and the check counts them again.
+ */
+function buildInteriorWireframePrompt(a: SceneOptions & { keepBackground: boolean }): string {
+  // The scene presets are facade palettes. The studio default reads as a
+  // building, so an interior gets its own default; a deliberate choice (or a
+  // typed palette) is still honoured, applied to the room's surfaces.
+  const material =
+    a.materials === 'custom'
+      ? a.customMaterials.trim() || INTERIOR_DEFAULT_PALETTE
+      : a.materials === 'studio'
+        ? INTERIOR_DEFAULT_PALETTE
+        : `${MATERIAL_PRESETS[a.materials].clause}, carried onto the room's walls, floor and joinery`;
+  const parts: string[] = [
+    'You are producing a finished photorealistic interior render from the untextured 3D model shown in the input — ' +
+      'a wireframe, clay or shaded viewport of a room.',
+    'STEP 1 — READ THE MODEL FIRST. Note the walls, floor and ceiling planes, the camera height, the lens and the ' +
+      'vanishing points. Note every window, door, opening and ceiling feature. Then list every modelled object — each ' +
+      'piece of furniture, joinery, shelf, fitting, lamp and plant — with its position, size, outline and how many there are.',
+    'STEP 2 — LOCK THE GEOMETRY. The model is the design; you are only giving it materials, light and finish. Keep the ' +
+      'room’s shape and the camera exactly as modelled, and keep every modelled object exactly where the model puts it, ' +
+      'at the same size, with the same outline and the same count. Do NOT add furniture, rugs, cushions, art, decor or ' +
+      'plants that are not modelled, do not remove or move any, and do not swap one for a different design. Do not ' +
+      'change a window, a door or the ceiling.',
+    `STEP 3 — ONLY THEN RENDER IT. Materials: ${material}. Upholstery reads as fabric, timber as timber, glass as glass, ` +
+      'each at its real scale and grain.',
+    `Light it with ${LIGHTING[a.lighting].clause}, coming in through the modelled windows, with the modelled light ` +
+      'fittings switched on.',
+  ];
+  if (a.mood !== 'none') parts.push(`Overall mood: ${MOODS[a.mood].clause}.`);
+  parts.push(
+    a.keepBackground
+      ? 'Keep whatever the viewport shows through the windows — do not invent a new view.'
+      : 'Through the windows, a soft, plausible view that suits the light — kept slightly out of focus so the room reads first.',
+    a.entourage
+      ? 'Include one or two people at correct scale, naturally occupied and not looking at the camera.'
+      : 'No people.',
+    'Photorealistic interior photograph, physically based lighting, natural colour grade, ultra-detailed, no ' +
+      'over-sharpening and no HDR halos.',
+    'Before you finish, compare your render against the model object by object: the same number of seats, shelves, ' +
+      'lamps and plants, each in the same place, and nothing the model does not have. If anything was added, removed ' +
+      'or moved, rebuild it — matching the model matters more than any styling instruction above.',
+    NO_TEXT,
+  );
+  return parts.join(' ');
+}
+
+const INTERIOR_DEFAULT_PALETTE =
+  'a calm, coherent interior palette that suits the modelled furniture — warm oak, soft linen and wool upholstery, ' +
+  'matte plaster walls, a honed stone or timber floor';
 
 // --- Massing model + reference → render ------------------------------------
 
