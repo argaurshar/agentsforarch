@@ -509,6 +509,28 @@ export interface GroundFloorSettings {
   people: boolean;
 }
 
+// --- Build plan Phase 3b -----------------------------------------------------
+
+export interface SystemsCutawaySettings {
+  system: 'climate' | 'green';
+  labels: boolean;
+}
+
+export interface MarketingBoardSettings {
+  format: '4:5' | '3:4' | '16:9';
+  /** Empty: a plain descriptive title of the building type. */
+  title: string;
+  /** The ONLY facts the board may print. */
+  facts: string;
+}
+
+export interface MagazineSettings {
+  subject: 'interior' | 'building';
+  style: 'dense' | 'minimal' | 'scrapbook';
+  format: '9:16' | '4:5' | '3:4';
+  headline: string;
+}
+
 export type FeatureSettings =
   | RenderSettings
   | ElevationSettings
@@ -554,7 +576,10 @@ export type FeatureSettings =
   | SiteHistorySettings
   | PhasingSettings
   | ReframeSettings
-  | GroundFloorSettings;
+  | GroundFloorSettings
+  | SystemsCutawaySettings
+  | MarketingBoardSettings
+  | MagazineSettings;
 
 /** Quick-action refinement of a specific output (P2). */
 export interface RefineState {

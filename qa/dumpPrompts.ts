@@ -9,7 +9,7 @@
 
 import { buildAxonometricPrompt, buildElevationPrompt, buildInteriorPrompt, buildMoodboardPrompt, buildRefinePrompt, buildRenderPrompt } from '../src/lib/prompts';
 import { buildConceptBoardPrompt, buildConceptDiagramPrompt, buildMassingPrompt, buildSketchRenderPrompt } from '../src/lib/prompt/concept';
-import { buildAnnotationPrompt, buildExplodedAxonPrompt, buildProgramDiagramPrompt } from '../src/lib/prompt/boards';
+import { buildAnnotationPrompt, buildExplodedAxonPrompt, buildMagazinePrompt, buildMarketingBoardPrompt, buildProgramDiagramPrompt, buildSystemsCutawayPrompt } from '../src/lib/prompt/boards';
 import { buildBirdsEyePrompt, buildFloorAnalysisPrompt, buildPlaceInSitePrompt, buildSiteAnalysis3dPrompt, buildSiteAnalysisPrompt, buildSiteHistoryPrompt, buildSiteLineworkPrompt, buildSitePhotoPrompt, buildUrbanContextPrompt, buildUrbanLayersPrompt } from '../src/lib/prompt/site';
 import {
   buildAtmospherePrompt,
@@ -279,5 +279,16 @@ add('ground:custom-empty', buildGroundFloorPrompt({ program: 'custom', customPro
 for (const materials of ['timber', 'metal'] as const)
   add(`ground:${materials}`, buildGroundFloorPrompt({ program: 'cafe', customProgram: '', materials, people: true }));
 add('ground:empty-shop', buildGroundFloorPrompt({ program: 'cafe', customProgram: '', materials: 'complement', people: false }));
+
+// --- Build plan, Phase 3b -----------------------------------------------------
+for (const system of ['climate', 'green'] as const)
+  for (const labels of [true, false]) add(`cutaway:${system}:l${labels}`, buildSystemsCutawayPrompt({ system, labels }));
+for (const format of ['4:5', '3:4', '16:9'] as const) add(`mboard:${format}`, buildMarketingBoardPrompt({ format, title: '', facts: '' }));
+add('mboard:titled', buildMarketingBoardPrompt({ format: '4:5', title: 'Hillside House', facts: '' }));
+add('mboard:facts', buildMarketingBoardPrompt({ format: '4:5', title: 'Hillside House', facts: 'Bengaluru, India · 320 m² · 2026' }));
+for (const subject of ['interior', 'building'] as const)
+  for (const style of ['dense', 'minimal', 'scrapbook'] as const)
+    add(`magazine:${subject}:${style}`, buildMagazinePrompt({ subject, style, format: '9:16', headline: '' }));
+add('magazine:headline', buildMagazinePrompt({ subject: 'interior', style: 'dense', format: '4:5', headline: 'A Quiet Room in Bengaluru' }));
 
 console.log(out.join('\n\n'));

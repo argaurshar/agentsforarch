@@ -15,7 +15,14 @@ import { NO_TEXT } from './clauses';
 // records the cost of: a prompt module's private copy of a settings union
 // drifted, and structural typing hid it until something far away stopped
 // assigning. These files kept four such copies.
-import type { AnnotationSubject, ExplodeAxis, ProgramOrientation } from '../../store/generation';
+import type {
+  AnnotationSubject,
+  ExplodeAxis,
+  MagazineSettings,
+  MarketingBoardSettings,
+  ProgramOrientation,
+  SystemsCutawaySettings,
+} from '../../store/generation';
 
 export type { AnnotationSubject, ExplodeAxis, ProgramOrientation };
 
@@ -167,5 +174,144 @@ export function buildExplodedAxonPrompt(a: { axis: ExplodeAxis; labels: boolean 
           'plates", "Structural frame", "Facade", "Ground". Spell every word correctly.'
       : NO_TEXT,
     'Clean white background, soft even lighting, no cast shadows between the layers.',
+  ].join(' ');
+}
+
+// --- Systems cutaway (guide #19, #51) ---------------------------------------
+
+const SYSTEM: Record<SystemsCutawaySettings['system'], { intro: string; show: string; labels: string; check: string }> = {
+  climate: {
+    intro: 'how it works with the climate',
+    show:
+      'STEP 3 — SHOW THE SYSTEM with bold, flat, colour-coded arrows over the cut. Sun: the summer sun at a high angle ' +
+      'and the winter sun at a low angle, as yellow rays reaching the glazing, showing what the overhangs shade and ' +
+      'what they let in. Air: blue arrows for cool air entering low on the windward side, turning red as warm air ' +
+      'rises through the section and leaves through high-level openings or the roof. Keep the building in muted tones ' +
+      'so the arrows are the focal point.',
+    labels: 'SUMMER SUN, WINTER SUN, COOL AIR IN, HOT AIR OUT',
+    check:
+      'Do warm-air arrows rise and leave high, and cool-air arrows enter low? Is the summer sun steeper than the winter sun?',
+  },
+  green: {
+    intro: 'how its planting is kept alive',
+    show:
+      'STEP 3 — SHOW THE SYSTEM. Cut through the balconies, planters and roof garden to reveal the soil substrate, the ' +
+      'drainage layer, the root systems and the hidden irrigation pipes. Show rainwater collected from the roof, stored ' +
+      'in tanks and pumped back up to the planting, with blue flow arrows. Draw it as a scientific illustration, the ' +
+      'palette limited to greens and concrete grey, so the living parts and the structure read apart.',
+    labels: 'SOIL SUBSTRATE, DRAINAGE LAYER, ROOTS, IRRIGATION, RAINWATER TANK',
+    check: 'Are the roots in the soil, and does the water run from the roof to the tank and back to the planting?',
+  },
+};
+
+/**
+ * A building → the same building sliced open in perspective, showing how one
+ * system works: passive climate, or the planting's soil and water.
+ *
+ * Different from Annotation, which draws arrows ON the unchanged image: this
+ * CUTS the building, so the interior it reveals has to be invented — the
+ * accuracy note says so. The physics is put in the CHECK, because wrong-way
+ * arrows (warm air sinking, a winter sun steeper than summer's) are the classic
+ * mistake and the one a client spots.
+ */
+export function buildSystemsCutawayPrompt(a: SystemsCutawaySettings): string {
+  const sys = SYSTEM[a.system];
+  return [
+    `You are turning the building in the input into a sectional perspective cutaway that explains ${sys.intro} — a ` +
+      'sustainability diagram for a client presentation.',
+    'STEP 1 — READ THE BUILDING FIRST. Note its massing, storeys, roof form, openings, balconies and materials, and the ' +
+      'camera angle.',
+    'STEP 2 — CUT IT OPEN. Same building, same camera — but slice away the nearest part along a vertical cut plane so ' +
+      'the inside is revealed: floor slabs, rooms, stairs and voids in section, with cut surfaces as clean solid fills. ' +
+      'The rest of the building — its form, facade and materials — stays exactly as in the input.',
+    sys.show,
+    a.labels
+      ? `Label each element in a clean sans-serif with thin leader lines — for example ${sys.labels} — with a small ` +
+        'legend for the arrow colours. Spell every word correctly and keep every word legible.'
+      : `${NO_TEXT} No labels: the colours and arrows carry it.`,
+    `CHECK before you finish: is it still the input’s building, from the input’s camera? ${sys.check}`,
+  ].join(' ');
+}
+
+// --- Marketing board (guide #54) --------------------------------------------
+
+/**
+ * A render → a presentation board whose typography and layout match the
+ * building's character.
+ *
+ * The guide's one-line prompt invites invented facts — floor areas, dates,
+ * awards, an architect's name — set in confident type. Here the board may print
+ * only what was typed, and the hero image is the input, not a redrawing of it.
+ */
+export function buildMarketingBoardPrompt(a: { title: string; facts: string; format: MarketingBoardSettings['format'] }): string {
+  const title = a.title.trim();
+  const facts = a.facts.trim();
+  const orient = a.format === '16:9' ? 'a landscape slide' : a.format === '4:5' ? 'a portrait post' : 'a portrait poster';
+  return [
+    `You are a graphic designer making one presentation board — ${orient} — for the building in the input image, ` +
+      'with typography and layout designed to match the building’s architectural character.',
+    'STEP 1 — READ THE BUILDING FIRST. Describe its character: era and style, geometry (orthogonal, curved, angular, ' +
+      'layered), materials, colour palette and mood. Choose typefaces that share that character — a geometric sans for a ' +
+      'crisp modernist box, a refined serif for warm stone and timber, a condensed grotesk for a bold tower — and a ' +
+      'palette sampled from the image itself.',
+    'STEP 2 — LAY OUT THE BOARD. The input image is the hero, large and showing the building exactly as in the input — ' +
+      'not redrawn. Around it, a structured grid with generous margins: the project title, two or three detail crops or ' +
+      'small diagrams taken from the building, and short sections of text.',
+    'STEP 3 — WRITE ONLY TRUE TEXT. ' +
+      (title ? `Title: “${title}”. ` : 'Title: a short, plain description of the building type — no invented name. ') +
+      (facts ? `Facts: ${facts}. Print only these facts. ` : 'Print no numbers, dates, places or names at all. ') +
+      'Do not invent numbers, areas, dates, locations, architects or awards; where a section would need a fact you were ' +
+      'not given, use a short phrase describing what is visible instead. Headings and one-line captions only — no ' +
+      'paragraphs of filler.',
+    'Spell every word correctly and keep every word legible. Do not add any watermark or signature.',
+    'CHECK before you finish: is the hero building the same as the input? Does every number on the board come from the ' +
+      'facts above? Does the typography feel like it belongs to this building?',
+  ].join(' ');
+}
+
+// --- Magazine layout (guide #04) --------------------------------------------
+
+const MAG_STYLE: Record<MagazineSettings['style'], string> = {
+  dense: 'an information-dense photo-book editorial style',
+  minimal: 'a calm, minimal editorial style with generous white space',
+  scrapbook: 'a warm scrapbook style — taped photos, hand-drawn arrows and notes',
+};
+
+/**
+ * An interior or building → one magazine feature page about its design.
+ *
+ * The guide's version also pastes a real person into a landmark; that needs a
+ * photo of someone and is not about the design, so it is gone. What remains is
+ * the densest TEXT of any tool here, so the prompt bans the usual inventions
+ * (brands, prices, quotes) and asks for real sentences — and every picture on
+ * the page is cropped from the input, so the page never shows a different room.
+ */
+export function buildMagazinePrompt(a: {
+  subject: MagazineSettings['subject'];
+  style: MagazineSettings['style'];
+  format: MagazineSettings['format'];
+  headline: string;
+}): string {
+  const what = a.subject === 'interior' ? 'interior' : 'building';
+  const sections =
+    a.subject === 'interior'
+      ? 'the design concept, palette and materials, key pieces, and practical tips for readers who want this look'
+      : 'the design concept, materials, the building in its setting, and the details that make it work';
+  const headline = a.headline.trim();
+  return [
+    `You are designing one magazine feature page about the design of the ${what} shown in the input image.`,
+    `STEP 1 — READ THE ${what.toUpperCase()} FIRST. Note its type and layout, every main material, colour and finish, ` +
+      'the key pieces or elements, the light, and the design ideas that make it work.',
+    `STEP 2 — LAY OUT THE PAGE in ${MAG_STYLE[a.style]}, using the whole ${a.format} page: ` +
+      (headline ? `the headline “${headline}”, ` : 'a feature headline, ') +
+      `a short standfirst, and several sections with headings — ${sections}. The input image is the lead photograph; ` +
+      'crop details from it — a material close-up, a corner, a fitting — for the smaller images. ' +
+      `The ${what} looks exactly as it does in the input; do not redesign it.`,
+    'STEP 3 — WRITE IT. Headings and short paragraphs describing what is visible. No invented brand names, prices, ' +
+      'designers, addresses or quotes from real people. Text accuracy matters: real words in complete sentences, body ' +
+      'text large enough to read.',
+    'Spell every word correctly and keep every word legible. No coordinates, no lorem ipsum, no placeholder text. Do not ' +
+      'add any watermark or signature.',
+    `CHECK before you finish: is every block of text real, readable English? Does every picture on the page show this ${what}?`,
   ].join(' ');
 }

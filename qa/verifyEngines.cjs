@@ -1041,6 +1041,47 @@ const check = (name, ok, detail = '') => {
   await page.waitForTimeout(400);
   check('drawing the box unblocks it', await gen().isEnabled());
 
+  // --- Build plan, Phase 3b --------------------------------------------------
+  await navTo('systemsCutaway');
+  const scPrompt = page.locator('#systemsCutaway-prompt');
+  check('the cutaway cuts rather than draws over', /CUT IT OPEN/.test(await scPrompt.inputValue()));
+  await page.getByRole('button', { name: /^Soil & water$/ }).click();
+  await page.waitForTimeout(300);
+  check('soil & water reveals the substrate and the irrigation', /soil substrate/.test(await scPrompt.inputValue()) && /irrigation pipes/.test(await scPrompt.inputValue()));
+  await page.getByRole('switch', { name: /Labels and a legend/ }).click();
+  await page.waitForTimeout(300);
+  check('labels off asks for no words', !/Spell every word/.test(await scPrompt.inputValue()) && /No labels/.test(await scPrompt.inputValue()));
+  await page.getByRole('switch', { name: /Labels and a legend/ }).click();
+  await page.getByRole('button', { name: /^Sun & air$/ }).click();
+
+  await navTo('marketingBoard');
+  const mbPrompt = page.locator('#marketingBoard-prompt');
+  check('with no facts the board prints none', /Print no numbers, dates, places or names at all/.test(await mbPrompt.inputValue()));
+  await page.locator('#marketingBoard-facts').fill('Bengaluru · 320 m² · 2026');
+  await page.locator('#marketingBoard-title').fill('Hillside House');
+  await page.waitForTimeout(300);
+  check('typed facts are the only facts', /Facts: Bengaluru · 320 m² · 2026\. Print only these facts/.test(await mbPrompt.inputValue()));
+  check('and the typed title is used', /Title: “Hillside House”/.test(await mbPrompt.inputValue()));
+  await page.getByRole('button', { name: /^16:9 slide$/ }).click();
+  await page.setInputFiles('input[type=file]', PLAN);
+  await page.waitForTimeout(400);
+  const mbBefore = geminiBodies.length;
+  await gen().click();
+  await page.waitForTimeout(2500);
+  check('the chosen format is the ratio asked for', /"aspectRatio":"16:9"/.test(geminiBodies.slice(mbBefore).join('')));
+  check('and the board warns to check the facts', /prints only the facts you typed/.test(await mainText()));
+  await page.locator('#marketingBoard-facts').fill('');
+  await page.locator('#marketingBoard-title').fill('');
+  await page.getByRole('button', { name: /^4:5 post$/ }).click();
+
+  await navTo('magazine');
+  const mgPrompt = page.locator('#magazine-prompt');
+  check('the magazine page bans invented brands and prices', /No invented brand names, prices/.test(await mgPrompt.inputValue()));
+  await page.getByRole('button', { name: /^A building$/ }).click();
+  await page.waitForTimeout(300);
+  check('a building page reads the building', /READ THE BUILDING FIRST/.test(await mgPrompt.inputValue()));
+  await page.getByRole('button', { name: /^An interior$/ }).click();
+
   // The shared lock must not name a thing the tool exists to change. This is the
   // contradiction that the static gate catches across all 624 variants; here it
   // is checked once, live, on the two tools most likely to regress.

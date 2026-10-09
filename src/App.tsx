@@ -11,6 +11,9 @@ import { AnnotationFeature } from './features/boards/AnnotationFeature';
 import { ExplodedAxonFeature } from './features/boards/ExplodedAxonFeature';
 import { FloorAnalysisFeature } from './features/boards/FloorAnalysisFeature';
 import { ProgramDiagramFeature } from './features/boards/ProgramDiagramFeature';
+import { MagazineFeature } from './features/boards/MagazineFeature';
+import { MarketingBoardFeature } from './features/boards/MarketingBoardFeature';
+import { SystemsCutawayFeature } from './features/boards/SystemsCutawayFeature';
 import { CadElevationFeature } from './features/drawings/CadElevationFeature';
 import { RenderToPlanFeature } from './features/drawings/RenderToPlanFeature';
 import { SectionFeature } from './features/drawings/SectionFeature';
@@ -106,6 +109,9 @@ const FEATURES: Record<FeatureKind | 'studio' | 'home' | 'gallery', ComponentTyp
   explodedAxon: ExplodedAxonFeature,
   annotation: AnnotationFeature,
   moodboard: MoodboardFeature,
+  systemsCutaway: SystemsCutawayFeature,
+  marketingBoard: MarketingBoardFeature,
+  magazine: MagazineFeature,
   gallery: GalleryFeature,
 };
 

@@ -307,6 +307,40 @@ const SKIPPED: Run[] = [
  * not copy" — there is no object to copy.
  */
 const NEW_TOOLS: Run[] = [
+  // Phase 3b.
+  {
+    id: 'U1', tool: 'systemsCutaway', input: 'ex-human-scale.jpg',
+    title: 'Our house cut open for sun and air. Same house, same camera, physics right?',
+    verdicts: [
+      'PASS — the house from the same camera, sliced; summer sun steeper than winter; cool air in low, hot air out high; labels spelled',
+      'FAIL — a different house, warm air sinking, the sun angles reversed, or garbled labels',
+    ],
+  },
+  {
+    id: 'U2', tool: 'systemsCutaway', input: 'guide:uc51-input1.jpg', settings: { system: 'green' },
+    title: 'A planted tower: soil, roots, irrigation, rainwater. Green and grey only?',
+    verdicts: [
+      'PASS — balconies cut to show substrate, roots and pipes; roof water to tanks to planting; green-and-grey palette',
+      'FAIL — trees in pots on the outside only, water flowing nowhere, or a full-colour render',
+    ],
+  },
+  {
+    id: 'U3', tool: 'marketingBoard', input: 'ex-atmosphere.jpg',
+    settings: { title: 'Hillside House', facts: 'Bengaluru, India · 320 m² · 2026' },
+    title: 'A board for the night render. Typography that fits — and ONLY the facts we typed?',
+    verdicts: [
+      'PASS — the night render as hero, unchanged; “Hillside House”, Bengaluru, 320 m², 2026 and nothing else numeric; type suits the house',
+      'FAIL — invented areas, awards or architects, the house redrawn, or misspelled text',
+    ],
+  },
+  {
+    id: 'U4', tool: 'magazine', input: 'interior-stage.jpg',
+    title: 'A feature page about our staged living room. Real sentences, real crops?',
+    verdicts: [
+      'PASS — a 9:16 page led by this room, detail crops from it, readable English, no brands or prices',
+      'FAIL — pseudo-text, a different room in the photos, or invented brands and prices',
+    ],
+  },
   // Phase 3a — all on our own images, so a pass can be published.
   {
     id: 'Q1', tool: 'phasing', input: 'ex-human-scale.jpg',

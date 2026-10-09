@@ -23,6 +23,9 @@ import {
   Compass,
   Construction,
   Expand,
+  Wind,
+  Presentation,
+  BookOpen,
   Store,
   Globe,
   Grid3x3,
@@ -78,6 +81,9 @@ import {
   parseMoves,
 } from '../../lib/prompt/concept';
 import {
+  buildMagazinePrompt,
+  buildMarketingBoardPrompt,
+  buildSystemsCutawayPrompt,
   buildAnnotationPrompt,
   buildExplodedAxonPrompt,
   buildProgramDiagramPrompt,
@@ -131,6 +137,9 @@ import { LIGHTING, MATERIAL_PRESETS, MOODS, SEASONS, defaultScene } from '../../
 import type { AspectRatio } from '../../providers/options';
 import type { GenerateOptions, GenerateRequest } from '../../providers/types';
 import type {
+  MagazineSettings,
+  MarketingBoardSettings,
+  SystemsCutawaySettings,
   GroundFloorSettings,
   PhaseStage,
   PhasingSettings,
@@ -3534,6 +3543,206 @@ const groundFloor: FeatureDef<GroundFloorSettings> = {
   ],
 };
 
+// --- Build plan, Phase 3b ------------------------------------------------------
+
+/**
+ * A building → the same building sliced open to show one system working:
+ * passive climate, or the planting's soil and water (guide #19 + #51).
+ * Annotation draws ON the image; this one CUTS it.
+ */
+const systemsCutaway: FeatureDef<SystemsCutawaySettings> = {
+  key: 'systemsCutaway',
+  category: 'boards',
+  name: 'Systems Cutaway',
+  blurb: 'Building to Sustainability Section',
+  verb: 'Cut it open',
+  inputKind: ['building', 'model'],
+  outputKind: null,
+  icon: Wind,
+  inputMode: 'image',
+  maxReferences: 0,
+  accuracyWarning: () => 'The inside revealed by the cut is illustrative — the render does not show it.',
+  defaultSettings: { system: 'climate', labels: true },
+  quick: [
+    {
+      kind: 'choice',
+      key: 'system',
+      label: 'Show',
+      options: [
+        { value: 'climate', label: 'Sun & air' },
+        { value: 'green', label: 'Soil & water' },
+      ],
+    },
+    {
+      kind: 'toggle',
+      key: 'labels',
+      label: 'Labels and a legend',
+      hint: 'Off keeps the colours and arrows only — no words to misspell.',
+    },
+  ],
+  buildPrompt: (s) => buildSystemsCutawayPrompt(s),
+  sendTargets: [],
+  poolLabel: 'Diagrams',
+  galleryLabel: 'Systems cutaway',
+  ui: {
+    eyebrow: 'Diagrams & Boards',
+    title: 'Building → Systems Cutaway',
+    description:
+      'The building sliced open from your own camera, showing how it works: summer and winter sun with cool air in and hot air out, or the soil, roots and rainwater that keep its planting alive.',
+    inputLabel: 'Input',
+    inputHint: 'A render or model of the building',
+    outputCaption: 'The cutaway',
+    emptyIcon: Wind,
+    emptyTitle: 'No cutaway yet',
+    emptyDescription: 'Upload the building, choose the system and press Generate.',
+    compare: { before: 'Building', after: 'Cutaway' },
+  },
+  blockedReason: (_s, hasInput) => (hasInput ? null : 'Upload the building to begin.'),
+  toOptions: (_s, ctx) => plainOptions(ctx),
+  promptContracts: [
+    { name: 'cutaway reads the building first', pattern: /READ THE BUILDING FIRST/ },
+    { name: 'cutaway cuts rather than overlays', pattern: /CUT IT OPEN/ },
+    { name: 'cutaway keeps the camera', pattern: /Same building, same camera/ },
+    { name: 'cutaway checks the physics', pattern: /Do warm-air arrows rise and leave high/ },
+    { name: 'cutaway insists on spelling', pattern: /Spell every word correctly/ },
+  ],
+};
+
+/**
+ * A render → a presentation board typeset to match the building, printing only
+ * the facts typed in (guide #54).
+ */
+const marketingBoard: FeatureDef<MarketingBoardSettings> = {
+  key: 'marketingBoard',
+  category: 'boards',
+  name: 'Marketing Board',
+  blurb: 'Render to Presentation Board',
+  verb: 'Make it a board',
+  inputKind: ['building', 'sketch', 'model'],
+  outputKind: null,
+  icon: Presentation,
+  inputMode: 'image',
+  maxReferences: 0,
+  accuracyWarning: (s) =>
+    s.facts.trim() ? 'The board prints only the facts you typed — check them.' : 'No facts were given, so the board states none.',
+  defaultSettings: { format: '4:5', title: '', facts: '' },
+  quick: [
+    {
+      kind: 'choice',
+      key: 'format',
+      label: 'Format',
+      options: [
+        { value: '4:5', label: '4:5 post' },
+        { value: '3:4', label: '3:4 poster' },
+        { value: '16:9', label: '16:9 slide' },
+      ],
+    },
+  ],
+  buildPrompt: (s) => buildMarketingBoardPrompt(s),
+  aspectRatio: (s) => s.format,
+  sendTargets: [],
+  poolLabel: 'Boards',
+  galleryLabel: 'Marketing board',
+  ui: {
+    eyebrow: 'Diagrams & Boards',
+    title: 'Render → Marketing Board',
+    description:
+      'A board whose typefaces, colours and grid are chosen to match the building — the render as the hero, detail crops around it, and only the facts you type.',
+    inputLabel: 'Input',
+    inputHint: 'A render, model or sketch of the building',
+    outputCaption: 'The board',
+    emptyIcon: Presentation,
+    emptyTitle: 'No board yet',
+    emptyDescription: 'Upload the building, add its name and facts, and press Generate.',
+    compare: { before: 'Render', after: 'Board' },
+  },
+  blockedReason: (_s, hasInput) => (hasInput ? null : 'Upload the building to begin.'),
+  toOptions: (_s, ctx) => plainOptions(ctx),
+  promptContracts: [
+    { name: 'board reads the building character first', pattern: /READ THE BUILDING FIRST/ },
+    { name: 'board keeps the hero image', pattern: /not redrawn/ },
+    { name: 'board writes only true text', pattern: /WRITE ONLY TRUE TEXT/ },
+    { name: 'board never invents facts', pattern: /Do not invent numbers, areas, dates/ },
+    { name: 'board insists on spelling', pattern: /Spell every word correctly/ },
+  ],
+};
+
+/**
+ * An interior or building → one magazine feature page about its design
+ * (guide #04, without the guide's paste-a-person step).
+ */
+const magazine: FeatureDef<MagazineSettings> = {
+  key: 'magazine',
+  category: 'boards',
+  name: 'Magazine Layout',
+  blurb: 'Image to Feature Page',
+  verb: 'Publish it as a magazine page',
+  inputKind: ['room', 'building'],
+  outputKind: null,
+  icon: BookOpen,
+  inputMode: 'image',
+  maxReferences: 0,
+  defaultSettings: { subject: 'interior', style: 'dense', format: '9:16', headline: '' },
+  quick: [
+    {
+      kind: 'choice',
+      key: 'subject',
+      label: 'About',
+      options: [
+        { value: 'interior', label: 'An interior' },
+        { value: 'building', label: 'A building' },
+      ],
+    },
+    {
+      kind: 'choice',
+      key: 'style',
+      label: 'Style',
+      options: [
+        { value: 'dense', label: 'Photo book' },
+        { value: 'minimal', label: 'Minimal' },
+        { value: 'scrapbook', label: 'Scrapbook' },
+      ],
+    },
+    {
+      kind: 'choice',
+      key: 'format',
+      label: 'Page',
+      options: [
+        { value: '9:16', label: '9:16' },
+        { value: '4:5', label: '4:5' },
+        { value: '3:4', label: '3:4' },
+      ],
+    },
+  ],
+  buildPrompt: (s) => buildMagazinePrompt(s),
+  aspectRatio: (s) => s.format,
+  sendTargets: [],
+  poolLabel: 'Boards',
+  galleryLabel: 'Magazine page',
+  ui: {
+    eyebrow: 'Diagrams & Boards',
+    title: 'Image → Magazine Feature',
+    description:
+      'A feature page about the design — headline, sections, tips and detail crops — with every picture taken from your image and no invented brands, prices or quotes.',
+    inputLabel: 'Input',
+    inputHint: 'An interior or building render or photo',
+    outputCaption: 'The magazine page',
+    emptyIcon: BookOpen,
+    emptyTitle: 'No page yet',
+    emptyDescription: 'Upload an image and press Generate — the feature page appears here.',
+    compare: { before: 'Image', after: 'Page' },
+  },
+  blockedReason: (_s, hasInput) => (hasInput ? null : 'Upload an image to begin.'),
+  toOptions: (_s, ctx) => plainOptions(ctx),
+  promptContracts: [
+    { name: 'magazine reads the subject first', pattern: /READ THE INTERIOR FIRST/ },
+    { name: 'magazine keeps the subject as it is', pattern: /do not redesign it/ },
+    { name: 'magazine invents no brands or prices', pattern: /No invented brand names, prices/ },
+    { name: 'magazine bans placeholder text', pattern: /no lorem ipsum/ },
+    { name: 'magazine insists on spelling', pattern: /Spell every word correctly/ },
+  ],
+};
+
 export const REGISTRY = {
   massing,
   sketchRender,
@@ -3568,6 +3777,9 @@ export const REGISTRY = {
   groundFloor,
   phasing,
   reframe,
+  systemsCutaway,
+  marketingBoard,
+  magazine,
   watercolour,
   axonometric,
   interior,

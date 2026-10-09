@@ -74,8 +74,13 @@ export const FEATURE_KEYS = [
   'floorAnalysis',
   'programDiagram',
   'explodedAxon',
+  // Cut it open to show how it works, then draw over it.
+  'systemsCutaway',
   'annotation',
   'moodboard',
+  // Then publish it.
+  'marketingBoard',
+  'magazine',
 ] as const;
 
 export type FeatureKind = (typeof FEATURE_KEYS)[number];

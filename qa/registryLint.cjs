@@ -225,6 +225,10 @@ const AWAITING_LIVE_RUN = {
   phasing: 'new; fixture ex-human-scale.jpg, awaiting one approved paid run of three stages (Q1)',
   reframe: 'new; fixtures ex-human-scale.jpg, ex-massing.jpg, awaiting approved paid runs (Q2, Q3)',
   groundFloor: 'new; fixture fixture-street-marked.png (qa/canvasOps.cjs burn), awaiting one approved paid run (Q4)',
+  // Build plan, Phase 3b.
+  systemsCutaway: 'new; fixture ex-human-scale.jpg (U1, climate); green systems on guide #51 (U2, test-only)',
+  marketingBoard: 'new; fixture ex-atmosphere.jpg, awaiting one approved paid run (U3)',
+  magazine: 'new; fixture interior-stage.jpg, awaiting one approved paid run (U4)',
 };
 const exempt = (k) => k in NO_FIXTURE || k in AWAITING_LIVE_RUN;
 const documented = new Set(
