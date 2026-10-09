@@ -792,6 +792,64 @@ const check = (name, ok, detail = '') => {
   await page.getByRole('button', { name: /^A building$/ }).click();
   await page.waitForTimeout(200);
 
+  // --- Build plan, Phase 1 ---------------------------------------------------
+  const gen = () => page.getByRole('button', { name: /^Generate$/ });
+
+  // Concept Diagram: moves are read from the form, or typed — and one typed
+  // move is not a sequence, so it blocks rather than being silently dropped.
+  await navTo('conceptDiagram');
+  const cdPrompt = page.locator('#conceptDiagram-prompt');
+  check('concept diagram reads its moves from the form by default', /WORK BACKWARDS INTO MOVES/.test(await cdPrompt.inputValue()));
+  check('and ends on the input', /last panel must match the input/.test(await cdPrompt.inputValue()));
+  await page.setInputFiles('input[type=file]', PLAN);
+  await page.waitForTimeout(400);
+  check('concept diagram runs with an image and no typed moves', await gen().isEnabled());
+  await page.locator('#conceptDiagram-moves').fill('Fill the site');
+  await page.waitForTimeout(300);
+  check('one typed move blocks Generate', !(await gen().isEnabled()));
+  await page.locator('#conceptDiagram-moves').fill('Fill the site\nCarve the courtyard\nStep the roofs');
+  await page.waitForTimeout(300);
+  check('three typed moves unblock it', await gen().isEnabled());
+  check('and say the panel count follows them', /3 moves typed/.test(await page.locator('[data-moves-count]').innerText()));
+  check('the typed moves reach the prompt, in order', /these 3 moves, in this order: 1\. Fill the site; 2\. Carve the courtyard; 3\. Step the roofs/.test(await cdPrompt.inputValue()));
+  await page.locator('#conceptDiagram-moves').fill('');
+
+  // Bubble to Plan: invents walls, so it says the sizes are interpreted.
+  await navTo('bubblePlan');
+  check('bubble plan keeps the diagram adjacencies', /the rooms share a wall with a door in it/.test(await page.locator('#bubblePlan-prompt').inputValue()));
+  await page.setInputFiles('input[type=file]', PLAN);
+  await page.waitForTimeout(400);
+  await gen().click();
+  await page.waitForTimeout(2500);
+  check('bubble plan warns that sizes are interpreted', /interpreted from a loose diagram/i.test(await mainText()));
+
+  // Moodboard to Space and the Concept Board both have a "Something else" that
+  // must be described before it runs.
+  await navTo('moodboardSpace');
+  check('moodboard space refuses another collage', /DO NOT MAKE ANOTHER COLLAGE/.test(await page.locator('#moodboardSpace-prompt').inputValue()));
+  await page.setInputFiles('input[type=file]', PLAN);
+  await page.waitForTimeout(400);
+  await page.getByRole('button', { name: 'Something else' }).click();
+  await page.waitForTimeout(300);
+  check('an undescribed room blocks Generate', !(await gen().isEnabled()));
+  await page.locator('#moodboardSpace-room').fill('a boutique hotel bathroom');
+  await page.waitForTimeout(300);
+  check('describing it unblocks it', await gen().isEnabled());
+  check('and the room reaches the prompt, without a doubled article', /one photorealistic boutique hotel bathroom that/.test(await page.locator('#moodboardSpace-prompt').inputValue()));
+  await page.getByRole('button', { name: /^Living$/ }).click();
+
+  await navTo('conceptBoard');
+  await page.setInputFiles('input[type=file]', PLAN);
+  await page.waitForTimeout(400);
+  await page.locator('#conceptBoard-title').fill('Seed Pavilion');
+  await page.waitForTimeout(300);
+  check('a typed title reaches the concept board prompt', /the title “Seed Pavilion”/.test(await page.locator('#conceptBoard-prompt').inputValue()));
+  await page.getByRole('button', { name: 'Something else' }).click();
+  await page.waitForTimeout(300);
+  check('an undescribed program blocks the concept board', !(await gen().isEnabled()));
+  await page.getByRole('button', { name: /^Pavilion$/ }).click();
+  await page.locator('#conceptBoard-title').fill('');
+
   // The shared lock must not name a thing the tool exists to change. This is the
   // contradiction that the static gate catches across all 624 variants; here it
   // is checked once, live, on the two tools most likely to regress.
@@ -1048,6 +1106,12 @@ const check = (name, ok, detail = '') => {
   await page.waitForTimeout(400);
   check('changing the kind changes the cards', (await page.locator('[data-card="interior"]').count()) === 1);
   check('and drops the ones that no longer apply', (await page.locator('[data-card="render"]').count()) === 0);
+  // Phase 1 added a kind for things to design FROM. Its chip leads somewhere.
+  await page.locator('[data-kind="inspiration"]').click();
+  await page.waitForTimeout(400);
+  check('a mood board or inspiration offers Moodboard to Space', (await page.locator('[data-card="moodboardSpace"]').count()) === 1);
+  check('and the Concept Board', (await page.locator('[data-card="conceptBoard"]').count()) === 1);
+  check('and no facade tool', (await page.locator('[data-card="facadeMaterial"]').count()) === 0);
 
   // 22. The key is asked at the first generation, not on arrival — and pasting
   //     it continues the run the user already started, with no second tap.

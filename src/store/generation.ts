@@ -381,6 +381,46 @@ export interface MoodboardSettings {
   aspect: BoardAspectKey; // board shape (portrait presentation default)
 }
 
+// --- Build plan Phase 1 ------------------------------------------------------
+
+/** How many moves a concept diagram explains the form in. Strings: quick axes are. */
+export type DiagramSteps = '3' | '4' | '5';
+/** BIG-style flat colour, or grey massing with a single accent. */
+export type DiagramLook = 'bold' | 'mono';
+export interface ConceptDiagramSettings {
+  steps: DiagramSteps;
+  /** Typed moves, in order. Empty: read the moves from the form itself. */
+  moves: string;
+  look: DiagramLook;
+  labels: boolean;
+}
+
+/** Solid poché walls, or double lines with a light fill. */
+export type BubbleWalls = 'poche' | 'double';
+export interface BubblePlanSettings {
+  furnished: boolean;
+  walls: BubbleWalls;
+  roomNames: boolean;
+}
+
+export type SpaceRoom = 'living' | 'bedroom' | 'kitchen' | 'dining' | 'office' | 'lobby' | 'custom';
+export type SpaceView = 'wide' | 'corner' | 'onepoint';
+export type SpaceLight = 'board' | 'daylight' | 'evening';
+export interface MoodboardSpaceSettings {
+  room: SpaceRoom;
+  customRoom: string;
+  view: SpaceView;
+  light: SpaceLight;
+}
+
+export type BoardProgram = 'pavilion' | 'museum' | 'house' | 'tower' | 'custom';
+export interface ConceptBoardSettings {
+  program: BoardProgram;
+  customProgram: string;
+  /** Empty: the model names the design. */
+  title: string;
+}
+
 export type FeatureSettings =
   | RenderSettings
   | ElevationSettings
@@ -412,7 +452,11 @@ export type FeatureSettings =
   | ProgramDiagramSettings
   | ExplodedAxonSettings
   | FloorAnalysisSettings
-  | MoodboardSettings;
+  | MoodboardSettings
+  | ConceptDiagramSettings
+  | BubblePlanSettings
+  | MoodboardSpaceSettings
+  | ConceptBoardSettings;
 
 /** Quick-action refinement of a specific output (P2). */
 export interface RefineState {

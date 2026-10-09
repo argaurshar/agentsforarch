@@ -3,6 +3,10 @@ import { FeatureErrorBoundary } from './components/ui/FeatureErrorBoundary';
 import { AxonometricFeature } from './features/axonometric/AxonometricFeature';
 import { MassingFeature } from './features/concept/MassingFeature';
 import { SketchRenderFeature } from './features/concept/SketchRenderFeature';
+import { ConceptBoardFeature } from './features/concept/ConceptBoardFeature';
+import { ConceptDiagramFeature } from './features/concept/ConceptDiagramFeature';
+import { BubblePlanFeature } from './features/drawings/BubblePlanFeature';
+import { MoodboardSpaceFeature } from './features/interiors/MoodboardSpaceFeature';
 import { AnnotationFeature } from './features/boards/AnnotationFeature';
 import { ExplodedAxonFeature } from './features/boards/ExplodedAxonFeature';
 import { FloorAnalysisFeature } from './features/boards/FloorAnalysisFeature';
@@ -49,6 +53,10 @@ const FEATURES: Record<FeatureKind | 'studio' | 'home' | 'gallery', ComponentTyp
   home: ToolIndex,
   massing: MassingFeature,
   sketchRender: SketchRenderFeature,
+  conceptDiagram: ConceptDiagramFeature,
+  conceptBoard: ConceptBoardFeature,
+  bubblePlan: BubblePlanFeature,
+  moodboardSpace: MoodboardSpaceFeature,
   render: RenderFeature,
   sketchPlan: SketchPlanFeature,
   elevation: ElevationFeature,

@@ -18,6 +18,10 @@ import {
   Brush,
   Building,
   Building2,
+  Leaf,
+  Shapes,
+  Waypoints,
+  WandSparkles,
   Camera,
   ClipboardList,
   Gem,
@@ -55,7 +59,14 @@ import {
   buildMoodboardPrompt,
   buildRenderPrompt,
 } from '../../lib/prompts';
-import { buildMassingPrompt, buildSketchRenderPrompt } from '../../lib/prompt/concept';
+import {
+  buildConceptBoardPrompt,
+  buildConceptDiagramPrompt,
+  buildMassingPrompt,
+  buildSketchRenderPrompt,
+  conceptDiagramPanels,
+  parseMoves,
+} from '../../lib/prompt/concept';
 import {
   buildAnnotationPrompt,
   buildExplodedAxonPrompt,
@@ -79,6 +90,7 @@ import {
   buildWireframeRenderPrompt,
 } from '../../lib/prompt/visualization';
 import {
+  buildBubblePlanPrompt,
   buildCadElevationPrompt,
   buildRenderToPlanPrompt,
   buildSectionPrompt,
@@ -86,6 +98,7 @@ import {
 } from '../../lib/prompt/drawings';
 import {
   buildDeclutterPrompt,
+  buildMoodboardSpacePrompt,
   buildPlaceObjectPrompt,
   buildSpecSheetPrompt,
   buildTargetedSwapPrompt,
@@ -94,6 +107,10 @@ import { LIGHTING, MATERIAL_PRESETS, MOODS, SEASONS, defaultScene } from '../../
 import type { AspectRatio } from '../../providers/options';
 import type { GenerateOptions, GenerateRequest } from '../../providers/types';
 import type {
+  BubblePlanSettings,
+  ConceptBoardSettings,
+  ConceptDiagramSettings,
+  MoodboardSpaceSettings,
   AnnotationSettings,
   AxonSettings,
   BirdsEyeSettings,
@@ -2377,9 +2394,315 @@ const moodboard: FeatureDef<MoodboardSettings> = {
  * Every tool. `satisfies` makes exhaustiveness a build error in both
  * directions — a key with no definition, or a definition with no key.
  */
+
+// --- Build plan, Phase 1 -------------------------------------------------------
+
+/**
+ * A finished building → the BIG-style sequence of moves behind its form (guide
+ * #14). The moves are read from the image, or typed by the architect; either
+ * way the last panel must BE the input.
+ */
+const conceptDiagram: FeatureDef<ConceptDiagramSettings> = {
+  key: 'conceptDiagram',
+  category: 'concept',
+  name: 'Concept Diagram',
+  blurb: 'Form to Step-by-Step Moves',
+  verb: 'Explain the form',
+  inputKind: ['building', 'model', 'sketch'],
+  outputKind: null,
+  icon: Shapes,
+  inputMode: 'image',
+  maxReferences: 0,
+  defaultSettings: { steps: '4', moves: '', look: 'bold', labels: true },
+  quick: [
+    {
+      kind: 'choice',
+      key: 'steps',
+      label: 'Steps',
+      options: [
+        { value: '3', label: '3 moves' },
+        { value: '4', label: '4 moves' },
+        { value: '5', label: '5 moves' },
+      ],
+    },
+    {
+      kind: 'choice',
+      key: 'look',
+      label: 'Look',
+      options: [
+        { value: 'bold', label: 'Bold colour' },
+        { value: 'mono', label: 'Grey + one accent' },
+      ],
+    },
+    {
+      kind: 'toggle',
+      key: 'labels',
+      label: 'Numbered captions',
+      hint: 'Off draws the panels alone — no words to misspell, but someone has to talk it through.',
+    },
+  ],
+  buildPrompt: (s) => buildConceptDiagramPrompt(s),
+  // A row of panels is a landscape strip; five need the wider sheet.
+  aspectRatio: (s) => (conceptDiagramPanels(s) >= 5 ? '21:9' : '16:9'),
+  sendTargets: ['upscale'],
+  poolLabel: 'Concept diagrams',
+  galleryLabel: 'Concept diagram',
+  ui: {
+    eyebrow: 'Concept & Form',
+    title: 'Building → Concept Diagram',
+    description:
+      'The competition-board sequence: the site volume, then each move that made the form — carved, stepped, lifted, planted — ending on your building. The moves are read from the image, or you list them.',
+    inputLabel: 'Input',
+    inputHint: 'A render, massing or model of the finished form',
+    outputCaption: 'The step-by-step diagram',
+    emptyIcon: Shapes,
+    emptyTitle: 'No diagram yet',
+    emptyDescription: 'Upload the finished form and press Generate — the sequence of moves appears here.',
+    compare: { before: 'Form', after: 'Moves' },
+  },
+  blockedReason: (s, hasInput, mode) => {
+    if (!hasInput) return 'Upload the building to begin.';
+    if (mode === 'refine') return null;
+    // One typed move would be silently dropped for the Steps count.
+    if (parseMoves(s.moves).length === 1) return 'List at least two moves, or clear the box.';
+    return null;
+  },
+  toOptions: (_s, ctx) => plainOptions(ctx),
+  promptContracts: [
+    { name: 'concept diagram reads the final form first', pattern: /READ THE BUILDING FIRST/ },
+    { name: 'concept diagram makes one move per panel', pattern: /exactly ONE visible change/ },
+    { name: 'concept diagram holds one camera', pattern: /SAME axonometric camera angle/ },
+    { name: 'concept diagram ends on the input', pattern: /last panel must match the input/ },
+    { name: 'concept diagram insists on spelling', pattern: /Spell every word correctly/ },
+  ],
+};
+
+/**
+ * An inspiring object or image → a building concept on one three-part board
+ * (guide #55). Translate the qualities, never the shape.
+ */
+const conceptBoard: FeatureDef<ConceptBoardSettings> = {
+  key: 'conceptBoard',
+  category: 'concept',
+  name: 'Bio-Mimicry Concept Board',
+  blurb: 'Inspiration to Concept Board',
+  verb: 'Design from an inspiration',
+  inputKind: ['inspiration'],
+  outputKind: null,
+  icon: Leaf,
+  inputMode: 'image',
+  maxReferences: 0,
+  defaultSettings: { program: 'pavilion', customProgram: '', title: '' },
+  quick: [
+    {
+      kind: 'choice',
+      key: 'program',
+      label: 'Design a',
+      options: [
+        { value: 'pavilion', label: 'Pavilion' },
+        { value: 'museum', label: 'Museum' },
+        { value: 'house', label: 'House' },
+        { value: 'tower', label: 'Tower' },
+        { value: 'custom', label: 'Something else' },
+      ],
+    },
+  ],
+  buildPrompt: (s) => buildConceptBoardPrompt(s),
+  aspectRatio: () => '3:2',
+  sendTargets: ['upscale'],
+  poolLabel: 'Concept boards',
+  galleryLabel: 'Concept board',
+  ui: {
+    eyebrow: 'Concept & Form',
+    title: 'Inspiration → Concept Board',
+    description:
+      'A shell, a seed head, a painting — its form, texture and behaviour translated into a building, not copied. One board: the concept sketch, the hero render and the interiors.',
+    inputLabel: 'Inspiration',
+    inputHint: 'A photo of an object, a natural form, an artwork or a mood image',
+    outputCaption: 'The concept board',
+    emptyIcon: Leaf,
+    emptyTitle: 'No concept board yet',
+    emptyDescription: 'Upload an inspiration and press Generate — a three-part board appears here.',
+    compare: { before: 'Inspiration', after: 'Concept' },
+  },
+  blockedReason: (s, hasInput, mode) => {
+    if (!hasInput) return 'Upload an inspiration image to begin.';
+    if (mode === 'refine') return null;
+    if (s.program === 'custom' && !s.customProgram.trim()) return 'Say what the building is.';
+    return null;
+  },
+  toOptions: (_s, ctx) => plainOptions(ctx),
+  promptContracts: [
+    { name: 'concept board reads the inspiration without naming it', pattern: /READ THE INSPIRATION FIRST/ },
+    { name: 'concept board translates rather than copies', pattern: /TRANSLATE, DO NOT COPY/ },
+    { name: 'concept board has exactly three parts', pattern: /exactly three parts/ },
+    { name: 'concept board shows one building throughout', pattern: /All three parts show the SAME building/ },
+    { name: 'concept board insists on spelling', pattern: /Spell every word correctly/ },
+  ],
+};
+
+/**
+ * A bubble or zoning diagram → a drafted, furnished plan (guide #60). The
+ * opposite instruction to Sketch → Plan: walls and doors are INVENTED here, and
+ * only the diagram's adjacencies are fixed.
+ */
+const bubblePlan: FeatureDef<BubblePlanSettings> = {
+  key: 'bubblePlan',
+  category: 'drawings',
+  name: 'Bubble to Plan',
+  blurb: 'Bubble Diagram to Floor Plan',
+  verb: 'Turn bubbles into a plan',
+  inputKind: ['sketch', 'plan'],
+  outputKind: 'plan',
+  icon: Waypoints,
+  inputMode: 'image',
+  maxReferences: 0,
+  accuracyWarning: () =>
+    'Room sizes and walls are interpreted from a loose diagram — check the dimensions before you rely on them.',
+  defaultSettings: { furnished: true, walls: 'poche', roomNames: false },
+  quick: [
+    {
+      kind: 'toggle',
+      key: 'furnished',
+      label: 'Furnished',
+      hint: 'Off draws the shell only — walls, doors and windows.',
+    },
+    {
+      kind: 'choice',
+      key: 'walls',
+      label: 'Walls',
+      options: [
+        { value: 'poche', label: 'Solid' },
+        { value: 'double', label: 'Double line' },
+      ],
+    },
+    {
+      kind: 'toggle',
+      key: 'roomNames',
+      label: 'Room names',
+      hint: 'Off keeps the plan text-free, which is what the diagram’s handwriting is removed for.',
+    },
+  ],
+  buildPrompt: (s) => buildBubblePlanPrompt(s),
+  sendTargets: ['render', 'floorAnalysis', 'annotation'],
+  poolLabel: 'Plans',
+  galleryLabel: 'Plan',
+  ui: {
+    eyebrow: 'Plans & Drawings',
+    title: 'Bubble Diagram → Floor Plan',
+    description:
+      'Bubbles become rooms in the same arrangement: bubbles that touch share a door, bubbles that do not stay apart. Walls, doors and furniture are drawn in; the handwriting is taken out.',
+    inputLabel: 'Input',
+    inputHint: 'A bubble or zoning diagram — hand-drawn or digital',
+    outputCaption: 'The drafted plan',
+    emptyIcon: Waypoints,
+    emptyTitle: 'No plan yet',
+    emptyDescription: 'Upload a bubble diagram and press Generate — the drafted plan appears here.',
+    compare: { before: 'Diagram', after: 'Plan' },
+  },
+  blockedReason: (_s, hasInput) => (hasInput ? null : 'Upload a bubble diagram to begin.'),
+  toOptions: (_s, ctx) => plainOptions(ctx),
+  promptContracts: [
+    { name: 'bubble plan reads the diagram first', pattern: /READ THE DIAGRAM FIRST/ },
+    { name: 'bubble plan keeps the adjacencies', pattern: /the rooms share a wall with a door in it/ },
+    { name: 'bubble plan holds the projection', pattern: /ORTHOGRAPHIC drawing/ },
+    { name: 'bubble plan removes the diagram marks', pattern: /Remove every bubble/ },
+    { name: 'bubble plan never blocks a door', pattern: /no furniture in front of a door/ },
+  ],
+};
+
+/**
+ * A mood board or collage → one photoreal room built from it (guide #06). The
+ * reverse of Moodboard, which makes a board from a room.
+ */
+const moodboardSpace: FeatureDef<MoodboardSpaceSettings> = {
+  key: 'moodboardSpace',
+  category: 'interiors',
+  name: 'Moodboard to Space',
+  blurb: 'Mood Board to Room',
+  verb: 'Build the room from the board',
+  inputKind: ['inspiration'],
+  outputKind: 'room',
+  icon: WandSparkles,
+  inputMode: 'image',
+  maxReferences: 0,
+  defaultSettings: { room: 'living', customRoom: '', view: 'wide', light: 'board' },
+  quick: [
+    {
+      kind: 'choice',
+      key: 'room',
+      label: 'Room',
+      options: [
+        { value: 'living', label: 'Living' },
+        { value: 'bedroom', label: 'Bedroom' },
+        { value: 'kitchen', label: 'Kitchen' },
+        { value: 'dining', label: 'Dining' },
+        { value: 'office', label: 'Office' },
+        { value: 'lobby', label: 'Lobby' },
+        { value: 'custom', label: 'Something else' },
+      ],
+    },
+    {
+      kind: 'choice',
+      key: 'view',
+      label: 'View',
+      options: [
+        { value: 'wide', label: 'Wide' },
+        { value: 'corner', label: 'Corner' },
+        { value: 'onepoint', label: 'One-point' },
+      ],
+    },
+    {
+      kind: 'choice',
+      key: 'light',
+      label: 'Light',
+      options: [
+        { value: 'board', label: 'Match the board' },
+        { value: 'daylight', label: 'Daylight' },
+        { value: 'evening', label: 'Evening' },
+      ],
+    },
+  ],
+  buildPrompt: (s) => buildMoodboardSpacePrompt(s),
+  aspectRatio: () => '3:2',
+  sendTargets: ['placeObject', 'targetedSwap', 'specSheet'],
+  poolLabel: 'Interiors',
+  galleryLabel: 'Interior',
+  ui: {
+    eyebrow: 'Interiors',
+    title: 'Mood Board → Room',
+    description:
+      'The board’s palette, materials and furniture style, built into one room you could walk into — not another collage. The reverse of Moodboard.',
+    inputLabel: 'Mood board',
+    inputHint: 'A mood board or collage — swatches, furniture, colours',
+    outputCaption: 'The room',
+    emptyIcon: WandSparkles,
+    emptyTitle: 'No room yet',
+    emptyDescription: 'Upload a mood board and press Generate — the room appears here.',
+    compare: { before: 'Board', after: 'Room' },
+  },
+  blockedReason: (s, hasInput, mode) => {
+    if (!hasInput) return 'Upload a mood board to begin.';
+    if (mode === 'refine') return null;
+    if (s.room === 'custom' && !s.customRoom.trim()) return 'Say what kind of room it is.';
+    return null;
+  },
+  toOptions: (_s, ctx) => plainOptions(ctx),
+  promptContracts: [
+    { name: 'moodboard space reads the board first', pattern: /READ THE BOARD FIRST/ },
+    { name: 'moodboard space refuses another collage', pattern: /DO NOT MAKE ANOTHER COLLAGE/ },
+    { name: 'moodboard space keeps the palette proportions', pattern: /board’s own proportions/ },
+    { name: 'moodboard space adds no text', pattern: /watermark, signature, caption or stray text/ },
+  ],
+};
+
 export const REGISTRY = {
   massing,
   sketchRender,
+  conceptDiagram,
+  conceptBoard,
+  bubblePlan,
+  moodboardSpace,
   render,
   sketchPlan,
   elevation,

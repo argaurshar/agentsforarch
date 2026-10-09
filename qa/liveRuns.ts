@@ -285,7 +285,53 @@ const SKIPPED: Run[] = [
  * massing is a courtyard BLOCK, so a render that quietly built the reference
  * instead of the massing cannot hide.
  */
-const NEW_TOOLS: Run[] = [];
+/**
+ * Build plan, Phase 1. Inputs are our own wherever one exists, so a passing run
+ * can become the published worked example directly.
+ *
+ * Y1 reads the moves from our own courtyard massing — close to the guide's own
+ * example, so the moves are visible and the last panel can be judged.
+ * Y2 is the bubble diagram qa/makeBubble.cjs draws, built so each adjacency
+ * rule (touching, linked, apart) appears and can be checked.
+ * Y3 closes the loop: Room → Moodboard (our board-boho) → Room.
+ * Y4 uses the guide's terracotta jali photo (#59, test-only): the guide's own
+ * #55 input is a finished building render, which cannot test "translate, do
+ * not copy" — there is no object to copy.
+ */
+const NEW_TOOLS: Run[] = [
+  {
+    id: 'Y1', tool: 'conceptDiagram', input: 'ex-massing.jpg',
+    title: 'Moves read from the form. Same camera throughout, ending on THIS massing?',
+    verdicts: [
+      'PASS — 4 panels from one camera, one visible move each, the last matching the courtyard massing; captions spelled',
+      'FAIL — panels from different angles, a final form that is not the input, or garbled captions',
+    ],
+  },
+  {
+    id: 'Y2', tool: 'bubblePlan', input: 'bubble-input.jpg',
+    title: 'Bubbles to rooms. Do touching bubbles share doors — and do apart ones not?',
+    verdicts: [
+      'PASS — eight rooms in the diagram’s arrangement; hall opens to both bedrooms, bath and living; bedrooms do not connect; no handwriting left',
+      'FAIL — a generic flat ignoring the bubbles, bedrooms opening into each other, or the title/note/N surviving',
+    ],
+  },
+  {
+    id: 'Y3', tool: 'moodboardSpace', input: 'board-boho.jpg',
+    title: 'Our own mood board back into a room. A room — or another board?',
+    verdicts: [
+      'PASS — one living-room photograph in terracotta, linen, rattan and aged teak; no swatches, no text',
+      'FAIL — a grid or collage, the board hung as art, or a generic neutral room',
+    ],
+  },
+  {
+    id: 'Y4', tool: 'conceptBoard', input: 'guide:uc59-input1.jpg',
+    title: 'A perforated terracotta block as inspiration. Translated — or a building shaped like a block?',
+    verdicts: [
+      'PASS — three parts showing one pavilion that uses perforation, light and terracotta as a language; title spelled',
+      'FAIL — a pavilion that is literally a jali block, the photo pasted on the board, or unrelated buildings per part',
+    ],
+  },
+];
 
 /**
  * Phase 0 of the build plan: the live runs OWED on tools already built.

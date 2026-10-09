@@ -31,11 +31,12 @@ Save each as JPEG, longest side 1600 px, under the name below.
 | `uc47-input1.jpg` | #47 final render | Construction Phasing |
 | `uc51-input1.jpg` | #51 tower | Systems Cutaway (green systems) |
 | `uc54-input1.jpg` | #54 render | Marketing Board |
-| `uc55-input1.jpg` | #55 inspiration | Bio-Mimicry Concept Board |
 | `uc56-input1.jpg` | #56 top-down map | 3D Site Analysis |
 | `uc58-input1.jpg` | #58 Earth screenshot | Urban Layer Maps |
-| `uc59-input1.jpg` | #59 material photo | Material Poster |
-| `uc60-input1.jpg` | #60 bubble diagram | Bubble to Plan |
+| `uc59-input1.jpg` | #59 terracotta jali photo | Y4 · Bio-Mimicry Concept Board; Material Poster |
+| `uc60-input1.jpg` | #60 bubble diagram | Bubble to Plan (a second check; Y2 uses our own `bubble-input.jpg`) |
 
 Also present but unused so far: `uc08` (oblique aerial photo — not the
-top-down input Bird's Eye asks for), `uc23`, `uc24`.
+top-down input Bird's Eye asks for), `uc23`, `uc24`, and `uc55` (#55's
+input is a finished building render, which cannot test "translate, do not
+copy" — Y4 uses the jali photo instead).

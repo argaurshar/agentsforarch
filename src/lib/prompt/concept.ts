@@ -10,7 +10,13 @@
 import { CONTEXTS, LIGHTING, archStyleClause, materialsClause } from '../scene';
 import type { SceneOptions } from '../../store/generation';
 import { NO_TEXT } from './clauses';
-import type { MassingImageRole, SketchMedium } from '../../store/generation';
+import type {
+  BoardProgram,
+  DiagramLook,
+  DiagramSteps,
+  MassingImageRole,
+  SketchMedium,
+} from '../../store/generation';
 
 export type { SketchMedium };
 
@@ -184,4 +190,131 @@ export function buildSketchRenderPrompt(a: SceneOptions & { medium: SketchMedium
   ]
     .filter(Boolean)
     .join(' ');
+}
+
+// --- Concept diagram (guide #14) --------------------------------------------
+
+/** The typed moves, one per line (or separated by semicolons). */
+export function parseMoves(moves: string): string[] {
+  return moves
+    .split(/\n|;/)
+    .map((m) => m.replace(/^\s*\d+[.)]\s*/, '').trim())
+    .filter(Boolean)
+    .slice(0, 6);
+}
+
+/** Panels drawn: the typed moves when there are at least two, else the setting. */
+export function conceptDiagramPanels(a: { steps: DiagramSteps; moves: string }): number {
+  const typed = parseMoves(a.moves).length;
+  return typed >= 2 ? typed : Number(a.steps);
+}
+
+const LOOK_CLAUSE: Record<DiagramLook, string> = {
+  bold:
+    'flat, saturated colours in the manner of BIG or MVRDV — the volume in one warm neutral, and each move’s new ' +
+    'element in its own clear accent (green for planting, a bright colour for what is cut, lifted or added)',
+  mono: 'grey massing throughout, with a single orange accent marking the element each move adds or changes',
+};
+
+/**
+ * A finished building → the BIG-style sequence of moves that explains its form.
+ *
+ * The guide's prompt hard-codes four moves for one building (block, courtyard,
+ * mountain, greenery). Here the moves are READ from the input, because the
+ * failure is not drawing — it is a sequence that ends on a different building.
+ * Two things make such a diagram worth anything, and both are named: every
+ * panel shares one camera, and the last panel IS the input. A diagram whose
+ * panels drift explains nothing about the project it is pinned beside.
+ */
+export function buildConceptDiagramPrompt(a: {
+  steps: DiagramSteps;
+  moves: string;
+  look: DiagramLook;
+  labels: boolean;
+}): string {
+  const typed = parseMoves(a.moves);
+  const n = conceptDiagramPanels(a);
+  const parts: string[] = [
+    'You are making a step-by-step architectural concept diagram — the kind BIG or MVRDV put on a competition board — ' +
+      'that explains how the building in the input image got its form.',
+    'STEP 1 — READ THE BUILDING FIRST. Study the input until you can describe its final form exactly: footprint and ' +
+      'proportions, number of storeys, and every cut, void, courtyard, step, cantilever, setback and roof garden. That ' +
+      'final form is the answer the diagram has to arrive at.',
+    typed.length >= 2
+      ? `STEP 2 — FOLLOW THE ARCHITECT’S MOVES. Explain the form as these ${n} moves, in this order: ` +
+        `${typed.map((m, i) => `${i + 1}. ${m}`).join('; ')}. Begin from the plain extruded volume that fills the site, ` +
+        'and let each move make exactly ONE visible change to it.'
+      : `STEP 2 — WORK BACKWARDS INTO MOVES. Explain the form as ${n} simple design moves applied in order to one ` +
+        'starting block. Begin with the plain extruded volume that fills the site, and let each later move make exactly ' +
+        'ONE visible change — a carve, a lift, a step, a twist, a split, added greenery — chosen because you can SEE it ' +
+        'in the final building. Do not invent moves the building does not show.',
+    `STEP 3 — DRAW THE SEQUENCE. ${n} panels side by side, left to right, each showing the same building from the SAME ` +
+      'axonometric camera angle, at the same scale, on the same footprint. Draw the volume as a clean simplified massing ' +
+      'model: no photorealism, no texture, no people, no context beyond a thin ground plane. In each panel show the move ' +
+      'happening: a bold arrow for the push, pull or lift, the removed part as a ghosted outline, the new element ' +
+      'picked out in colour. Every panel keeps everything the previous panel established.',
+    `Colour: ${LOOK_CLAUSE[a.look]}. One palette across all ${n} panels, on a plain white background.`,
+    'The last panel must match the input building’s massing — same courtyard, same steps, same proportions. A sequence ' +
+      'that ends on a different building explains nothing.',
+    a.labels
+      ? 'Under each panel, a short numbered caption of two to four words naming the move (for example 1. SITE VOLUME, ' +
+        '2. CARVE COURTYARD) in a clean bold sans-serif. Spell every word correctly and keep every word legible.'
+      : NO_TEXT,
+    `CHECK before you finish: is the camera identical in all ${n} panels? Does each panel differ from the one before ` +
+      'by exactly one move? Does the final panel match the input’s form? If not, redo it.',
+  ];
+  return parts.join(' ');
+}
+
+// --- Bio-mimicry concept board (guide #55) ----------------------------------
+
+const PROGRAM_NOUN: Record<Exclude<BoardProgram, 'custom'>, string> = {
+  pavilion: 'an exhibition pavilion',
+  museum: 'a small museum',
+  house: 'a house',
+  tower: 'a residential tower',
+};
+
+/**
+ * An inspiring object or image → a building concept, presented as one
+ * three-part competition board.
+ *
+ * The failure the guide names is kitsch: a museum shaped like a shell. So the
+ * read step describes the subject WITHOUT naming it — form, texture, behaviour
+ * — and the design step works from that description, never from the object.
+ * The second failure is a board of three unrelated buildings, which is why
+ * "the SAME building" is stated and checked.
+ */
+export function buildConceptBoardPrompt(a: { program: BoardProgram; customProgram: string; title: string }): string {
+  // An empty "Something else" is blocked in the UI; if it ever reaches here it
+  // still reads as a complete instruction, and NOT as the pavilion default.
+  const what =
+    a.program === 'custom'
+      ? a.customProgram.trim() || 'a building whose purpose suits the inspiration'
+      : PROGRAM_NOUN[a.program];
+  const title = a.title.trim();
+  return [
+    `You are designing an architectural concept — ${what} — inspired by the image in the input, and presenting it as ` +
+      'one competition board.',
+    'STEP 1 — READ THE INSPIRATION FIRST. Describe to yourself what makes the subject distinctive WITHOUT naming it: ' +
+      'its form and silhouette, proportions, colours, surface textures, tone, and behaviour — how it grows, folds, ' +
+      'opens, repeats, protects or lets light through. Those qualities are the design language.',
+    'STEP 2 — TRANSLATE, DO NOT COPY. Design a building that carries those qualities into architecture — structure, ' +
+      'envelope, light and circulation — so someone who knows the source would recognise the idea, but the building is ' +
+      'not shaped like the object. Never reproduce the object literally, never show a face, head or recognisable ' +
+      'figure, and never paste the input image onto the board.',
+    'STEP 3 — LAY OUT ONE BOARD with exactly three parts, on a background themed on the inspiration’s palette and ' +
+      'texture, in a structured international layout with generous margins:',
+    `1. CONCEPT — a loose, hand-painted colour sketch of the core idea, with ${
+      title ? `the title “${title}”` : 'the design’s title'
+    } above it.`,
+    '2. MAIN RENDER — the largest part: a realistic, photographic render of the building in use, with people, ' +
+      'circulation and a credible setting.',
+    '3. INTERIOR VIGNETTES — three or four small views of interior moments and details.',
+    'All three parts show the SAME building.',
+    'Text is limited to the title and at most one short line per part, in a clean sans-serif. Spell every word ' +
+      'correctly and keep every word legible. Do not add any watermark or signature.',
+    'CHECK before you finish: is the building clearly inspired by the input, yet not a copy of it? Are there exactly ' +
+      'three parts showing one building? Is the title spelled correctly?',
+  ].join(' ');
 }

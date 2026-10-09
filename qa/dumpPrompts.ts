@@ -8,7 +8,7 @@
 // sampled: the bugs that shipped were all in combinations nobody thought to try.
 
 import { buildAxonometricPrompt, buildElevationPrompt, buildInteriorPrompt, buildMoodboardPrompt, buildRefinePrompt, buildRenderPrompt } from '../src/lib/prompts';
-import { buildMassingPrompt, buildSketchRenderPrompt } from '../src/lib/prompt/concept';
+import { buildConceptBoardPrompt, buildConceptDiagramPrompt, buildMassingPrompt, buildSketchRenderPrompt } from '../src/lib/prompt/concept';
 import { buildAnnotationPrompt, buildExplodedAxonPrompt, buildProgramDiagramPrompt } from '../src/lib/prompt/boards';
 import { buildBirdsEyePrompt, buildFloorAnalysisPrompt, buildUrbanContextPrompt } from '../src/lib/prompt/site';
 import {
@@ -28,12 +28,14 @@ import {
   buildRenderToPlanPrompt,
   buildSectionPrompt,
   buildSketchPlanPrompt,
+  buildBubblePlanPrompt,
 } from '../src/lib/prompt/drawings';
 import {
   buildDeclutterPrompt,
   buildPlaceObjectPrompt,
   buildSpecSheetPrompt,
   buildTargetedSwapPrompt,
+  buildMoodboardSpacePrompt,
 } from '../src/lib/prompt/interiors';
 import { defaultScene } from '../src/lib/scene';
 const sc = defaultScene();
@@ -185,4 +187,33 @@ for (const take of ['everything', 'materials', 'atmosphere'] as const) {
 }
 add('moodboard', buildMoodboardPrompt());
 add('refine', buildRefinePrompt({ chips: ['warmer-light','change-curtains'], freeText: 'more plants' }));
+
+// --- Build plan, Phase 1 ------------------------------------------------------
+// Concept Diagram: every step count x look x captions, plus typed moves (which
+// override the count) and a single typed move (which must NOT).
+for (const steps of ['3', '4', '5'] as const)
+  for (const look of ['bold', 'mono'] as const)
+    for (const labels of [true, false])
+      add(`cdiag:${steps}:${look}:l${labels}`, buildConceptDiagramPrompt({ steps, moves: '', look, labels }));
+add('cdiag:typed', buildConceptDiagramPrompt({ steps: '4', moves: '1. Fill the site\n2. Lift the corner\n3. Plant the roof', look: 'bold', labels: true }));
+add('cdiag:one-typed', buildConceptDiagramPrompt({ steps: '4', moves: 'Fill the site', look: 'bold', labels: true }));
+// Concept Board: every program, the typed program, and a typed title.
+for (const program of ['pavilion', 'museum', 'house', 'tower'] as const)
+  add(`cboard:${program}`, buildConceptBoardPrompt({ program, customProgram: '', title: '' }));
+add('cboard:custom', buildConceptBoardPrompt({ program: 'custom', customProgram: 'a library on a waterfront', title: '' }));
+add('cboard:titled', buildConceptBoardPrompt({ program: 'pavilion', customProgram: '', title: 'Seed Pavilion' }));
+// Bubble Plan: all eight switch combinations.
+for (const furnished of [true, false])
+  for (const walls of ['poche', 'double'] as const)
+    for (const roomNames of [false, true])
+      add(`bubble:f${furnished}:${walls}:n${roomNames}`, buildBubblePlanPrompt({ furnished, walls, roomNames }));
+// Moodboard to Space: every room, every view, every light.
+for (const room of ['living', 'bedroom', 'kitchen', 'dining', 'office', 'lobby'] as const)
+  add(`mspace:${room}`, buildMoodboardSpacePrompt({ room, customRoom: '', view: 'wide', light: 'board' }));
+add('mspace:custom', buildMoodboardSpacePrompt({ room: 'custom', customRoom: 'a boutique hotel bathroom' /* the article must be dropped */, view: 'wide', light: 'board' }));
+for (const view of ['corner', 'onepoint'] as const)
+  add(`mspace:view:${view}`, buildMoodboardSpacePrompt({ room: 'living', customRoom: '', view, light: 'board' }));
+for (const light of ['daylight', 'evening'] as const)
+  add(`mspace:light:${light}`, buildMoodboardSpacePrompt({ room: 'living', customRoom: '', view: 'wide', light }));
+
 console.log(out.join('\n\n'));

@@ -201,6 +201,13 @@ const NO_FIXTURE = {
 // produces it; the stale check below then forces the name off this list.
 const AWAITING_LIVE_RUN = {
   massingRender: 'new; fixtures exist (ex-massing.jpg + elev-rendered.jpg), awaiting one approved paid run',
+  // Build plan, Phase 1. Each has a publishable input already: our own massing,
+  // our own Moodboard output, a bubble diagram drawn by qa/makeBubble.cjs. The
+  // inspiration photo for the concept board is the one still to choose.
+  conceptDiagram: 'new; fixture ex-massing.jpg, awaiting one approved paid run (liveRuns --new, Y1)',
+  bubblePlan: 'new; fixture bubble-input.jpg (qa/makeBubble.cjs), awaiting one approved paid run (Y2)',
+  moodboardSpace: 'new; fixture board-boho.jpg (our own Moodboard output), awaiting one approved paid run (Y3)',
+  conceptBoard: 'new; tested on guide #59 jali photo (Y4, test-only); a publishable inspiration photo is still to be chosen',
 };
 const exempt = (k) => k in NO_FIXTURE || k in AWAITING_LIVE_RUN;
 const documented = new Set(
