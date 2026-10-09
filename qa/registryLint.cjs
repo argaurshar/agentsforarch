@@ -184,13 +184,16 @@ check(
 // build rather than presenting a visitor with a blank panel and no explanation.
 //
 // The exemptions are not a convenience list. Each of these three needs an input
-// fixture that does not exist in this repo and cannot be fetched or credibly
-// generated, so no example CAN be produced for them yet. Deleting a name from
-// this list is how the gate is satisfied once its fixture lands.
+// that may be PUBLISHED in this repo, and none exists yet, so no example CAN be
+// produced for them. They can now be verified live — qa/fixtures/guide holds
+// test inputs from the paid guide (`liveRuns --owed`) — but those are test-only
+// and git-ignored: the repo is public, and a worked example republishes its
+// input. Deleting a name from this list is how the gate is satisfied once a
+// publishable input lands.
 const NO_FIXTURE = {
-  birdsEye: 'needs a top-down satellite or Maps screenshot',
-  wireframeRender: 'needs a SketchUp or 3D viewport screenshot',
-  placeObject: 'needs a product shot on plain ground as its second image',
+  birdsEye: 'needs a publishable top-down satellite tile (guide #32 is test-only; public-domain aerial planned)',
+  wireframeRender: 'needs a publishable viewport screenshot (guide #09 is test-only)',
+  placeObject: 'needs a publishable product shot as its second image (guide #25 is test-only)',
 };
 // A different reason, kept in a different list so the two cannot blur: these
 // tools have every fixture they need, but their worked example needs a PAID
@@ -198,10 +201,43 @@ const NO_FIXTURE = {
 // produces it; the stale check below then forces the name off this list.
 const AWAITING_LIVE_RUN = {
   massingRender: 'new; fixtures exist (ex-massing.jpg + elev-rendered.jpg), awaiting one approved paid run',
+  // Build plan, Phase 1. Each has a publishable input already: our own massing,
+  // our own Moodboard output, a bubble diagram drawn by qa/makeBubble.cjs. The
+  // inspiration photo for the concept board is the one still to choose.
+  conceptDiagram: 'new; fixture ex-massing.jpg, awaiting one approved paid run (liveRuns --new, Y1)',
+  bubblePlan: 'new; fixture bubble-input.jpg (qa/makeBubble.cjs), awaiting one approved paid run (Y2)',
+  moodboardSpace: 'new; fixture board-boho.jpg (our own Moodboard output), awaiting one approved paid run (Y3)',
+  conceptBoard: 'new; tested on guide #59 jali photo (Y4, test-only); a publishable inspiration photo is still to be chosen',
+  // Build plan, Phase 2a. All three are tested on guide inputs (Z1-Z3,
+  // test-only): Google imagery and the guide's site photo cannot be published,
+  // so each example will need a public-domain aerial or our own site photo.
+  siteLinework: 'new; tested on guide #32 (Z1, test-only); publishable public-domain aerial still to source',
+  siteAnalysis: 'new; tested on guide #44 (Z2, test-only); publishable public-domain aerial still to source',
+  placeInSite: 'new; tested on guide #46 (Z3, test-only); a publishable site photo still to source',
+  // Build plan, Phase 2b.
+  siteAnalysis3d: 'new; tested on guide #56 with and without its reference (Z4, Z5, test-only)',
+  urbanLayers: 'new; tested on guide #58, both steps chained (Z6 then Z7, test-only)',
+  // Text-only: no input to publish, so these can earn an example from their
+  // first passing run.
+  sitePhoto: 'new; text-only, awaiting approved paid runs (Z8 landmark rule, Z9 ordinary street)',
+  siteHistory: 'new; text-only, awaiting approved paid runs (Z10 Taj Mahal, Z11 Battersea)',
+  // Build plan, Phase 3a — our own inputs throughout, publishable on a pass.
+  phasing: 'new; fixture ex-human-scale.jpg, awaiting one approved paid run of three stages (Q1)',
+  reframe: 'new; fixtures ex-human-scale.jpg, ex-massing.jpg, awaiting approved paid runs (Q2, Q3)',
+  groundFloor: 'new; fixture fixture-street-marked.png (qa/canvasOps.cjs burn), awaiting one approved paid run (Q4)',
+  // Build plan, Phase 3b.
+  systemsCutaway: 'new; fixture ex-human-scale.jpg (U1, climate); green systems on guide #51 (U2, test-only)',
+  marketingBoard: 'new; fixture ex-atmosphere.jpg, awaiting one approved paid run (U3)',
+  magazine: 'new; fixture interior-stage.jpg, awaiting one approved paid run (U4)',
+  // Build plan, Phase 4. Text-first tools — an example needs no published input.
+  materialPoster: 'new; text-only and with guide #59 photo (K1, K2), awaiting approved paid runs',
+  architectTimeline: 'new; text-only, awaiting one approved paid run (K3)',
+  blueprintEvolution: 'new; text-only, awaiting one approved paid run (K4)',
+  redPen: 'new; fixtures interior-stage.jpg, interior-restyle.jpg, awaiting approved paid runs (K5, K6)',
 };
 const exempt = (k) => k in NO_FIXTURE || k in AWAITING_LIVE_RUN;
 const documented = new Set(
-  [...stripComments(examplesSrc).matchAll(/^  ([a-zA-Z]+): \{$/gm)].map((m) => m[1]),
+  [...stripComments(examplesSrc).matchAll(/^  ([a-zA-Z][a-zA-Z0-9]*): \{$/gm)].map((m) => m[1]),
 );
 const undocumented = declaredKeys.filter((k) => !documented.has(k) && !exempt(k));
 check(
@@ -539,7 +575,7 @@ const appSrc = fs.readFileSync(path.join(SRC, 'App.tsx'), 'utf8');
 // `  render: RenderFeature,` in App.tsx's FEATURES map — the one place that
 // already maps a tool to the component that draws it.
 const screenOf = {};
-for (const m of stripComments(appSrc).matchAll(/^\s{2}([a-zA-Z]+): (\w+Feature),$/gm)) screenOf[m[1]] = m[2];
+for (const m of stripComments(appSrc).matchAll(/^\s{2}([a-zA-Z][a-zA-Z0-9]*): (\w+Feature),$/gm)) screenOf[m[1]] = m[2];
 
 const quickKeys = {};
 for (const b of defBlocks) {

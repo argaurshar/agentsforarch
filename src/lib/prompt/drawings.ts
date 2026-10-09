@@ -19,6 +19,7 @@ import { FOOTPRINT_READ, NO_TEXT } from './clauses';
 // typing hides the drift until something far away stops assigning.
 import type {
   AnnotationMode,
+  BubbleWalls,
   DrawingUnits,
   ElevationFace,
   SectionAxis,
@@ -378,4 +379,53 @@ export function buildCadElevationPrompt(a: {
     projectionCheck('flat orthographic elevation'),
   );
   return parts.join(' ');
+}
+
+// --- Bubble diagram → furnished plan (guide #60) ----------------------------
+
+/**
+ * A bubble or zoning diagram → a drafted, furnished floor plan.
+ *
+ * The OPPOSITE instruction to Sketch → Plan, which is why it is a separate tool.
+ * A sketched plan already has walls and must be traced faithfully; a bubble
+ * diagram has none, so this tool must INVENT the walls, the doors and the
+ * furniture. What it must not invent is the arrangement: the diagram's
+ * adjacencies are the brief. The guide's prompt never says so, and the result is
+ * a tidy generic flat that ignores the bubbles — so adjacency is spelled out as
+ * three rules (touch → shared door, linked → opening, apart → no connection)
+ * and checked again at the end.
+ */
+export function buildBubblePlanPrompt(a: { furnished: boolean; walls: BubbleWalls; roomNames: boolean }): string {
+  return [
+    'You are a drafter turning a loose bubble diagram into a professional 2D floor plan.',
+    'STEP 1 — READ THE DIAGRAM FIRST. List every bubble or zone: its name, its size relative to the others, which ' +
+      'bubbles touch or are linked by a line or arrow, and where the entrance and any window or orientation marks are. ' +
+      'Those adjacencies are the brief — the plan must obey them.',
+    'STEP 2 — TURN EACH BUBBLE INTO A ROOM. Keep the diagram’s arrangement: a bubble on the left stays on the left, a ' +
+      'bubble at the top stays at the top. Give each room a simple footprint whose area is proportional to its bubble. ' +
+      'Where two bubbles touch, the rooms share a wall with a door in it; where a line links them, connect them with a ' +
+      'door or opening; where they neither touch nor link, they do not connect. Put the entrance where the diagram ' +
+      'puts it.',
+    'STEP 3 — DRAFT IT as a precise CAD-style plan: ' +
+      (a.walls === 'poche'
+        ? 'walls as thick, solid black poché, '
+        : 'walls as two parallel lines with a light grey fill between them, ') +
+      'one consistent thickness; door openings as a gap with a quarter-circle swing arc; windows as a thin break in ' +
+      'the wall with sill lines. All lines straight and square.',
+    a.furnished
+      ? 'STEP 4 — FURNISH IT. Read what each room is from its name and add furniture at true scale for its size — beds ' +
+        'and wardrobes in bedrooms, sofa and table in living rooms, counters and appliances in kitchens, WC, basin and ' +
+        'shower in bathrooms — drawn in the lightest line weight as clean plan symbols. Keep door swings and walkways ' +
+        'clear: no furniture in front of a door.'
+      : 'Leave every room empty: walls, doors and windows only. No furniture, no fixtures, no floor patterns.',
+    ORTHOGRAPHIC_LOCK,
+    'Viewed from directly overhead, dead flat, with no thickness or 3D to the walls.',
+    drawingCraft(),
+    'Remove every bubble, hand-written label, dimension and arrow of the original — none of the diagram’s marks ' +
+      'survive into the drawing.',
+    annotationClause(a.roomNames ? 'labels' : 'none', 'room', PLAN_DIMENSIONS),
+    'CHECK before you finish: does every bubble have a room? Do rooms whose bubbles touched share a door? Is any ' +
+      'original text or bubble outline left? Fix anything that fails.',
+    projectionCheck('flat 2D plan'),
+  ].join(' ');
 }

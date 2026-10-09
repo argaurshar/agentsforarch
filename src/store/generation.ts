@@ -152,7 +152,10 @@ export interface SpecSheetSettings {
 // so the settings are narrow by design: the axis being changed, and nothing
 // about the building.
 
+/** What the viewport shows: a building from outside, or a room from inside. */
+export type WireframeSubject = 'building' | 'interior';
 export interface WireframeRenderSettings {
+  subject: WireframeSubject;
   /** Keep the viewport's own background instead of inventing a setting. */
   keepBackground: boolean;
   scene: SceneOptions;
@@ -378,6 +381,185 @@ export interface MoodboardSettings {
   aspect: BoardAspectKey; // board shape (portrait presentation default)
 }
 
+// --- Build plan Phase 1 ------------------------------------------------------
+
+/** How many moves a concept diagram explains the form in. Strings: quick axes are. */
+export type DiagramSteps = '3' | '4' | '5';
+/** BIG-style flat colour, or grey massing with a single accent. */
+export type DiagramLook = 'bold' | 'mono';
+export interface ConceptDiagramSettings {
+  steps: DiagramSteps;
+  /** Typed moves, in order. Empty: read the moves from the form itself. */
+  moves: string;
+  look: DiagramLook;
+  labels: boolean;
+}
+
+/** Solid poché walls, or double lines with a light fill. */
+export type BubbleWalls = 'poche' | 'double';
+export interface BubblePlanSettings {
+  furnished: boolean;
+  walls: BubbleWalls;
+  roomNames: boolean;
+}
+
+export type SpaceRoom = 'living' | 'bedroom' | 'kitchen' | 'dining' | 'office' | 'lobby' | 'custom';
+export type SpaceView = 'wide' | 'corner' | 'onepoint';
+export type SpaceLight = 'board' | 'daylight' | 'evening';
+export interface MoodboardSpaceSettings {
+  room: SpaceRoom;
+  customRoom: string;
+  view: SpaceView;
+  light: SpaceLight;
+}
+
+export type BoardProgram = 'pavilion' | 'museum' | 'house' | 'tower' | 'custom';
+export interface ConceptBoardSettings {
+  program: BoardProgram;
+  customProgram: string;
+  /** Empty: the model names the design. */
+  title: string;
+}
+
+// --- Build plan Phase 2a -----------------------------------------------------
+
+export interface SiteLineworkSettings {
+  trees: 'remove' | 'circles';
+  buildings: 'outline' | 'solid';
+}
+
+/** Which way the sun arc leans: the south edge north of the equator. */
+export type Hemisphere = 'north' | 'south';
+export interface SiteAnalysisSettings {
+  hemisphere: Hemisphere;
+  sun: boolean;
+  access: boolean;
+  views: boolean;
+  labels: boolean;
+}
+
+export interface PlaceInSiteSettings {
+  /** Add a designed landscape inside the plot — never outside it. */
+  landscape: boolean;
+  light: 'site' | 'golden';
+}
+
+// --- Build plan Phase 2b -----------------------------------------------------
+
+/** Where the prevailing wind comes FROM, or not drawn — the model has no wind data. */
+export type WindFrom = 'none' | 'N' | 'NE' | 'E' | 'SE' | 'S' | 'SW' | 'W' | 'NW';
+export interface SiteAnalysis3dSettings {
+  /** Optional: sets the sun path's latitude. Empty → the hemisphere setting. */
+  coords: string;
+  hemisphere: Hemisphere;
+  wind: WindFrom;
+  north: 'topright' | 'up';
+}
+
+export type UrbanStep = 'maps' | 'stack';
+export interface UrbanLayersSettings {
+  step: UrbanStep;
+  figure: boolean;
+  green: boolean;
+  circulation: boolean;
+  blocks: boolean;
+}
+
+export interface SitePhotoSettings {
+  coords: string;
+  view: 'street' | 'aerial';
+  light: 'overcast' | 'sunny' | 'golden';
+  /** Ground the picture in Google Search (Gemini only). */
+  search: boolean;
+}
+
+export interface SiteHistorySettings {
+  coords: string;
+  /** Optional name, to anchor the search and the captions. */
+  place: string;
+  stages: DiagramSteps;
+  style: 'urban' | 'vector';
+  search: boolean;
+}
+
+// --- Build plan Phase 3a -----------------------------------------------------
+
+export type PhaseStage = 'excavation' | 'structure' | 'envelope';
+export interface PhasingSettings {
+  excavation: boolean;
+  structure: boolean;
+  envelope: boolean;
+  activity: 'busy' | 'quiet';
+}
+
+export type ReframeRatio = '9:16' | '4:5' | '1:1' | '3:2' | '16:9' | '21:9';
+export interface ReframeSettings {
+  ratio: ReframeRatio;
+  anchor: 'centre' | 'top' | 'bottom';
+  fill: 'natural' | 'sky' | 'city';
+  /** Paste the original pixels back over the result. */
+  keepOriginal: boolean;
+}
+
+export type GroundProgram = 'cafe' | 'retail' | 'lobby' | 'restaurant' | 'gallery' | 'custom';
+export interface GroundFloorSettings {
+  program: GroundProgram;
+  customProgram: string;
+  materials: 'complement' | 'timber' | 'metal';
+  people: boolean;
+}
+
+// --- Build plan Phase 3b -----------------------------------------------------
+
+export interface SystemsCutawaySettings {
+  system: 'climate' | 'green';
+  labels: boolean;
+}
+
+export interface MarketingBoardSettings {
+  format: '4:5' | '3:4' | '16:9';
+  /** Empty: a plain descriptive title of the building type. */
+  title: string;
+  /** The ONLY facts the board may print. */
+  facts: string;
+}
+
+export interface MagazineSettings {
+  subject: 'interior' | 'building';
+  style: 'dense' | 'minimal' | 'scrapbook';
+  format: '9:16' | '4:5' | '3:4';
+  headline: string;
+}
+
+// --- Build plan Phase 4 ------------------------------------------------------
+
+export interface MaterialPosterSettings {
+  topic: string;
+  search: boolean;
+}
+
+export interface ArchitectTimelineSettings {
+  architect: string;
+  fromStyle: string;
+  toStyle: string;
+  count: '5' | '6' | '7';
+  drawing: 'vector' | 'render';
+  search: boolean;
+}
+
+export interface BlueprintEvolutionSettings {
+  typology: string;
+  stages: '7' | '8' | '9';
+  search: boolean;
+}
+
+export type RedPenFocus = 'all' | 'scale' | 'lighting' | 'materials' | 'furniture';
+export interface RedPenSettings {
+  subject: 'interior' | 'building';
+  tone: 'constructive' | 'roast';
+  focus: RedPenFocus;
+}
+
 export type FeatureSettings =
   | RenderSettings
   | ElevationSettings
@@ -409,7 +591,28 @@ export type FeatureSettings =
   | ProgramDiagramSettings
   | ExplodedAxonSettings
   | FloorAnalysisSettings
-  | MoodboardSettings;
+  | MoodboardSettings
+  | ConceptDiagramSettings
+  | BubblePlanSettings
+  | MoodboardSpaceSettings
+  | ConceptBoardSettings
+  | SiteLineworkSettings
+  | SiteAnalysisSettings
+  | PlaceInSiteSettings
+  | SiteAnalysis3dSettings
+  | UrbanLayersSettings
+  | SitePhotoSettings
+  | SiteHistorySettings
+  | PhasingSettings
+  | ReframeSettings
+  | GroundFloorSettings
+  | SystemsCutawaySettings
+  | MarketingBoardSettings
+  | MagazineSettings
+  | MaterialPosterSettings
+  | ArchitectTimelineSettings
+  | BlueprintEvolutionSettings
+  | RedPenSettings;
 
 /** Quick-action refinement of a specific output (P2). */
 export interface RefineState {

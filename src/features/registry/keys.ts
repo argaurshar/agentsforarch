@@ -12,11 +12,20 @@
 export const FEATURE_KEYS = [
   'massing',
   'sketchRender',
+  // Then the two that EXPLAIN or SEED a form rather than make one from a brief:
+  // the moves behind a finished building, and a concept from an inspiration.
+  'conceptDiagram',
+  'conceptBoard',
   // Plans & Drawings, in the order the work happens: draw the plan, take it to
   // 3D, draw the elevation, take THAT to 3D, then the remaining flat drawings,
   // then the one tool that runs backwards. This order also drives the home
   // pipeline, so a tool must not appear before the tool that feeds it.
   'sketchPlan',
+  // After Sketch → Plan, not before, although a bubble diagram is the earlier
+  // drawing: both take a sketch or a plan, so this order is also the front
+  // door's tie-break, and a dropped sketch is far more often a plan to draw up
+  // than a diagram to interpret.
+  'bubblePlan',
   'render',
   'elevation',
   'axonometric',
@@ -25,7 +34,17 @@ export const FEATURE_KEYS = [
   'renderToPlan',
   // Site & Urban: read the place, then put the building in it.
   'birdsEye',
+  // Read the place first: the map as linework, then analysed.
+  'siteLinework',
+  'siteAnalysis',
+  'siteAnalysis3d',
+  'urbanLayers',
+  // From coordinates alone: what is there now, and what was there before.
+  'sitePhoto',
+  'siteHistory',
   'urbanContext',
+  // A real photograph of the plot, with the building put into it.
+  'placeInSite',
   // Visualization, in the order a render matures: build it, resolve it, light
   // it, study it, populate it, sheet it, tune the glass, print it.
   'wireframeRender',
@@ -33,11 +52,17 @@ export const FEATURE_KEYS = [
   'renderRefine',
   'atmosphere',
   'facadeMaterial',
+  'groundFloor',
   'humanScale',
   'multiView',
+  'phasing',
   'reflection',
+  // Frame it, then print it.
+  'reframe',
   'upscale',
   'watercolour',
+  // Interiors start from a mood board when there is no room yet.
+  'moodboardSpace',
   'interior',
   'declutter',
   'placeObject',
@@ -49,8 +74,20 @@ export const FEATURE_KEYS = [
   'floorAnalysis',
   'programDiagram',
   'explodedAxon',
+  // Cut it open to show how it works, then draw over it.
+  'systemsCutaway',
   'annotation',
+  // Drawing over it the other way: a critique, not an explanation.
+  'redPen',
   'moodboard',
+  // Explain what it is made of.
+  'materialPoster',
+  // Then publish it.
+  'marketingBoard',
+  'magazine',
+  // Two that explain a lineage rather than a project — from words alone.
+  'architectTimeline',
+  'blueprintEvolution',
 ] as const;
 
 export type FeatureKind = (typeof FEATURE_KEYS)[number];
@@ -87,12 +124,20 @@ export const CATEGORY_BLURB: Record<CategoryKey, string> = {
 // can take, so dropping an image can filter thirty tools down to the four that
 // apply without anyone navigating a taxonomy.
 //
-// Deliberately six, and deliberately about the INPUT. "Render" is not one of
+// Deliberately few, and deliberately about the INPUT. "Render" is not one of
 // them: a render of a house is a `building` and a render of a lounge is a
 // `room`, and asking the user to distinguish a render from a photograph is
 // asking about provenance when the tools only care about subject.
 
-export const INPUT_KINDS = ['plan', 'sketch', 'room', 'building', 'model', 'map'] as const;
+// `inspiration` arrived with the build plan's Phase 1: a mood board, an object,
+// an artwork or a material photo — something to design FROM, not something to
+// redraw. None of the original six covered it, and filing a seashell under
+// `building` would offer it every facade tool.
+// `site` arrived with Phase 2a: a photograph of the place as it is now, from the
+// ground, with the plot empty. It is not a `building` (there is none yet) and
+// not a `map` (it is not top-down), and filing it under either offered tools
+// that cannot read it.
+export const INPUT_KINDS = ['plan', 'sketch', 'room', 'building', 'model', 'map', 'site', 'inspiration'] as const;
 
 export type InputKind = (typeof INPUT_KINDS)[number];
 
@@ -103,6 +148,8 @@ export const INPUT_KIND_LABEL: Record<InputKind, string> = {
   building: 'Building',
   model: '3D model',
   map: 'Map or satellite',
+  site: 'Site photo',
+  inspiration: 'Moodboard or inspiration',
 };
 
 /** Second line on the chip row — what each answer covers, in the user's words. */
@@ -113,6 +160,8 @@ export const INPUT_KIND_HINT: Record<InputKind, string> = {
   building: 'A render or photo of the outside',
   model: 'A SketchUp, Revit or Rhino viewport',
   map: 'A top-down Google Earth or Maps grab',
+  site: 'The place as it is now, from the ground',
+  inspiration: 'A collage, an object, an artwork or a material photo',
 };
 
 /** `#/c/<key>` — the category route prefix. Kept distinct from tool slugs so a

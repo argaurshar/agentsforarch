@@ -3,10 +3,21 @@ import { FeatureErrorBoundary } from './components/ui/FeatureErrorBoundary';
 import { AxonometricFeature } from './features/axonometric/AxonometricFeature';
 import { MassingFeature } from './features/concept/MassingFeature';
 import { SketchRenderFeature } from './features/concept/SketchRenderFeature';
+import { ConceptBoardFeature } from './features/concept/ConceptBoardFeature';
+import { ConceptDiagramFeature } from './features/concept/ConceptDiagramFeature';
+import { BubblePlanFeature } from './features/drawings/BubblePlanFeature';
+import { MoodboardSpaceFeature } from './features/interiors/MoodboardSpaceFeature';
 import { AnnotationFeature } from './features/boards/AnnotationFeature';
 import { ExplodedAxonFeature } from './features/boards/ExplodedAxonFeature';
 import { FloorAnalysisFeature } from './features/boards/FloorAnalysisFeature';
 import { ProgramDiagramFeature } from './features/boards/ProgramDiagramFeature';
+import { MagazineFeature } from './features/boards/MagazineFeature';
+import { ArchitectTimelineFeature } from './features/boards/ArchitectTimelineFeature';
+import { BlueprintEvolutionFeature } from './features/boards/BlueprintEvolutionFeature';
+import { MaterialPosterFeature } from './features/boards/MaterialPosterFeature';
+import { RedPenFeature } from './features/boards/RedPenFeature';
+import { MarketingBoardFeature } from './features/boards/MarketingBoardFeature';
+import { SystemsCutawayFeature } from './features/boards/SystemsCutawayFeature';
 import { CadElevationFeature } from './features/drawings/CadElevationFeature';
 import { RenderToPlanFeature } from './features/drawings/RenderToPlanFeature';
 import { SectionFeature } from './features/drawings/SectionFeature';
@@ -24,6 +35,13 @@ import { MoodboardFeature } from './features/moodboard/MoodboardFeature';
 import { StudioScreen } from './features/studio/StudioScreen';
 import { BirdsEyeFeature } from './features/site/BirdsEyeFeature';
 import { UrbanContextFeature } from './features/site/UrbanContextFeature';
+import { PlaceInSiteFeature } from './features/site/PlaceInSiteFeature';
+import { SiteAnalysisFeature } from './features/site/SiteAnalysisFeature';
+import { SiteLineworkFeature } from './features/site/SiteLineworkFeature';
+import { SiteAnalysis3dFeature } from './features/site/SiteAnalysis3dFeature';
+import { SiteHistoryFeature } from './features/site/SiteHistoryFeature';
+import { SitePhotoFeature } from './features/site/SitePhotoFeature';
+import { UrbanLayersFeature } from './features/site/UrbanLayersFeature';
 import { AtmosphereFeature } from './features/visualization/AtmosphereFeature';
 import { FacadeMaterialFeature } from './features/visualization/FacadeMaterialFeature';
 import { HumanScaleFeature } from './features/visualization/HumanScaleFeature';
@@ -34,6 +52,9 @@ import { UpscaleFeature } from './features/visualization/UpscaleFeature';
 import { WatercolourFeature } from './features/visualization/WatercolourFeature';
 import { WireframeRenderFeature } from './features/visualization/WireframeRenderFeature';
 import { MassingRenderFeature } from './features/visualization/MassingRenderFeature';
+import { GroundFloorFeature } from './features/visualization/GroundFloorFeature';
+import { PhasingFeature } from './features/visualization/PhasingFeature';
+import { ReframeFeature } from './features/visualization/ReframeFeature';
 import { RenderFeature } from './features/render/RenderFeature';
 import { useHashRoute } from './lib/useHashRoute';
 import { useProjectStore } from './store/useProjectStore';
@@ -49,6 +70,10 @@ const FEATURES: Record<FeatureKind | 'studio' | 'home' | 'gallery', ComponentTyp
   home: ToolIndex,
   massing: MassingFeature,
   sketchRender: SketchRenderFeature,
+  conceptDiagram: ConceptDiagramFeature,
+  conceptBoard: ConceptBoardFeature,
+  bubblePlan: BubblePlanFeature,
+  moodboardSpace: MoodboardSpaceFeature,
   render: RenderFeature,
   sketchPlan: SketchPlanFeature,
   elevation: ElevationFeature,
@@ -57,6 +82,13 @@ const FEATURES: Record<FeatureKind | 'studio' | 'home' | 'gallery', ComponentTyp
   renderToPlan: RenderToPlanFeature,
   birdsEye: BirdsEyeFeature,
   urbanContext: UrbanContextFeature,
+  siteLinework: SiteLineworkFeature,
+  siteAnalysis: SiteAnalysisFeature,
+  placeInSite: PlaceInSiteFeature,
+  siteAnalysis3d: SiteAnalysis3dFeature,
+  urbanLayers: UrbanLayersFeature,
+  sitePhoto: SitePhotoFeature,
+  siteHistory: SiteHistoryFeature,
   wireframeRender: WireframeRenderFeature,
   massingRender: MassingRenderFeature,
   renderRefine: RenderRefineFeature,
@@ -66,6 +98,9 @@ const FEATURES: Record<FeatureKind | 'studio' | 'home' | 'gallery', ComponentTyp
   multiView: MultiViewFeature,
   reflection: ReflectionFeature,
   upscale: UpscaleFeature,
+  groundFloor: GroundFloorFeature,
+  phasing: PhasingFeature,
+  reframe: ReframeFeature,
   watercolour: WatercolourFeature,
   axonometric: AxonometricFeature,
   interior: InteriorFeature,
@@ -78,6 +113,13 @@ const FEATURES: Record<FeatureKind | 'studio' | 'home' | 'gallery', ComponentTyp
   explodedAxon: ExplodedAxonFeature,
   annotation: AnnotationFeature,
   moodboard: MoodboardFeature,
+  systemsCutaway: SystemsCutawayFeature,
+  marketingBoard: MarketingBoardFeature,
+  magazine: MagazineFeature,
+  materialPoster: MaterialPosterFeature,
+  architectTimeline: ArchitectTimelineFeature,
+  blueprintEvolution: BlueprintEvolutionFeature,
+  redPen: RedPenFeature,
   gallery: GalleryFeature,
 };
 

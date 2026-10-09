@@ -11,7 +11,7 @@ interface OutputCardProps {
   onDelete?: (imageId: string) => void;
   onRefine?: (image: GeneratedImage) => void;
   sendTargets?: SendTarget[];
-  onSend?: (target: FeatureKind, image: GeneratedImage) => void;
+  onSend?: (target: FeatureKind, image: GeneratedImage, settings?: Record<string, unknown>) => void;
   /** 'full' shows the image at input size (single result); 'grid' is the compact card. */
   size?: 'grid' | 'full';
   /** Open this image in the full-screen lightbox viewer. */
@@ -53,6 +53,22 @@ export function OutputCard({
         <span className="truncate text-label text-graphite" title={image.label}>
           {image.label}
         </span>
+        {/* A search-grounded result names what it drew on, so the facts on the
+            image can be checked rather than taken on trust. */}
+        {image.sources?.length ? (
+          <details className="text-caption text-mist" data-grounding-sources>
+            <summary className="cursor-pointer select-none">Sources ({image.sources.length})</summary>
+            <ul className="mt-1 flex flex-col gap-1">
+              {image.sources.map((s) => (
+                <li key={s.uri} className="truncate">
+                  <a href={s.uri} target="_blank" rel="noreferrer" className="text-ochre-deep hover:underline" title={s.uri}>
+                    {s.title}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </details>
+        ) : null}
         {/* Two groups: the decision the card is asking for (refine) stays
             visible; the housekeeping actions only surface on hover or keyboard
             focus, so a grid of results no longer reads as a wall of buttons. */}
@@ -70,14 +86,15 @@ export function OutputCard({
             {sendTargets && onSend
               ? sendTargets.map((t) => (
                   <Button
-                    key={t.target}
+                    key={`${t.target}:${t.short ?? ''}`}
                     variant="secondary"
                     size="sm"
                     icon={<ArrowRight size={14} strokeWidth={1.75} />}
-                    onClick={() => onSend(t.target, image)}
+                    onClick={() => onSend(t.target, image, t.settings)}
                     title={t.label}
+                    data-send-preset={t.settings ? t.target : undefined}
                   >
-                    {TARGET_LABEL[t.target] ?? t.target}
+                    {t.short ?? TARGET_LABEL[t.target] ?? t.target}
                   </Button>
                 ))
               : null}

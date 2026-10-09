@@ -8,9 +8,9 @@
 // sampled: the bugs that shipped were all in combinations nobody thought to try.
 
 import { buildAxonometricPrompt, buildElevationPrompt, buildInteriorPrompt, buildMoodboardPrompt, buildRefinePrompt, buildRenderPrompt } from '../src/lib/prompts';
-import { buildMassingPrompt, buildSketchRenderPrompt } from '../src/lib/prompt/concept';
-import { buildAnnotationPrompt, buildExplodedAxonPrompt, buildProgramDiagramPrompt } from '../src/lib/prompt/boards';
-import { buildBirdsEyePrompt, buildFloorAnalysisPrompt, buildUrbanContextPrompt } from '../src/lib/prompt/site';
+import { buildConceptBoardPrompt, buildConceptDiagramPrompt, buildMassingPrompt, buildSketchRenderPrompt } from '../src/lib/prompt/concept';
+import { buildArchitectTimelinePrompt, buildBlueprintEvolutionPrompt, buildMaterialPosterPrompt, buildRedPenPrompt, buildAnnotationPrompt, buildExplodedAxonPrompt, buildMagazinePrompt, buildMarketingBoardPrompt, buildProgramDiagramPrompt, buildSystemsCutawayPrompt } from '../src/lib/prompt/boards';
+import { buildBirdsEyePrompt, buildFloorAnalysisPrompt, buildPlaceInSitePrompt, buildSiteAnalysis3dPrompt, buildSiteAnalysisPrompt, buildSiteHistoryPrompt, buildSiteLineworkPrompt, buildSitePhotoPrompt, buildUrbanContextPrompt, buildUrbanLayersPrompt } from '../src/lib/prompt/site';
 import {
   buildAtmospherePrompt,
   buildFacadeMaterialPrompt,
@@ -22,18 +22,24 @@ import {
   buildUpscalePrompt,
   buildWatercolourPrompt,
   buildWireframeRenderPrompt,
+  buildGroundFloorPrompt,
+  buildPhasingPrompt,
+  buildReframePrompt,
+  PHASE_STAGE,
 } from '../src/lib/prompt/visualization';
 import {
   buildCadElevationPrompt,
   buildRenderToPlanPrompt,
   buildSectionPrompt,
   buildSketchPlanPrompt,
+  buildBubblePlanPrompt,
 } from '../src/lib/prompt/drawings';
 import {
   buildDeclutterPrompt,
   buildPlaceObjectPrompt,
   buildSpecSheetPrompt,
   buildTargetedSwapPrompt,
+  buildMoodboardSpacePrompt,
 } from '../src/lib/prompt/interiors';
 import { defaultScene } from '../src/lib/scene';
 const sc = defaultScene();
@@ -168,6 +174,11 @@ for (const materials of ['studio','glass-steel'] as const)
   for (const lighting of ['golden-hour','overcast'] as const)
     for (const keepBackground of [false,true]) for (const entourage of [false,true])
       add(`wire:${materials}:${lighting}:b${keepBackground}:e${entourage}`, buildWireframeRenderPrompt({ ...sc, materials, lighting, entourage, keepBackground }));
+// The interior branch: its own default palette, a preset carried onto the room,
+// and a typed palette — plus both background and people switches.
+for (const materials of ['studio','brick-timber','custom'] as const)
+  for (const keepBackground of [false,true]) for (const entourage of [false,true])
+    add(`wire-int:${materials}:b${keepBackground}:e${entourage}`, buildWireframeRenderPrompt({ ...sc, materials, customMaterials: materials === 'custom' ? 'terrazzo floor, walnut joinery, bouclé upholstery' : '', entourage, keepBackground, subject: 'interior' }));
 
 // Massing to Render: every take x openings x people. The reference's FORM must
 // be refused in all twelve, which is why the snapshot covers them all.
@@ -180,4 +191,122 @@ for (const take of ['everything', 'materials', 'atmosphere'] as const) {
 }
 add('moodboard', buildMoodboardPrompt());
 add('refine', buildRefinePrompt({ chips: ['warmer-light','change-curtains'], freeText: 'more plants' }));
+
+// --- Build plan, Phase 1 ------------------------------------------------------
+// Concept Diagram: every step count x look x captions, plus typed moves (which
+// override the count) and a single typed move (which must NOT).
+for (const steps of ['3', '4', '5'] as const)
+  for (const look of ['bold', 'mono'] as const)
+    for (const labels of [true, false])
+      add(`cdiag:${steps}:${look}:l${labels}`, buildConceptDiagramPrompt({ steps, moves: '', look, labels }));
+add('cdiag:typed', buildConceptDiagramPrompt({ steps: '4', moves: '1. Fill the site\n2. Lift the corner\n3. Plant the roof', look: 'bold', labels: true }));
+add('cdiag:one-typed', buildConceptDiagramPrompt({ steps: '4', moves: 'Fill the site', look: 'bold', labels: true }));
+// Concept Board: every program, the typed program, and a typed title.
+for (const program of ['pavilion', 'museum', 'house', 'tower'] as const)
+  add(`cboard:${program}`, buildConceptBoardPrompt({ program, customProgram: '', title: '' }));
+add('cboard:custom', buildConceptBoardPrompt({ program: 'custom', customProgram: 'a library on a waterfront', title: '' }));
+add('cboard:titled', buildConceptBoardPrompt({ program: 'pavilion', customProgram: '', title: 'Seed Pavilion' }));
+// Bubble Plan: all eight switch combinations.
+for (const furnished of [true, false])
+  for (const walls of ['poche', 'double'] as const)
+    for (const roomNames of [false, true])
+      add(`bubble:f${furnished}:${walls}:n${roomNames}`, buildBubblePlanPrompt({ furnished, walls, roomNames }));
+// Moodboard to Space: every room, every view, every light.
+for (const room of ['living', 'bedroom', 'kitchen', 'dining', 'office', 'lobby'] as const)
+  add(`mspace:${room}`, buildMoodboardSpacePrompt({ room, customRoom: '', view: 'wide', light: 'board' }));
+add('mspace:custom', buildMoodboardSpacePrompt({ room: 'custom', customRoom: 'a boutique hotel bathroom' /* the article must be dropped */, view: 'wide', light: 'board' }));
+for (const view of ['corner', 'onepoint'] as const)
+  add(`mspace:view:${view}`, buildMoodboardSpacePrompt({ room: 'living', customRoom: '', view, light: 'board' }));
+for (const light of ['daylight', 'evening'] as const)
+  add(`mspace:light:${light}`, buildMoodboardSpacePrompt({ room: 'living', customRoom: '', view: 'wide', light }));
+
+// --- Build plan, Phase 2a -----------------------------------------------------
+for (const trees of ['remove', 'circles'] as const)
+  for (const buildings of ['outline', 'solid'] as const)
+    add(`linework:${trees}:${buildings}`, buildSiteLineworkPrompt({ trees, buildings }));
+// Site analysis: both hemispheres, outlined vs boxed, every layer off in turn,
+// labels off, and everything off at once (north arrow and site still drawn).
+for (const hemisphere of ['north', 'south'] as const)
+  for (const marked of [false, true])
+    add(`analysis:${hemisphere}:m${marked}`, buildSiteAnalysisPrompt({ hemisphere, sun: true, access: true, views: true, labels: true, marked }));
+for (const off of ['sun', 'access', 'views', 'labels'] as const)
+  add(`analysis:no-${off}`, buildSiteAnalysisPrompt({ hemisphere: 'north', sun: true, access: true, views: true, labels: true, marked: false, [off]: false }));
+add('analysis:bare', buildSiteAnalysisPrompt({ hemisphere: 'north', sun: false, access: false, views: false, labels: false, marked: false }));
+for (const landscape of [false, true])
+  for (const light of ['site', 'golden'] as const)
+    for (const marked of [false, true])
+      add(`placesite:l${landscape}:${light}:m${marked}`, buildPlaceInSitePrompt({ landscape, light, marked }));
+
+// --- Build plan, Phase 2b -----------------------------------------------------
+// 3D site: latitude north / south / none (hemisphere both ways), wind off and
+// on, both north orientations, with and without the reference and the marker.
+for (const lat of [27.1751, -33.8568, null])
+  for (const wind of ['none', 'NW'] as const)
+    add(`site3d:${lat ?? 'nolat'}:${wind}`, buildSiteAnalysis3dPrompt({ lat, hemisphere: 'north', wind, north: 'topright', marked: false, reference: false }));
+add('site3d:nolat:south', buildSiteAnalysis3dPrompt({ lat: null, hemisphere: 'south', wind: 'none', north: 'topright', marked: false, reference: false }));
+add('site3d:up', buildSiteAnalysis3dPrompt({ lat: 27.1751, hemisphere: 'north', wind: 'none', north: 'up', marked: false, reference: false }));
+add('site3d:ref:marked', buildSiteAnalysis3dPrompt({ lat: 27.1751, hemisphere: 'north', wind: 'none', north: 'topright', marked: true, reference: true }));
+// Urban layers: all four, each one dropped, two only, marked, and the stack.
+const ALL4 = { figure: true, green: true, circulation: true, blocks: true };
+add('urban:maps:all', buildUrbanLayersPrompt({ step: 'maps', ...ALL4, marked: false }));
+for (const off of ['figure', 'green', 'circulation', 'blocks'] as const)
+  add(`urban:maps:no-${off}`, buildUrbanLayersPrompt({ step: 'maps', ...ALL4, [off]: false, marked: false }));
+add('urban:maps:two', buildUrbanLayersPrompt({ step: 'maps', figure: true, green: false, circulation: true, blocks: false, marked: false }));
+// Blocked in the UI, but the prompt box still renders it — it must not throw.
+add('urban:maps:one', buildUrbanLayersPrompt({ step: 'maps', figure: true, green: false, circulation: false, blocks: false, marked: false }));
+add('urban:maps:marked', buildUrbanLayersPrompt({ step: 'maps', ...ALL4, marked: true }));
+add('urban:stack:all', buildUrbanLayersPrompt({ step: 'stack', ...ALL4, marked: false }));
+add('urban:stack:three', buildUrbanLayersPrompt({ step: 'stack', ...ALL4, blocks: false, marked: false }));
+for (const view of ['street', 'aerial'] as const)
+  for (const light of ['overcast', 'sunny', 'golden'] as const)
+    for (const search of [true, false])
+      add(`sitephoto:${view}:${light}:s${search}`, buildSitePhotoPrompt({ where: '38.8977° N, 77.0365° W', view, light, search }));
+for (const stages of ['3', '4', '5'] as const)
+  for (const style of ['urban', 'vector'] as const)
+    for (const search of [true, false])
+      add(`history:${stages}:${style}:s${search}`, buildSiteHistoryPrompt({ where: '27.1751° N, 78.0421° E', place: '', stages, style, search }));
+add('history:named', buildSiteHistoryPrompt({ where: '27.1751° N, 78.0421° E', place: 'Taj Mahal complex', stages: '4', style: 'urban', search: true }));
+
+// --- Build plan, Phase 3a -----------------------------------------------------
+// Phasing: the base in both site moods, then each stage job as sent.
+for (const activity of ['busy', 'quiet'] as const) add(`phasing:${activity}`, buildPhasingPrompt({ activity }));
+for (const [k, v] of Object.entries(PHASE_STAGE)) add(`phasing:job:${k}`, `${buildPhasingPrompt({ activity: 'busy' })}\n\nTHE STAGE: ${v.clause}`);
+for (const fill of ['natural', 'sky', 'city'] as const) add(`reframe:${fill}`, buildReframePrompt({ fill }));
+for (const program of ['cafe', 'retail', 'lobby', 'restaurant', 'gallery'] as const)
+  add(`ground:${program}`, buildGroundFloorPrompt({ program, customProgram: '', materials: 'complement', people: true }));
+add('ground:custom', buildGroundFloorPrompt({ program: 'custom', customProgram: 'a bike repair workshop', materials: 'complement', people: true }));
+add('ground:custom-empty', buildGroundFloorPrompt({ program: 'custom', customProgram: '', materials: 'complement', people: true }));
+for (const materials of ['timber', 'metal'] as const)
+  add(`ground:${materials}`, buildGroundFloorPrompt({ program: 'cafe', customProgram: '', materials, people: true }));
+add('ground:empty-shop', buildGroundFloorPrompt({ program: 'cafe', customProgram: '', materials: 'complement', people: false }));
+
+// --- Build plan, Phase 3b -----------------------------------------------------
+for (const system of ['climate', 'green'] as const)
+  for (const labels of [true, false]) add(`cutaway:${system}:l${labels}`, buildSystemsCutawayPrompt({ system, labels }));
+for (const format of ['4:5', '3:4', '16:9'] as const) add(`mboard:${format}`, buildMarketingBoardPrompt({ format, title: '', facts: '' }));
+add('mboard:titled', buildMarketingBoardPrompt({ format: '4:5', title: 'Hillside House', facts: '' }));
+add('mboard:facts', buildMarketingBoardPrompt({ format: '4:5', title: 'Hillside House', facts: 'Bengaluru, India · 320 m² · 2026' }));
+for (const subject of ['interior', 'building'] as const)
+  for (const style of ['dense', 'minimal', 'scrapbook'] as const)
+    add(`magazine:${subject}:${style}`, buildMagazinePrompt({ subject, style, format: '9:16', headline: '' }));
+add('magazine:headline', buildMagazinePrompt({ subject: 'interior', style: 'dense', format: '4:5', headline: 'A Quiet Room in Bengaluru' }));
+
+// --- Build plan, Phase 4 ------------------------------------------------------
+for (const search of [true, false])
+  for (const hasPhoto of [false, true])
+    add(`poster:s${search}:p${hasPhoto}`, buildMaterialPosterPrompt({ topic: 'Terracotta jali blocks', search, hasPhoto }));
+add('poster:photo-only', buildMaterialPosterPrompt({ topic: '', search: true, hasPhoto: true }));
+for (const count of ['5', '6', '7'] as const)
+  for (const drawing of ['vector', 'render'] as const)
+    add(`atimeline:${count}:${drawing}`, buildArchitectTimelinePrompt({ architect: 'Zaha Hadid', fromStyle: '', toStyle: '', count, drawing, search: true, hasReference: false }));
+add('atimeline:arc', buildArchitectTimelinePrompt({ architect: 'Zaha Hadid', fromStyle: 'sharp deconstructivist angles', toStyle: 'fluid organic curves', count: '6', drawing: 'vector', search: true, hasReference: false }));
+add('atimeline:memory:ref', buildArchitectTimelinePrompt({ architect: 'Zaha Hadid', fromStyle: '', toStyle: '', count: '6', drawing: 'vector', search: false, hasReference: true }));
+for (const stages of ['7', '8', '9'] as const)
+  for (const search of [true, false])
+    add(`blueprint:${stages}:s${search}`, buildBlueprintEvolutionPrompt({ typology: 'Gothic to contemporary church design', stages, search }));
+for (const subject of ['interior', 'building'] as const)
+  for (const tone of ['constructive', 'roast'] as const)
+    for (const focus of ['all', 'scale', 'lighting', 'materials', 'furniture'] as const)
+      add(`redpen:${subject}:${tone}:${focus}`, buildRedPenPrompt({ subject, tone, focus }));
+
 console.log(out.join('\n\n'));

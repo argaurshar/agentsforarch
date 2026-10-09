@@ -43,15 +43,31 @@ const check = (name, ok, detail = '') => {
 
   // --- Gemini mock -----------------------------------------------------------
   const geminiBodies = [];
+  // Set to make the mock answer like a search-grounded generation.
+  const mock = { sources: false };
   await page.route('**generativelanguage.googleapis.com/**', (r) => {
     if (r.request().method() === 'OPTIONS') return r.fulfill({ status: 204, headers: CORS, body: '' });
     geminiBodies.push(r.request().postData() || '');
+    const grounding = mock.sources
+      ? {
+          groundingMetadata: {
+            groundingChunks: [
+              { web: { uri: 'https://example.org/history', title: 'Site history' } },
+              { web: { uri: 'https://example.org/plan', title: 'Survey plan' } },
+            ],
+          },
+        }
+      : {};
     return r.fulfill({
       status: 200,
       headers: { ...CORS, 'content-type': 'application/json' },
       body: JSON.stringify({
         candidates: [
-          { content: { parts: [{ inlineData: { mimeType: 'image/png', data: PNG_1PX.toString('base64') } }] }, finishReason: 'STOP' },
+          {
+            content: { parts: [{ inlineData: { mimeType: 'image/png', data: PNG_1PX.toString('base64') } }] },
+            finishReason: 'STOP',
+            ...grounding,
+          },
         ],
       }),
     });
@@ -739,6 +755,382 @@ const check = (name, ok, detail = '') => {
     for (const re of patterns) check(`${key} prompt carries ${re.source.slice(0, 42)}`, re.test(text));
   }
 
+  // Wireframe to Render has an interior branch (build plan, Phase 0): the
+  // exterior prompt counts storeys; a room's failure is being FURNISHED.
+  await navTo('wireframeRender');
+  const wirePrompt = page.locator('#wireframeRender-prompt');
+  check('wireframe defaults to the exterior prompt', /architectural render from the untextured 3D model/.test(await wirePrompt.inputValue()));
+  await page.getByRole('button', { name: /^An interior$/ }).click();
+  await page.waitForTimeout(300);
+  const wireInt = await wirePrompt.inputValue();
+  check('choosing "An interior" switches to the interior prompt', /interior render from the untextured 3D model/.test(wireInt));
+  check('which forbids furnishing what is not modelled', /Do NOT add furniture, rugs, cushions, art, decor/.test(wireInt));
+  check('and counts the objects again before finishing', /object by object/.test(wireInt));
+  await page.setInputFiles('input[type=file]', PLAN);
+  await page.waitForTimeout(400);
+  const wireBefore = geminiBodies.length;
+  await page.getByRole('button', { name: /^Generate$/ }).click();
+  await page.waitForTimeout(2500);
+  const wireBody = geminiBodies.slice(wireBefore).join('');
+  check('the interior prompt is what reaches the engine', /object by object/.test(wireBody));
+  check('a tool that does not ask for search sends no tools field', wireBody.length > 0 && !/"tools"/.test(wireBody));
+  check('an ungrounded result shows no sources', (await page.locator('[data-grounding-sources]').count()) === 0);
+
+  // Google Search grounding (Phase 0, G3): when the engine reports sources, the
+  // result names them so the facts on the image can be checked.
+  mock.sources = true;
+  await page.getByRole('button', { name: /^Generate$/ }).click();
+  await page.waitForTimeout(2500);
+  mock.sources = false;
+  const src = page.locator('[data-grounding-sources]').first();
+  check('a grounded result lists its sources', (await src.count()) === 1 && /Sources \(2\)/.test(await src.innerText()));
+  check(
+    'each source is a real link to the page',
+    (await src.locator('a[href="https://example.org/history"]').count()) === 1,
+  );
+  // Settings persist per tool; later sections expect Wireframe's default.
+  await page.getByRole('button', { name: /^A building$/ }).click();
+  await page.waitForTimeout(200);
+
+  // --- Build plan, Phase 1 ---------------------------------------------------
+  const gen = () => page.getByRole('button', { name: /^Generate$/ });
+
+  // Concept Diagram: moves are read from the form, or typed — and one typed
+  // move is not a sequence, so it blocks rather than being silently dropped.
+  await navTo('conceptDiagram');
+  const cdPrompt = page.locator('#conceptDiagram-prompt');
+  check('concept diagram reads its moves from the form by default', /WORK BACKWARDS INTO MOVES/.test(await cdPrompt.inputValue()));
+  check('and ends on the input', /last panel must match the input/.test(await cdPrompt.inputValue()));
+  await page.setInputFiles('input[type=file]', PLAN);
+  await page.waitForTimeout(400);
+  check('concept diagram runs with an image and no typed moves', await gen().isEnabled());
+  await page.locator('#conceptDiagram-moves').fill('Fill the site');
+  await page.waitForTimeout(300);
+  check('one typed move blocks Generate', !(await gen().isEnabled()));
+  await page.locator('#conceptDiagram-moves').fill('Fill the site\nCarve the courtyard\nStep the roofs');
+  await page.waitForTimeout(300);
+  check('three typed moves unblock it', await gen().isEnabled());
+  check('and say the panel count follows them', /3 moves typed/.test(await page.locator('[data-moves-count]').innerText()));
+  check('the typed moves reach the prompt, in order', /these 3 moves, in this order: 1\. Fill the site; 2\. Carve the courtyard; 3\. Step the roofs/.test(await cdPrompt.inputValue()));
+  await page.locator('#conceptDiagram-moves').fill('');
+
+  // Bubble to Plan: invents walls, so it says the sizes are interpreted.
+  await navTo('bubblePlan');
+  check('bubble plan keeps the diagram adjacencies', /the rooms share a wall with a door in it/.test(await page.locator('#bubblePlan-prompt').inputValue()));
+  await page.setInputFiles('input[type=file]', PLAN);
+  await page.waitForTimeout(400);
+  await gen().click();
+  await page.waitForTimeout(2500);
+  check('bubble plan warns that sizes are interpreted', /interpreted from a loose diagram/i.test(await mainText()));
+
+  // Moodboard to Space and the Concept Board both have a "Something else" that
+  // must be described before it runs.
+  await navTo('moodboardSpace');
+  check('moodboard space refuses another collage', /DO NOT MAKE ANOTHER COLLAGE/.test(await page.locator('#moodboardSpace-prompt').inputValue()));
+  await page.setInputFiles('input[type=file]', PLAN);
+  await page.waitForTimeout(400);
+  await page.getByRole('button', { name: 'Something else' }).click();
+  await page.waitForTimeout(300);
+  check('an undescribed room blocks Generate', !(await gen().isEnabled()));
+  await page.locator('#moodboardSpace-room').fill('a boutique hotel bathroom');
+  await page.waitForTimeout(300);
+  check('describing it unblocks it', await gen().isEnabled());
+  check('and the room reaches the prompt, without a doubled article', /one photorealistic boutique hotel bathroom that/.test(await page.locator('#moodboardSpace-prompt').inputValue()));
+  await page.getByRole('button', { name: /^Living$/ }).click();
+
+  await navTo('conceptBoard');
+  await page.setInputFiles('input[type=file]', PLAN);
+  await page.waitForTimeout(400);
+  await page.locator('#conceptBoard-title').fill('Seed Pavilion');
+  await page.waitForTimeout(300);
+  check('a typed title reaches the concept board prompt', /the title “Seed Pavilion”/.test(await page.locator('#conceptBoard-prompt').inputValue()));
+  await page.getByRole('button', { name: 'Something else' }).click();
+  await page.waitForTimeout(300);
+  check('an undescribed program blocks the concept board', !(await gen().isEnabled()));
+  await page.getByRole('button', { name: /^Pavilion$/ }).click();
+  await page.locator('#conceptBoard-title').fill('');
+
+  // --- Build plan, Phase 2a --------------------------------------------------
+  await navTo('siteLinework');
+  check('site linework must overlay its source', /must overlay the input exactly/.test(await page.locator('#siteLinework-prompt').inputValue()));
+  await page.getByRole('button', { name: /^Solid black$/ }).click();
+  await page.waitForTimeout(300);
+  check('solid buildings turn it into a figure-ground', /Fill every building footprint solid black/.test(await page.locator('#siteLinework-prompt').inputValue()));
+  await page.getByRole('button', { name: /^Outlined$/ }).click();
+
+  await navTo('siteAnalysis');
+  const saPrompt = page.locator('#siteAnalysis-prompt');
+  check('site analysis puts the sun on the south edge by default', /BOTTOM \(south\) edge/.test(await saPrompt.inputValue()));
+  await page.getByRole('button', { name: /^South of the equator$/ }).click();
+  await page.waitForTimeout(300);
+  check('and on the north edge south of the equator', /TOP \(north\) edge/.test(await saPrompt.inputValue()));
+  await page.getByRole('button', { name: /^North of the equator$/ }).click();
+  await page.setInputFiles('input[type=file]', PLAN);
+  await page.waitForTimeout(400);
+  check('the site marker is optional — an outlined screenshot runs as is', await gen().isEnabled());
+  await gen().click();
+  await page.waitForTimeout(2500);
+  check('site analysis warns that street names are copied, not checked', /Street names are copied from your screenshot/.test(await mainText()));
+
+  await navTo('placeInSite');
+  const siteZones = page.locator('input[type=file]');
+  check('place in site takes the site photo and the building separately', (await siteZones.count()) >= 2);
+  // The building slot first: once a zone holds an image its file input goes,
+  // so the indices shift (the same order Place Object's test uses).
+  await siteZones.nth(1).setInputFiles(PLAN);
+  await page.waitForTimeout(400);
+  check('it will not run on the building alone', !(await gen().isEnabled()));
+  await siteZones.nth(0).setInputFiles(PLAN);
+  await page.waitForTimeout(400);
+  check('with the site photo added it runs', await gen().isEnabled());
+  const pisPrompt = page.locator('#placeInSite-prompt');
+  check('the photo outside the plot is locked', /Everything outside the plot stays exactly/.test(await pisPrompt.inputValue()));
+  check('landscape is off unless asked for', !/add a considered landscape/.test(await pisPrompt.inputValue()));
+  await page.getByRole('button', { name: /^Golden hour$/ }).click();
+  await page.waitForTimeout(300);
+  check('golden hour releases the light, not the geometry', /the light is the only thing that changes there/.test(await pisPrompt.inputValue()));
+  check('and never claims the photo is unchanged', !/Everything outside the plot stays exactly/.test(await pisPrompt.inputValue()));
+  await page.getByRole('button', { name: /^Match the photo$/ }).click();
+
+  // --- Build plan, Phase 2b --------------------------------------------------
+  // S1: a coordinates box reads back what it understood, and blocks on what it
+  // cannot read rather than sending it to be "interpreted".
+  await navTo('sitePhoto');
+  const coords = page.locator('#sitePhoto-coords');
+  const coordsRead = page.locator('[data-coords-read]');
+  check('site photo has no image dropzone', (await page.locator('input[type=file]').count()) === 0);
+  check('and will not run with no location', !(await gen().isEnabled()));
+  await coords.fill('Taj Mahal');
+  await page.waitForTimeout(300);
+  check('a place name is not read as coordinates', (await coordsRead.getAttribute('data-coords-read')) === 'invalid' && !(await gen().isEnabled()));
+  await coords.fill('38°53′52″N 77°2′11″W');
+  await page.waitForTimeout(300);
+  check('degrees-minutes-seconds are read back', (await coordsRead.getAttribute('data-coords-read')) === '38.8978° N, 77.0364° W', await coordsRead.getAttribute('data-coords-read'));
+  check('and unblock Generate', await gen().isEnabled());
+  const spPrompt = page.locator('#sitePhoto-prompt');
+  check('the prompt states the place in one normal form', /site photograph of the place at 38\.8978° N, 77\.0364° W/.test(await spPrompt.inputValue()));
+  check('search is on by default where the engine has it', /Use Google Search to look these coordinates up/.test(await spPrompt.inputValue()));
+  // G3 end to end: the request asks for search, and the sources come back.
+  const spBefore = geminiBodies.length;
+  mock.sources = true;
+  await gen().click();
+  await page.waitForTimeout(2500);
+  mock.sources = false;
+  const spBody = geminiBodies.slice(spBefore).join('');
+  check('a searching tool sends the google_search tool', /"tools":\[\{"google_search":\{\}\}\]/.test(spBody));
+  check('its result lists the sources', (await page.locator('[data-grounding-sources]').count()) >= 1);
+  check('and says it is a plausible picture, not a photograph', /not a photograph of it/.test(await mainText()));
+  await page.getByRole('switch', { name: /Look it up with Google Search/ }).click();
+  await page.waitForTimeout(300);
+  check('search off: the prompt says it works from memory', /From what you know about these coordinates/.test(await spPrompt.inputValue()));
+  const spOff = geminiBodies.length;
+  await gen().click();
+  await page.waitForTimeout(2500);
+  check('and no tools field is sent', !/"tools"/.test(geminiBodies.slice(spOff).join('')));
+  check('and the warning says so', /drawn from the model’s memory/.test(await mainText()));
+  await page.getByRole('switch', { name: /Look it up with Google Search/ }).click();
+  await coords.fill('');
+
+  await navTo('siteHistory');
+  await page.locator('#siteHistory-coords').fill('https://www.google.com/maps/place/Taj/@27.1751,78.0421,17z');
+  await page.waitForTimeout(300);
+  check('a Google Maps link is read as coordinates', (await page.locator('[data-coords-read]').getAttribute('data-coords-read')) === '27.1751° N, 78.0421° E');
+  const shBefore = geminiBodies.length;
+  await gen().click();
+  await page.waitForTimeout(2500);
+  check('site history researches with search', /google_search/.test(geminiBodies.slice(shBefore).join('')));
+  check('and tells you to check every date', /check every one before you publish/.test(await mainText()));
+  await page.locator('#siteHistory-coords').fill('');
+
+  // S2: an OPTIONAL second slot never blocks, and the prompt knows if it is filled.
+  await navTo('siteAnalysis3d');
+  const s3Prompt = page.locator('#siteAnalysis3d-prompt');
+  check('3D site draws no wind unless it is set', !/Prevailing wind/.test(await s3Prompt.inputValue()));
+  await page.getByRole('button', { name: /^NW$/ }).click();
+  await page.waitForTimeout(300);
+  check('setting it draws wind from that side', /Prevailing wind from the north-west/.test(await s3Prompt.inputValue()));
+  await page.getByRole('button', { name: /^Not shown$/ }).click();
+  check('3D site offers the optional reference slot', (await page.locator('input[type=file]').count()) >= 2);
+  await page.locator('input[type=file]').first().setInputFiles(PLAN);
+  await page.waitForTimeout(400);
+  check('it runs with the map alone — the reference is optional', await gen().isEnabled());
+  check('and the prompt does not mention a reference it has not got', !/SECOND image is a reference diagram/.test(await s3Prompt.inputValue()));
+  await page.locator('input[type=file]').last().setInputFiles(PLAN);
+  await page.waitForTimeout(400);
+  check('adding one tells the prompt to copy its look, not its place', /SECOND image is a reference diagram/.test(await s3Prompt.inputValue()));
+  await page.locator('#siteAnalysis3d-coords').fill('-33.8568, 151.2153');
+  await page.waitForTimeout(300);
+  check('a southern latitude leans the sun arc north', /to the NORTH of overhead/.test(await s3Prompt.inputValue()));
+  await page.locator('#siteAnalysis3d-coords').fill('');
+
+  // S3: a send preset opens the next step of a two-step tool.
+  await navTo('urbanLayers');
+  const ulPrompt = page.locator('#urbanLayers-prompt');
+  await page.setInputFiles('input[type=file]', PLAN);
+  await page.waitForTimeout(400);
+  for (const name of ['Green network', 'Circulation', 'Blocks']) await page.getByRole('switch', { name }).click();
+  await page.waitForTimeout(300);
+  check('one layer is not an analysis — it blocks', !(await gen().isEnabled()));
+  for (const name of ['Green network', 'Circulation', 'Blocks']) await page.getByRole('switch', { name }).click();
+  await page.waitForTimeout(300);
+  check('four layers share one extent', /they must stack perfectly/.test(await ulPrompt.inputValue()));
+  await gen().click();
+  await page.waitForTimeout(2500);
+  const stackBtn = page.locator('[data-send-preset="urbanLayers"]').first();
+  check('the layer sheet offers "Stack these layers"', (await stackBtn.count()) === 1 && /Stack these layers/.test(await stackBtn.innerText()));
+  await stackBtn.click();
+  await page.waitForTimeout(600);
+  check('which opens the stack step', /Rearrange those same maps/.test(await ulPrompt.inputValue()));
+  check('with the sheet already loaded', await gen().isEnabled());
+  await page.getByRole('button', { name: /^Layer maps$/ }).click();
+
+  // --- Build plan, Phase 3a --------------------------------------------------
+  // Construction Phasing: one request per stage, each ending on its own stage.
+  await navTo('phasing');
+  await page.setInputFiles('input[type=file]', PLAN);
+  await page.waitForTimeout(400);
+  const phBefore = geminiBodies.length;
+  await gen().click();
+  await page.waitForTimeout(4500);
+  const phBodies = geminiBodies.slice(phBefore);
+  check('three stages send three generations', phBodies.length === 3, `${phBodies.length}`);
+  check(
+    'each ends on its own stage, in order',
+    /THE STAGE: EXCAVATION/.test(phBodies[0] ?? '') && /THE STAGE: STRUCTURAL FRAME/.test(phBodies[1] ?? '') && /THE STAGE: ENVELOPE/.test(phBodies[2] ?? ''),
+  );
+  check('and every one locks the camera', phBodies.every((b) => /THE CAMERA IS THE PART THAT DRIFTS/.test(b)));
+  check('the results are labelled by stage', /Structural frame/.test(await mainText()));
+  for (const name of ['Excavation', 'Structural frame', 'Envelope']) await page.getByRole('switch', { name }).click();
+  await page.waitForTimeout(300);
+  check('no stage chosen blocks Generate', !(await gen().isEnabled()));
+  for (const name of ['Excavation', 'Structural frame', 'Envelope']) await page.getByRole('switch', { name }).click();
+
+  // Reframe (R1): the INPUT that reaches the engine is the padded canvas, and
+  // the result is the original pasted back at the new ratio.
+  const pngSize = (b64) => {
+    const b = Buffer.from(b64, 'base64');
+    return b.toString('ascii', 1, 4) === 'PNG' ? { w: b.readUInt32BE(16), h: b.readUInt32BE(20) } : null;
+  };
+  await navTo('reframe');
+  await page.setInputFiles('input[type=file]', PLAN);
+  await page.waitForTimeout(400);
+  const rfBefore = geminiBodies.length;
+  await gen().click();
+  await page.waitForTimeout(3500);
+  const rfBody = JSON.parse(geminiBodies[rfBefore] || '{}');
+  const sentImg = rfBody.contents?.[0]?.parts?.find((p) => p.inlineData)?.inlineData?.data;
+  const sentSize = sentImg ? pngSize(sentImg) : null;
+  check('reframe sends the input padded to 9:16', !!sentSize && Math.abs(sentSize.w / sentSize.h - 9 / 16) < 0.01, JSON.stringify(sentSize));
+  check('keeping the original width (nothing scaled down)', sentSize?.w === 1300, JSON.stringify(sentSize));
+  check('and asks the engine for 9:16', rfBody.generationConfig?.imageConfig?.aspectRatio === '9:16');
+  const outSize = await page.locator('main figure img[src^="data:image/jpeg"]').first().evaluate((i) => ({ w: i.naturalWidth, h: i.naturalHeight })).catch(() => null);
+  check('the result is the original pasted back at 9:16', !!outSize && outSize.w === 1300 && Math.abs(outSize.w / outSize.h - 9 / 16) < 0.01, JSON.stringify(outSize));
+
+  // Ground-Floor Program: the box is required, and the fascia stays blank.
+  await navTo('groundFloor');
+  check('ground floor keeps the fascia blank', /fascia above the shopfront is left blank/.test(await page.locator('#groundFloor-prompt').inputValue()));
+  await page.setInputFiles('input[type=file]', PLAN);
+  await page.waitForTimeout(400);
+  check('ground floor will not run without the box', !(await gen().isEnabled()) && /Mark the area on the image/.test(await mainText()));
+  const gfCanvas = page.locator('[data-marker-canvas]');
+  const gfBox = await gfCanvas.boundingBox();
+  await page.mouse.move(gfBox.x + gfBox.width * 0.1, gfBox.y + gfBox.height * 0.6);
+  await page.mouse.down();
+  await page.mouse.move(gfBox.x + gfBox.width * 0.5, gfBox.y + gfBox.height * 0.85, { steps: 8 });
+  await page.mouse.up();
+  await page.waitForTimeout(400);
+  check('drawing the box unblocks it', await gen().isEnabled());
+
+  // --- Build plan, Phase 3b --------------------------------------------------
+  await navTo('systemsCutaway');
+  const scPrompt = page.locator('#systemsCutaway-prompt');
+  check('the cutaway cuts rather than draws over', /CUT IT OPEN/.test(await scPrompt.inputValue()));
+  await page.getByRole('button', { name: /^Soil & water$/ }).click();
+  await page.waitForTimeout(300);
+  check('soil & water reveals the substrate and the irrigation', /soil substrate/.test(await scPrompt.inputValue()) && /irrigation pipes/.test(await scPrompt.inputValue()));
+  await page.getByRole('switch', { name: /Labels and a legend/ }).click();
+  await page.waitForTimeout(300);
+  check('labels off asks for no words', !/Spell every word/.test(await scPrompt.inputValue()) && /No labels/.test(await scPrompt.inputValue()));
+  await page.getByRole('switch', { name: /Labels and a legend/ }).click();
+  await page.getByRole('button', { name: /^Sun & air$/ }).click();
+
+  await navTo('marketingBoard');
+  const mbPrompt = page.locator('#marketingBoard-prompt');
+  check('with no facts the board prints none', /Print no numbers, dates, places or names at all/.test(await mbPrompt.inputValue()));
+  await page.locator('#marketingBoard-facts').fill('Bengaluru · 320 m² · 2026');
+  await page.locator('#marketingBoard-title').fill('Hillside House');
+  await page.waitForTimeout(300);
+  check('typed facts are the only facts', /Facts: Bengaluru · 320 m² · 2026\. Print only these facts/.test(await mbPrompt.inputValue()));
+  check('and the typed title is used', /Title: “Hillside House”/.test(await mbPrompt.inputValue()));
+  await page.getByRole('button', { name: /^16:9 slide$/ }).click();
+  await page.setInputFiles('input[type=file]', PLAN);
+  await page.waitForTimeout(400);
+  const mbBefore = geminiBodies.length;
+  await gen().click();
+  await page.waitForTimeout(2500);
+  check('the chosen format is the ratio asked for', /"aspectRatio":"16:9"/.test(geminiBodies.slice(mbBefore).join('')));
+  check('and the board warns to check the facts', /prints only the facts you typed/.test(await mainText()));
+  await page.locator('#marketingBoard-facts').fill('');
+  await page.locator('#marketingBoard-title').fill('');
+  await page.getByRole('button', { name: /^4:5 post$/ }).click();
+
+  await navTo('magazine');
+  const mgPrompt = page.locator('#magazine-prompt');
+  check('the magazine page bans invented brands and prices', /No invented brand names, prices/.test(await mgPrompt.inputValue()));
+  await page.getByRole('button', { name: /^A building$/ }).click();
+  await page.waitForTimeout(300);
+  check('a building page reads the building', /READ THE BUILDING FIRST/.test(await mgPrompt.inputValue()));
+  await page.getByRole('button', { name: /^An interior$/ }).click();
+
+  // --- Build plan, Phase 4 ---------------------------------------------------
+  await navTo('materialPoster');
+  const mpPrompt = page.locator('#materialPoster-prompt');
+  check('the material poster will not run unnamed', !(await gen().isEnabled()));
+  await page.locator('#materialPoster-topic').fill('Terracotta jali blocks');
+  await page.waitForTimeout(300);
+  check('a named material runs with no photo', await gen().isEnabled());
+  check('and the poster is about it', /about TERRACOTTA JALI BLOCKS/.test(await mpPrompt.inputValue()));
+  check('without a photo it does not claim to match one', !/READ THE PHOTO/.test(await mpPrompt.inputValue()));
+  await page.setInputFiles('input[type=file]', PLAN);
+  await page.waitForTimeout(400);
+  check('with a photo it draws THAT material', /READ THE PHOTO/.test(await mpPrompt.inputValue()));
+  const mpBefore = geminiBodies.length;
+  await gen().click();
+  await page.waitForTimeout(2500);
+  check('the poster researches with search', /google_search/.test(geminiBodies.slice(mpBefore).join('')));
+  check('and warns to check its facts', /check them before you publish/.test(await mainText()));
+  await page.locator('#materialPoster-topic').fill('');
+
+  await navTo('architectTimeline');
+  const atPrompt = page.locator('#architectTimeline-prompt');
+  check('the timeline will not run without an architect', !(await gen().isEnabled()));
+  await page.locator('#architectTimeline-architect').fill('Zaha Hadid');
+  await page.locator('#architectTimeline-from').fill('sharp angles');
+  await page.locator('#architectTimeline-to').fill('fluid curves');
+  await page.waitForTimeout(300);
+  check('a named architect runs', await gen().isEnabled());
+  check('the style arc reaches the prompt', /from sharp angles on the left to fluid curves on the right/.test(await atPrompt.inputValue()));
+  check('and invention is ruled out', /never invent a project, a name or a date/.test(await atPrompt.inputValue()));
+  for (const id of ['#architectTimeline-architect', '#architectTimeline-from', '#architectTimeline-to']) await page.locator(id).fill('');
+
+  await navTo('blueprintEvolution');
+  check('the blueprint will not run without a typology', !(await gen().isEnabled()));
+  await page.locator('#blueprintEvolution-typology').fill('Gothic to contemporary church design');
+  await page.getByRole('button', { name: /^9$/ }).click();
+  await page.waitForTimeout(300);
+  check('nine stages end on the present day', /Stage 9 — a near photo-real miniature of the present-day expression/.test(await page.locator('#blueprintEvolution-prompt').inputValue()));
+  await page.getByRole('button', { name: /^7$/ }).click();
+  await page.locator('#blueprintEvolution-typology').fill('');
+
+  await navTo('redPen');
+  const rpPrompt = page.locator('#redPen-prompt');
+  check('the review is constructive by default', /senior design reviewer/.test(await rpPrompt.inputValue()));
+  await page.getByRole('button', { name: /^Roast$/ }).click();
+  await page.waitForTimeout(300);
+  check('the roast mocks the design, never a person', /mocking the design, never a person/.test(await rpPrompt.inputValue()));
+  check('and still only for real flaws', /Do not invent problems/.test(await rpPrompt.inputValue()));
+  await page.getByRole('button', { name: /^Constructive$/ }).click();
+
   // The shared lock must not name a thing the tool exists to change. This is the
   // contradiction that the static gate catches across all 624 variants; here it
   // is checked once, live, on the two tools most likely to regress.
@@ -995,6 +1387,15 @@ const check = (name, ok, detail = '') => {
   await page.waitForTimeout(400);
   check('changing the kind changes the cards', (await page.locator('[data-card="interior"]').count()) === 1);
   check('and drops the ones that no longer apply', (await page.locator('[data-card="render"]').count()) === 0);
+  // Phase 1 added a kind for things to design FROM. Its chip leads somewhere.
+  await page.locator('[data-kind="inspiration"]').click();
+  await page.waitForTimeout(400);
+  check('a mood board or inspiration offers Moodboard to Space', (await page.locator('[data-card="moodboardSpace"]').count()) === 1);
+  check('and the Concept Board', (await page.locator('[data-card="conceptBoard"]').count()) === 1);
+  check('and no facade tool', (await page.locator('[data-card="facadeMaterial"]').count()) === 0);
+  await page.locator('[data-kind="site"]').click();
+  await page.waitForTimeout(400);
+  check('a site photo offers Place in Real Site', (await page.locator('[data-card="placeInSite"]').count()) === 1);
 
   // 22. The key is asked at the first generation, not on arrival — and pasting
   //     it continues the run the user already started, with no second tap.

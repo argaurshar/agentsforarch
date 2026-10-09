@@ -7,6 +7,10 @@ import { OutputCard } from './OutputCard';
 export interface SendTarget {
   label: string;
   target: FeatureKind;
+  /** Button text, when the target's own name would not say what happens. */
+  short?: string;
+  /** Settings applied to the target before the image arrives (a send preset). */
+  settings?: Record<string, unknown>;
 }
 
 interface OutputGridProps {
@@ -16,7 +20,7 @@ interface OutputGridProps {
   onDelete?: (imageId: string) => void;
   onRefine?: (image: GeneratedImage) => void;
   sendTargets?: SendTarget[];
-  onSend?: (target: FeatureKind, image: GeneratedImage) => void;
+  onSend?: (target: FeatureKind, image: GeneratedImage, settings?: Record<string, unknown>) => void;
   /**
    * Rendered instead of the grid when there is nothing to show. Callers that
    * already gate on `outputs.length` keep the previous behaviour (nothing).

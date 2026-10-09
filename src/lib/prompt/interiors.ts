@@ -12,6 +12,7 @@
 // THEN do the one thing the tool is for.
 
 import { NO_NEW_DRAPERY, NO_TEXT, SHELL_CHECK, SHELL_LOCK, SHELL_READ } from './clauses';
+import type { SpaceLight, SpaceRoom, SpaceView } from '../../store/generation';
 
 /** What kind of object is being placed. Same transformation, different noun. */
 export type PlaceObjectKind = 'furniture' | 'lighting' | 'artwork';
@@ -218,5 +219,76 @@ export function buildSpecSheetPrompt(a: { roomLabel: string }): string {
       '"PENDANT — Brushed Brass".',
     'Typography: refined, small, consistent, generous whitespace — a specification page from a design studio. ' +
       'Photorealistic cut-outs, ultra-detailed. The only text on the sheet are these labels — spell every word correctly.',
+  ].join(' ');
+}
+
+// --- Mood board → room (guide #06) ------------------------------------------
+
+const ROOM: Record<Exclude<SpaceRoom, 'custom'>, { noun: string; furnish: string }> = {
+  living: { noun: 'living room', furnish: 'a seating group facing something — a fire, a view or a low table' },
+  bedroom: { noun: 'bedroom', furnish: 'the bed as the anchor, with bedside tables, a reading chair and storage' },
+  kitchen: { noun: 'kitchen', furnish: 'a working run of counters and appliances, with an island or table to gather at' },
+  dining: { noun: 'dining room', furnish: 'a table and chairs at the centre, with a sideboard and a pendant over the table' },
+  office: { noun: 'home office', furnish: 'a desk facing the light, a task chair, shelving and a reading corner' },
+  lobby: { noun: 'hotel lobby', furnish: 'a reception desk, lounge seating in small groups and a clear route through' },
+};
+
+const VIEW_CLAUSE: Record<SpaceView, string> = {
+  wide: 'seen at eye level through a natural 24–28 mm lens, taking in most of the room',
+  corner: 'seen from one corner at eye level, two walls converging, a natural 24 mm lens',
+  onepoint: 'seen straight down the room in one-point perspective at eye level, the back wall square to the camera',
+};
+
+const LIGHT_CLAUSE: Record<SpaceLight, string> = {
+  board: 'Light the room to the board’s mood: if the board is warm and soft, the room is lit warm and soft.',
+  daylight: 'Light it with soft, clear daylight from the windows, true to the colours on the board.',
+  evening: 'Light it for the evening: warm lamps and pendants on, a dusky sky in the windows.',
+};
+
+/**
+ * A mood board or collage → one photoreal room built from it. The reverse of
+ * the Moodboard tool, which makes a board from a room.
+ *
+ * Two failures, both from the guide's own example. The model returns ANOTHER
+ * COLLAGE — a grid of swatches is the closest image to the input — or it
+ * builds a generic beige room and hangs the board's photographs on its wall.
+ * The read step makes it name the palette and materials before it draws, so
+ * there is something concrete to apply, and the check asks for each of them
+ * back.
+ */
+export function buildMoodboardSpacePrompt(a: {
+  room: SpaceRoom;
+  customRoom: string;
+  view: SpaceView;
+  light: SpaceLight;
+}): string {
+  // An empty "Something else" is blocked in the UI; if it ever reaches here it
+  // still reads as a complete instruction, and NOT as the living-room default.
+  const room =
+    a.room === 'custom'
+      ? {
+          // "one photorealistic ___": a typed "a hotel bathroom" would read
+          // "one photorealistic a hotel bathroom", so a leading article goes.
+          noun: a.customRoom.trim().replace(/^(a|an|the)\s+/i, '') || 'room whose purpose suits the board',
+          furnish: 'furniture arranged for how the space is really used',
+        }
+      : ROOM[a.room];
+  return [
+    `You are an interior designer turning the mood board in the input image into one photorealistic ${room.noun} ` +
+      'that a client could walk into.',
+    'STEP 1 — READ THE BOARD FIRST. Before you design anything, extract: the four or five dominant colours and roughly ' +
+      'how much of each, every material and texture (timber and its finish, stone, metal, fabric, plaster), the ' +
+      'furniture style and silhouettes, the warmth of the light, and the mood in three words. That is your brief.',
+    `STEP 2 — DESIGN THE ROOM. A believable ${room.noun} with real depth — floor, walls and ceiling ${VIEW_CLAUSE[a.view]}, ` +
+      `with windows that explain the light. Furnish it in the board’s style and arrange it for real use: ${room.furnish}, ` +
+      'with clear walkways. Use the palette in the board’s own proportions — the dominant colour on the largest ' +
+      'surfaces, the accent sparingly.',
+    'DO NOT MAKE ANOTHER COLLAGE. The output is one photograph of one room — not a board, not a grid, not swatches, not ' +
+      'cut-outs on a background. Do not hang the board’s photographs in the room as pictures.',
+    LIGHT_CLAUSE[a.light],
+    'Photorealistic interior photograph, physically based lighting, natural colour grade, ultra-detailed.',
+    NO_TEXT,
+    'CHECK before you finish: could someone point at the board and find each of its main colours and materials in the ' +
+      'room? Is it one coherent photograph? If not, redo it.',
   ].join(' ');
 }

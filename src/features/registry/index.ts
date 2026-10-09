@@ -18,6 +18,27 @@ import {
   Brush,
   Building,
   Building2,
+  Leaf,
+  LandPlot,
+  Compass,
+  Construction,
+  Expand,
+  Wind,
+  Presentation,
+  BookOpen,
+  FlaskConical,
+  Milestone,
+  Scroll,
+  Highlighter,
+  Store,
+  Globe,
+  Grid3x3,
+  History,
+  MapPinned,
+  Spline,
+  Shapes,
+  Waypoints,
+  WandSparkles,
   Camera,
   ClipboardList,
   Gem,
@@ -55,13 +76,37 @@ import {
   buildMoodboardPrompt,
   buildRenderPrompt,
 } from '../../lib/prompts';
-import { buildMassingPrompt, buildSketchRenderPrompt } from '../../lib/prompt/concept';
 import {
+  buildConceptBoardPrompt,
+  buildConceptDiagramPrompt,
+  buildMassingPrompt,
+  buildSketchRenderPrompt,
+  conceptDiagramPanels,
+  parseMoves,
+} from '../../lib/prompt/concept';
+import {
+  buildArchitectTimelinePrompt,
+  buildBlueprintEvolutionPrompt,
+  buildMaterialPosterPrompt,
+  buildRedPenPrompt,
+  buildMagazinePrompt,
+  buildMarketingBoardPrompt,
+  buildSystemsCutawayPrompt,
   buildAnnotationPrompt,
   buildExplodedAxonPrompt,
   buildProgramDiagramPrompt,
 } from '../../lib/prompt/boards';
+import { engineSupportsGrounding } from '../../providers/runtimeConfig';
+import { formatCoordinates, parseCoordinates } from '../../lib/coords';
 import {
+  buildSiteAnalysis3dPrompt,
+  buildSiteHistoryPrompt,
+  buildSitePhotoPrompt,
+  buildUrbanLayersPrompt,
+  urbanLayerList,
+  buildPlaceInSitePrompt,
+  buildSiteAnalysisPrompt,
+  buildSiteLineworkPrompt,
   buildBirdsEyePrompt,
   buildFloorAnalysisPrompt,
   buildUrbanContextPrompt,
@@ -77,8 +122,13 @@ import {
   buildWatercolourPrompt,
   buildMassingRenderPrompt,
   buildWireframeRenderPrompt,
+  buildGroundFloorPrompt,
+  buildPhasingPrompt,
+  buildReframePrompt,
+  PHASE_STAGE,
 } from '../../lib/prompt/visualization';
 import {
+  buildBubblePlanPrompt,
   buildCadElevationPrompt,
   buildRenderToPlanPrompt,
   buildSectionPrompt,
@@ -86,6 +136,7 @@ import {
 } from '../../lib/prompt/drawings';
 import {
   buildDeclutterPrompt,
+  buildMoodboardSpacePrompt,
   buildPlaceObjectPrompt,
   buildSpecSheetPrompt,
   buildTargetedSwapPrompt,
@@ -94,6 +145,28 @@ import { LIGHTING, MATERIAL_PRESETS, MOODS, SEASONS, defaultScene } from '../../
 import type { AspectRatio } from '../../providers/options';
 import type { GenerateOptions, GenerateRequest } from '../../providers/types';
 import type {
+  ArchitectTimelineSettings,
+  BlueprintEvolutionSettings,
+  MaterialPosterSettings,
+  RedPenSettings,
+  MagazineSettings,
+  MarketingBoardSettings,
+  SystemsCutawaySettings,
+  GroundFloorSettings,
+  PhaseStage,
+  PhasingSettings,
+  ReframeSettings,
+  SiteAnalysis3dSettings,
+  SiteHistorySettings,
+  SitePhotoSettings,
+  UrbanLayersSettings,
+  PlaceInSiteSettings,
+  SiteAnalysisSettings,
+  SiteLineworkSettings,
+  BubblePlanSettings,
+  ConceptBoardSettings,
+  ConceptDiagramSettings,
+  MoodboardSpaceSettings,
   AnnotationSettings,
   AxonSettings,
   BirdsEyeSettings,
@@ -157,6 +230,10 @@ export interface PromptContext {
    *  and without one, and the builder cannot see the store. Every caller that
    *  always has an image (the front door, a batch run) passes true. */
   hasImage?: boolean;
+  /** Which of the tool's `extraInputs` slots hold an image, by index. Only an
+   *  OPTIONAL slot can be empty at run time; callers that know nothing of slots
+   *  (a batch, the front door) leave it undefined, which reads as "none". */
+  extras?: boolean[];
 }
 
 /** A batch job: one output image, with the clause that distinguishes it. */
@@ -253,7 +330,14 @@ export interface FeatureDef<S extends FeatureSettings = FeatureSettings> {
    * is always that one, which is why this is an ordered list of labelled slots
    * rather than "up to N images".
    */
-  extraInputs?: { label: string; hint: string }[];
+  extraInputs?: {
+    label: string;
+    hint: string;
+    /** An OPTIONAL slot never blocks Generate; the prompt is told whether it
+     *  was filled through `PromptContext.extras`. Optional slots go LAST, so an
+     *  empty one never shifts the position of a slot the prompt names. */
+    optional?: boolean;
+  }[];
   /**
    * Whether this tool offers a region marker, and whether it insists on one.
    *
@@ -298,6 +382,12 @@ export interface FeatureDef<S extends FeatureSettings = FeatureSettings> {
 
   /** Cross-feature pipeline destinations offered on this tool's outputs. */
   sendTargets: FeatureKind[];
+  /**
+   * Destinations that open with a setting already chosen — the second step of a
+   * two-step tool, e.g. Urban Layer Maps' "Stack these layers", which sends the
+   * four-map sheet back into the same tool with Step set to stack.
+   */
+  sendPresets?: { target: FeatureKind; label: string; settings: Record<string, unknown> }[];
   /** Display group for the image pool / style-reference picker. */
   poolLabel: string;
   /** Gallery filter label. */
@@ -1544,16 +1634,26 @@ const wireframeRender: FeatureDef<WireframeRenderSettings> = {
   icon: Camera,
   inputMode: 'image',
   maxReferences: 1,
-  defaultSettings: { keepBackground: false, scene: defaultScene() },
+  defaultSettings: { subject: 'building', keepBackground: false, scene: defaultScene() },
   quick: [
+    {
+      kind: 'choice',
+      key: 'subject',
+      label: 'The model shows',
+      options: [
+        { value: 'building', label: 'A building' },
+        { value: 'interior', label: 'An interior' },
+      ],
+    },
     {
       kind: 'toggle',
       key: 'keepBackground',
       label: 'Keep the viewport background',
-      hint: 'On: whatever is behind the model stays. Off: a plausible setting is built around it.',
+      hint: 'On: whatever is behind the model (or through its windows) stays. Off: a plausible setting is built around it.',
     },
   ],
-  buildPrompt: (s) => buildWireframeRenderPrompt({ ...s.scene, keepBackground: s.keepBackground }),
+  buildPrompt: (s) =>
+    buildWireframeRenderPrompt({ ...s.scene, keepBackground: s.keepBackground, subject: s.subject }),
   sendTargets: ['atmosphere', 'humanScale', 'upscale'],
   poolLabel: 'Renders',
   galleryLabel: 'Render',
@@ -1563,7 +1663,7 @@ const wireframeRender: FeatureDef<WireframeRenderSettings> = {
     description:
       'Give an untextured model materials, light and a setting. The geometry is fixed input — it renders what you modelled, not a better-balanced version of it.',
     inputLabel: 'Input',
-    inputHint: 'A wireframe, clay or shaded viewport screenshot',
+    inputHint: 'A wireframe, clay or shaded viewport screenshot — outside or inside',
     outputCaption: 'The finished render',
     emptyIcon: Camera,
     emptyTitle: 'No render yet',
@@ -2367,9 +2467,1553 @@ const moodboard: FeatureDef<MoodboardSettings> = {
  * Every tool. `satisfies` makes exhaustiveness a build error in both
  * directions — a key with no definition, or a definition with no key.
  */
+
+// --- Build plan, Phase 1 -------------------------------------------------------
+
+/**
+ * A finished building → the BIG-style sequence of moves behind its form (guide
+ * #14). The moves are read from the image, or typed by the architect; either
+ * way the last panel must BE the input.
+ */
+const conceptDiagram: FeatureDef<ConceptDiagramSettings> = {
+  key: 'conceptDiagram',
+  category: 'concept',
+  name: 'Concept Diagram',
+  blurb: 'Form to Step-by-Step Moves',
+  verb: 'Explain the form',
+  inputKind: ['building', 'model', 'sketch'],
+  outputKind: null,
+  icon: Shapes,
+  inputMode: 'image',
+  maxReferences: 0,
+  defaultSettings: { steps: '4', moves: '', look: 'bold', labels: true },
+  quick: [
+    {
+      kind: 'choice',
+      key: 'steps',
+      label: 'Steps',
+      options: [
+        { value: '3', label: '3 moves' },
+        { value: '4', label: '4 moves' },
+        { value: '5', label: '5 moves' },
+      ],
+    },
+    {
+      kind: 'choice',
+      key: 'look',
+      label: 'Look',
+      options: [
+        { value: 'bold', label: 'Bold colour' },
+        { value: 'mono', label: 'Grey + one accent' },
+      ],
+    },
+    {
+      kind: 'toggle',
+      key: 'labels',
+      label: 'Numbered captions',
+      hint: 'Off draws the panels alone — no words to misspell, but someone has to talk it through.',
+    },
+  ],
+  buildPrompt: (s) => buildConceptDiagramPrompt(s),
+  // A row of panels is a landscape strip; five need the wider sheet.
+  aspectRatio: (s) => (conceptDiagramPanels(s) >= 5 ? '21:9' : '16:9'),
+  sendTargets: ['upscale'],
+  poolLabel: 'Concept diagrams',
+  galleryLabel: 'Concept diagram',
+  ui: {
+    eyebrow: 'Concept & Form',
+    title: 'Building → Concept Diagram',
+    description:
+      'The competition-board sequence: the site volume, then each move that made the form — carved, stepped, lifted, planted — ending on your building. The moves are read from the image, or you list them.',
+    inputLabel: 'Input',
+    inputHint: 'A render, massing or model of the finished form',
+    outputCaption: 'The step-by-step diagram',
+    emptyIcon: Shapes,
+    emptyTitle: 'No diagram yet',
+    emptyDescription: 'Upload the finished form and press Generate — the sequence of moves appears here.',
+    compare: { before: 'Form', after: 'Moves' },
+  },
+  blockedReason: (s, hasInput, mode) => {
+    if (!hasInput) return 'Upload the building to begin.';
+    if (mode === 'refine') return null;
+    // One typed move would be silently dropped for the Steps count.
+    if (parseMoves(s.moves).length === 1) return 'List at least two moves, or clear the box.';
+    return null;
+  },
+  toOptions: (_s, ctx) => plainOptions(ctx),
+  promptContracts: [
+    { name: 'concept diagram reads the final form first', pattern: /READ THE BUILDING FIRST/ },
+    { name: 'concept diagram makes one move per panel', pattern: /exactly ONE visible change/ },
+    { name: 'concept diagram holds one camera', pattern: /SAME axonometric camera angle/ },
+    { name: 'concept diagram ends on the input', pattern: /last panel must match the input/ },
+    { name: 'concept diagram insists on spelling', pattern: /Spell every word correctly/ },
+  ],
+};
+
+/**
+ * An inspiring object or image → a building concept on one three-part board
+ * (guide #55). Translate the qualities, never the shape.
+ */
+const conceptBoard: FeatureDef<ConceptBoardSettings> = {
+  key: 'conceptBoard',
+  category: 'concept',
+  name: 'Bio-Mimicry Concept Board',
+  blurb: 'Inspiration to Concept Board',
+  verb: 'Design from an inspiration',
+  inputKind: ['inspiration'],
+  outputKind: null,
+  icon: Leaf,
+  inputMode: 'image',
+  maxReferences: 0,
+  defaultSettings: { program: 'pavilion', customProgram: '', title: '' },
+  quick: [
+    {
+      kind: 'choice',
+      key: 'program',
+      label: 'Design a',
+      options: [
+        { value: 'pavilion', label: 'Pavilion' },
+        { value: 'museum', label: 'Museum' },
+        { value: 'house', label: 'House' },
+        { value: 'tower', label: 'Tower' },
+        { value: 'custom', label: 'Something else' },
+      ],
+    },
+  ],
+  buildPrompt: (s) => buildConceptBoardPrompt(s),
+  aspectRatio: () => '3:2',
+  sendTargets: ['upscale'],
+  poolLabel: 'Concept boards',
+  galleryLabel: 'Concept board',
+  ui: {
+    eyebrow: 'Concept & Form',
+    title: 'Inspiration → Concept Board',
+    description:
+      'A shell, a seed head, a painting — its form, texture and behaviour translated into a building, not copied. One board: the concept sketch, the hero render and the interiors.',
+    inputLabel: 'Inspiration',
+    inputHint: 'A photo of an object, a natural form, an artwork or a mood image',
+    outputCaption: 'The concept board',
+    emptyIcon: Leaf,
+    emptyTitle: 'No concept board yet',
+    emptyDescription: 'Upload an inspiration and press Generate — a three-part board appears here.',
+    compare: { before: 'Inspiration', after: 'Concept' },
+  },
+  blockedReason: (s, hasInput, mode) => {
+    if (!hasInput) return 'Upload an inspiration image to begin.';
+    if (mode === 'refine') return null;
+    if (s.program === 'custom' && !s.customProgram.trim()) return 'Say what the building is.';
+    return null;
+  },
+  toOptions: (_s, ctx) => plainOptions(ctx),
+  promptContracts: [
+    { name: 'concept board reads the inspiration without naming it', pattern: /READ THE INSPIRATION FIRST/ },
+    { name: 'concept board translates rather than copies', pattern: /TRANSLATE, DO NOT COPY/ },
+    { name: 'concept board has exactly three parts', pattern: /exactly three parts/ },
+    { name: 'concept board shows one building throughout', pattern: /All three parts show the SAME building/ },
+    { name: 'concept board insists on spelling', pattern: /Spell every word correctly/ },
+  ],
+};
+
+/**
+ * A bubble or zoning diagram → a drafted, furnished plan (guide #60). The
+ * opposite instruction to Sketch → Plan: walls and doors are INVENTED here, and
+ * only the diagram's adjacencies are fixed.
+ */
+const bubblePlan: FeatureDef<BubblePlanSettings> = {
+  key: 'bubblePlan',
+  category: 'drawings',
+  name: 'Bubble to Plan',
+  blurb: 'Bubble Diagram to Floor Plan',
+  verb: 'Turn bubbles into a plan',
+  inputKind: ['sketch', 'plan'],
+  outputKind: 'plan',
+  icon: Waypoints,
+  inputMode: 'image',
+  maxReferences: 0,
+  accuracyWarning: () =>
+    'Room sizes and walls are interpreted from a loose diagram — check the dimensions before you rely on them.',
+  defaultSettings: { furnished: true, walls: 'poche', roomNames: false },
+  quick: [
+    {
+      kind: 'toggle',
+      key: 'furnished',
+      label: 'Furnished',
+      hint: 'Off draws the shell only — walls, doors and windows.',
+    },
+    {
+      kind: 'choice',
+      key: 'walls',
+      label: 'Walls',
+      options: [
+        { value: 'poche', label: 'Solid' },
+        { value: 'double', label: 'Double line' },
+      ],
+    },
+    {
+      kind: 'toggle',
+      key: 'roomNames',
+      label: 'Room names',
+      hint: 'Off keeps the plan text-free, which is what the diagram’s handwriting is removed for.',
+    },
+  ],
+  buildPrompt: (s) => buildBubblePlanPrompt(s),
+  sendTargets: ['render', 'floorAnalysis', 'annotation'],
+  poolLabel: 'Plans',
+  galleryLabel: 'Plan',
+  ui: {
+    eyebrow: 'Plans & Drawings',
+    title: 'Bubble Diagram → Floor Plan',
+    description:
+      'Bubbles become rooms in the same arrangement: bubbles that touch share a door, bubbles that do not stay apart. Walls, doors and furniture are drawn in; the handwriting is taken out.',
+    inputLabel: 'Input',
+    inputHint: 'A bubble or zoning diagram — hand-drawn or digital',
+    outputCaption: 'The drafted plan',
+    emptyIcon: Waypoints,
+    emptyTitle: 'No plan yet',
+    emptyDescription: 'Upload a bubble diagram and press Generate — the drafted plan appears here.',
+    compare: { before: 'Diagram', after: 'Plan' },
+  },
+  blockedReason: (_s, hasInput) => (hasInput ? null : 'Upload a bubble diagram to begin.'),
+  toOptions: (_s, ctx) => plainOptions(ctx),
+  promptContracts: [
+    { name: 'bubble plan reads the diagram first', pattern: /READ THE DIAGRAM FIRST/ },
+    { name: 'bubble plan keeps the adjacencies', pattern: /the rooms share a wall with a door in it/ },
+    { name: 'bubble plan holds the projection', pattern: /ORTHOGRAPHIC drawing/ },
+    { name: 'bubble plan removes the diagram marks', pattern: /Remove every bubble/ },
+    { name: 'bubble plan never blocks a door', pattern: /no furniture in front of a door/ },
+  ],
+};
+
+/**
+ * A mood board or collage → one photoreal room built from it (guide #06). The
+ * reverse of Moodboard, which makes a board from a room.
+ */
+const moodboardSpace: FeatureDef<MoodboardSpaceSettings> = {
+  key: 'moodboardSpace',
+  category: 'interiors',
+  name: 'Moodboard to Space',
+  blurb: 'Mood Board to Room',
+  verb: 'Build the room from the board',
+  inputKind: ['inspiration'],
+  outputKind: 'room',
+  icon: WandSparkles,
+  inputMode: 'image',
+  maxReferences: 0,
+  defaultSettings: { room: 'living', customRoom: '', view: 'wide', light: 'board' },
+  quick: [
+    {
+      kind: 'choice',
+      key: 'room',
+      label: 'Room',
+      options: [
+        { value: 'living', label: 'Living' },
+        { value: 'bedroom', label: 'Bedroom' },
+        { value: 'kitchen', label: 'Kitchen' },
+        { value: 'dining', label: 'Dining' },
+        { value: 'office', label: 'Office' },
+        { value: 'lobby', label: 'Lobby' },
+        { value: 'custom', label: 'Something else' },
+      ],
+    },
+    {
+      kind: 'choice',
+      key: 'view',
+      label: 'View',
+      options: [
+        { value: 'wide', label: 'Wide' },
+        { value: 'corner', label: 'Corner' },
+        { value: 'onepoint', label: 'One-point' },
+      ],
+    },
+    {
+      kind: 'choice',
+      key: 'light',
+      label: 'Light',
+      options: [
+        { value: 'board', label: 'Match the board' },
+        { value: 'daylight', label: 'Daylight' },
+        { value: 'evening', label: 'Evening' },
+      ],
+    },
+  ],
+  buildPrompt: (s) => buildMoodboardSpacePrompt(s),
+  aspectRatio: () => '3:2',
+  sendTargets: ['placeObject', 'targetedSwap', 'specSheet'],
+  poolLabel: 'Interiors',
+  galleryLabel: 'Interior',
+  ui: {
+    eyebrow: 'Interiors',
+    title: 'Mood Board → Room',
+    description:
+      'The board’s palette, materials and furniture style, built into one room you could walk into — not another collage. The reverse of Moodboard.',
+    inputLabel: 'Mood board',
+    inputHint: 'A mood board or collage — swatches, furniture, colours',
+    outputCaption: 'The room',
+    emptyIcon: WandSparkles,
+    emptyTitle: 'No room yet',
+    emptyDescription: 'Upload a mood board and press Generate — the room appears here.',
+    compare: { before: 'Board', after: 'Room' },
+  },
+  blockedReason: (s, hasInput, mode) => {
+    if (!hasInput) return 'Upload a mood board to begin.';
+    if (mode === 'refine') return null;
+    if (s.room === 'custom' && !s.customRoom.trim()) return 'Say what kind of room it is.';
+    return null;
+  },
+  toOptions: (_s, ctx) => plainOptions(ctx),
+  promptContracts: [
+    { name: 'moodboard space reads the board first', pattern: /READ THE BOARD FIRST/ },
+    { name: 'moodboard space refuses another collage', pattern: /DO NOT MAKE ANOTHER COLLAGE/ },
+    { name: 'moodboard space keeps the palette proportions', pattern: /board’s own proportions/ },
+    { name: 'moodboard space adds no text', pattern: /watermark, signature, caption or stray text/ },
+  ],
+};
+
+// --- Build plan, Phase 2a ------------------------------------------------------
+
+/**
+ * A satellite or map screenshot → black-and-white vector linework that overlays
+ * it (guide #32).
+ */
+const siteLinework: FeatureDef<SiteLineworkSettings> = {
+  key: 'siteLinework',
+  category: 'site',
+  name: 'Vector Site Map',
+  blurb: 'Satellite to Linework',
+  verb: 'Trace it as linework',
+  inputKind: ['map'],
+  outputKind: null,
+  icon: Spline,
+  inputMode: 'image',
+  maxReferences: 0,
+  defaultSettings: { trees: 'remove', buildings: 'outline' },
+  quick: [
+    {
+      kind: 'choice',
+      key: 'trees',
+      label: 'Trees',
+      options: [
+        { value: 'remove', label: 'Remove' },
+        { value: 'circles', label: 'Simple circles' },
+      ],
+    },
+    {
+      kind: 'choice',
+      key: 'buildings',
+      label: 'Buildings',
+      options: [
+        { value: 'outline', label: 'Outlined' },
+        { value: 'solid', label: 'Solid black' },
+      ],
+    },
+  ],
+  buildPrompt: (s) => buildSiteLineworkPrompt(s),
+  sendTargets: [],
+  poolLabel: 'Site drawings',
+  galleryLabel: 'Site map',
+  ui: {
+    eyebrow: 'Site & Urban',
+    title: 'Satellite → Vector Site Map',
+    description:
+      'A clean black-and-white base drawing of the place, with real line weights — buildings heaviest, kerbs medium, paths fine. No labels, no trees, and it overlays the screenshot it came from.',
+    inputLabel: 'Input',
+    inputHint: 'A top-down satellite or Maps screenshot',
+    outputCaption: 'The site linework',
+    emptyIcon: Spline,
+    emptyTitle: 'No site map yet',
+    emptyDescription: 'Upload a satellite screenshot and press Generate — the linework appears here.',
+    compare: { before: 'Satellite', after: 'Linework' },
+  },
+  blockedReason: (_s, hasInput) => (hasInput ? null : 'Upload a satellite or map screenshot to begin.'),
+  toOptions: (_s, ctx) => plainOptions(ctx),
+  promptContracts: [
+    { name: 'site linework reads the map first', pattern: /READ THE MAP FIRST/ },
+    { name: 'site linework overlays its source', pattern: /must overlay the input exactly/ },
+    { name: 'site linework has a line-weight hierarchy', pattern: /hierarchy of line weights/ },
+    { name: 'site linework carries no text', pattern: /Draw no text of any kind/ },
+  ],
+};
+
+/**
+ * A Maps screenshot with the site outlined → a flat pastel analysis diagram
+ * (guide #44). The site may be outlined in the screenshot, or boxed here.
+ */
+const siteAnalysis: FeatureDef<SiteAnalysisSettings> = {
+  key: 'siteAnalysis',
+  category: 'site',
+  name: 'Site Analysis Diagram',
+  blurb: 'Map to Analysis Diagram',
+  verb: 'Analyse the site',
+  inputKind: ['map'],
+  outputKind: null,
+  icon: MapPinned,
+  inputMode: 'image',
+  maxReferences: 0,
+  // Optional: a screenshot may already carry the site in red. A required marker
+  // would also take the tool out of batch runs.
+  marker: 'optional',
+  accuracyWarning: (s) =>
+    s.labels
+      ? 'Street names are copied from your screenshot, and the sun path is schematic — check both.'
+      : 'The sun path is schematic, not a solar study.',
+  defaultSettings: { hemisphere: 'north', sun: true, access: true, views: true, labels: true },
+  quick: [
+    {
+      kind: 'choice',
+      key: 'hemisphere',
+      label: 'Hemisphere',
+      hint: 'Decides which edge the sun arc runs along.',
+      options: [
+        { value: 'north', label: 'North of the equator' },
+        { value: 'south', label: 'South of the equator' },
+      ],
+    },
+    { kind: 'toggle', key: 'sun', label: 'Sun path', hint: 'One schematic arc, east to west.' },
+    { kind: 'toggle', key: 'access', label: 'Access arrows', hint: 'Main pedestrian and vehicle approaches.' },
+    { kind: 'toggle', key: 'views', label: 'Views', hint: 'Dashed sightlines to landmarks and open views.' },
+  ],
+  buildPrompt: (s, ctx) => buildSiteAnalysisPrompt({ ...s, marked: Boolean(ctx.hasMarker) }),
+  sendTargets: [],
+  poolLabel: 'Site diagrams',
+  galleryLabel: 'Site analysis',
+  ui: {
+    eyebrow: 'Site & Urban',
+    title: 'Map → Site Analysis Diagram',
+    description:
+      'The site in red with its zone of influence, the sun path, access and sightlines, on a calm pastel base — and only street names that are really on your screenshot.',
+    inputLabel: 'Input',
+    inputHint: 'A Maps or Earth screenshot with the site outlined in red — or box it here',
+    outputCaption: 'The analysis diagram',
+    emptyIcon: MapPinned,
+    emptyTitle: 'No diagram yet',
+    emptyDescription: 'Upload a map with the site marked and press Generate — the diagram appears here.',
+    compare: { before: 'Map', after: 'Analysis' },
+  },
+  blockedReason: (_s, hasInput) => (hasInput ? null : 'Upload a map or satellite screenshot to begin.'),
+  toOptions: (_s, ctx) => plainOptions(ctx),
+  promptContracts: [
+    { name: 'site analysis reads the map first', pattern: /READ THE MAP FIRST/ },
+    { name: 'site analysis marks the site in pastel red', pattern: /soft pastel red fill/ },
+    { name: 'site analysis puts the sun arc on the equator side', pattern: /BOTTOM \(south\) edge/ },
+    { name: 'site analysis never invents a name', pattern: /never invent a name/ },
+    { name: 'site analysis strips the map interface', pattern: /remove every one of them/ },
+  ],
+};
+
+/**
+ * A real site photograph + a building → a photomontage of the finished project
+ * (guide #46). Urban Context invents the surroundings; this keeps a real place.
+ */
+const placeInSite: FeatureDef<PlaceInSiteSettings> = {
+  key: 'placeInSite',
+  category: 'site',
+  name: 'Place in Real Site',
+  blurb: 'Site Photo + Building to Montage',
+  verb: 'Put it on the real site',
+  inputKind: ['site'],
+  outputKind: 'building',
+  icon: LandPlot,
+  inputMode: 'images',
+  maxReferences: 0,
+  extraInputs: [
+    {
+      label: 'Input · your building',
+      hint: 'A render, model or massing of the proposal — its design is kept exactly',
+    },
+  ],
+  marker: 'optional',
+  defaultSettings: { landscape: false, light: 'site' },
+  quick: [
+    {
+      kind: 'toggle',
+      key: 'landscape',
+      label: 'Landscape the plot',
+      hint: 'Paths, planting and a small water garden — inside the plot only. The rest of the photo is never touched.',
+    },
+    {
+      kind: 'choice',
+      key: 'light',
+      label: 'Light',
+      options: [
+        { value: 'site', label: 'Match the photo' },
+        { value: 'golden', label: 'Golden hour' },
+      ],
+    },
+  ],
+  buildPrompt: (s, ctx) => buildPlaceInSitePrompt({ ...s, marked: Boolean(ctx.hasMarker) }),
+  accuracyWarning: (s) => (s.light === 'golden' ? 'The whole photograph was relit to golden hour.' : undefined),
+  sendTargets: ['humanScale', 'atmosphere', 'upscale'],
+  poolLabel: 'Renders',
+  galleryLabel: 'Site montage',
+  ui: {
+    eyebrow: 'Site & Urban',
+    title: 'Site Photo + Building → Photomontage',
+    description:
+      'Your building on the real plot, in the photo’s own perspective and sunlight — the neighbours, the street and the sky left exactly as photographed.',
+    inputLabel: 'Input · the site photo',
+    inputHint: 'A photograph of the plot as it is now — outline it in red, or box it here',
+    outputCaption: 'The photomontage',
+    emptyIcon: LandPlot,
+    emptyTitle: 'No montage yet',
+    emptyDescription: 'Add the site photo and your building, then press Generate.',
+    compare: { before: 'Site', after: 'Montage' },
+  },
+  blockedReason: (_s, hasInput) => (hasInput ? null : 'Upload the site photo to begin.'),
+  toOptions: (_s, ctx) => plainOptions(ctx),
+  promptContracts: [
+    { name: 'site montage names both images', pattern: /TWO IMAGES ARE ATTACHED/ },
+    { name: 'site montage keeps the building design', pattern: /That design is fixed/ },
+    { name: 'site montage uses the photo’s perspective', pattern: /FIRST image’s perspective/ },
+    { name: 'site montage locks everything outside the plot', pattern: /Everything outside the plot stays exactly/ },
+    { name: 'site montage checks the shadows', pattern: /shadows fall the same way as the neighbours/ },
+  ],
+};
+
+// --- Build plan, Phase 2b ------------------------------------------------------
+
+/** The prompt's wording for a typed location — formatted when it parses. */
+const placeWords = (coords: string): string => {
+  const c = parseCoordinates(coords);
+  return c ? formatCoordinates(c) : coords.trim();
+};
+/** Search is offered only where the engine has it; the prompt follows suit. */
+const searching = (on: boolean): boolean => on && engineSupportsGrounding();
+const SEARCH_TOGGLE_HINT =
+  'Gemini looks the facts up before drawing, and lists its sources under the result. Not available on kie.ai.';
+
+/**
+ * A top-down map → an isometric "coin" of the site with compass, sun path and,
+ * only when the architect sets it, wind (guide #56).
+ */
+const siteAnalysis3d: FeatureDef<SiteAnalysis3dSettings> = {
+  key: 'siteAnalysis3d',
+  category: 'site',
+  name: '3D Site Analysis',
+  blurb: 'Map to Isometric Site Diagram',
+  verb: 'Model the site in 3D',
+  inputKind: ['map'],
+  outputKind: null,
+  icon: Compass,
+  inputMode: 'image',
+  maxReferences: 0,
+  extraInputs: [
+    {
+      label: 'Input · a reference diagram',
+      hint: 'Optional — a circular isometric diagram whose look you want. Its graphic language is copied, never its place.',
+      optional: true,
+    },
+  ],
+  marker: 'optional',
+  accuracyWarning: (s) =>
+    s.wind === 'none'
+      ? 'The sun path is schematic for the latitude, not a solar study.'
+      : 'The sun path is schematic, and the wind is the direction you chose — the model has no wind data.',
+  defaultSettings: { coords: '', hemisphere: 'north', wind: 'none', north: 'topright' },
+  quick: [
+    {
+      kind: 'choice',
+      key: 'wind',
+      label: 'Prevailing wind from',
+      hint: 'The model cannot know local wind. Set it, or leave it off.',
+      options: [
+        { value: 'none', label: 'Not shown' },
+        { value: 'N', label: 'N' },
+        { value: 'NE', label: 'NE' },
+        { value: 'E', label: 'E' },
+        { value: 'SE', label: 'SE' },
+        { value: 'S', label: 'S' },
+        { value: 'SW', label: 'SW' },
+        { value: 'W', label: 'W' },
+        { value: 'NW', label: 'NW' },
+      ],
+    },
+    {
+      kind: 'choice',
+      key: 'north',
+      label: 'North points',
+      options: [
+        { value: 'topright', label: 'Top right' },
+        { value: 'up', label: 'Up' },
+      ],
+    },
+    {
+      kind: 'choice',
+      key: 'hemisphere',
+      label: 'Hemisphere',
+      hint: 'Used when no coordinates are given — decides which way the sun arc leans.',
+      options: [
+        { value: 'north', label: 'North of the equator' },
+        { value: 'south', label: 'South of the equator' },
+      ],
+    },
+  ],
+  buildPrompt: (s, ctx) =>
+    buildSiteAnalysis3dPrompt({
+      lat: parseCoordinates(s.coords)?.lat ?? null,
+      hemisphere: s.hemisphere,
+      wind: s.wind,
+      north: s.north,
+      marked: Boolean(ctx.hasMarker),
+      reference: Boolean(ctx.extras?.[0]),
+    }),
+  aspectRatio: () => '1:1',
+  sendTargets: [],
+  poolLabel: 'Site diagrams',
+  galleryLabel: '3D site analysis',
+  ui: {
+    eyebrow: 'Site & Urban',
+    title: 'Map → 3D Site Analysis',
+    description:
+      'The site and its neighbours on a circular isometric base, white all round — compass, sun path for the latitude, and the prevailing wind if you set it. Add a reference diagram to borrow its look.',
+    inputLabel: 'Input · the map',
+    inputHint: 'A top-down satellite or Maps screenshot — outline the site, or box it here',
+    outputCaption: 'The 3D site diagram',
+    emptyIcon: Compass,
+    emptyTitle: 'No diagram yet',
+    emptyDescription: 'Upload a top-down map and press Generate — the isometric diagram appears here.',
+    compare: { before: 'Map', after: '3D diagram' },
+  },
+  blockedReason: (s, hasInput, mode) => {
+    if (!hasInput) return 'Upload a top-down map to begin.';
+    if (mode === 'refine') return null;
+    if (s.coords.trim() && !parseCoordinates(s.coords)) return 'Those coordinates cannot be read — fix them or clear the box.';
+    return null;
+  },
+  toOptions: (_s, ctx) => plainOptions(ctx),
+  promptContracts: [
+    { name: '3D site reads the map first', pattern: /READ THE MAP FIRST/ },
+    { name: '3D site whites out everything beyond the circle', pattern: /Everything outside the circle is plain white/ },
+    { name: '3D site orders the compass clockwise', pattern: /clockwise/ },
+    { name: '3D site leans the sun arc to the equator', pattern: /to the SOUTH of overhead/ },
+    { name: '3D site draws no wind it was not given', pattern: /^(?![\s\S]*Prevailing wind from)/ },
+  ],
+};
+
+/**
+ * A map → two to four circular layer maps of one circle; then, sent back with
+ * "Stack these layers", the same maps as an exploded isometric stack (guide #58).
+ */
+const urbanLayers: FeatureDef<UrbanLayersSettings> = {
+  key: 'urbanLayers',
+  category: 'site',
+  name: 'Urban Layer Maps',
+  blurb: 'Map to Figure-Ground Layers',
+  verb: 'X-ray the city',
+  inputKind: ['map'],
+  outputKind: null,
+  icon: Grid3x3,
+  inputMode: 'image',
+  maxReferences: 0,
+  marker: 'optional',
+  defaultSettings: { step: 'maps', figure: true, green: true, circulation: true, blocks: true },
+  quick: [
+    {
+      kind: 'choice',
+      key: 'step',
+      label: 'Step',
+      hint: 'Make the maps from a screenshot, then stack the sheet they come out on.',
+      options: [
+        { value: 'maps', label: 'Layer maps' },
+        { value: 'stack', label: 'Stack a sheet' },
+      ],
+    },
+    { kind: 'toggle', key: 'figure', label: 'Figure-ground', hint: 'Buildings in black.' },
+    { kind: 'toggle', key: 'green', label: 'Green network', hint: 'Landscape and trees.' },
+    { kind: 'toggle', key: 'circulation', label: 'Circulation', hint: 'Roads in blue.' },
+    { kind: 'toggle', key: 'blocks', label: 'Blocks', hint: 'Street blocks in pink, no buildings.' },
+  ],
+  buildPrompt: (s, ctx) => buildUrbanLayersPrompt({ ...s, marked: Boolean(ctx.hasMarker) }),
+  aspectRatio: (s) => (s.step === 'stack' ? '3:4' : urbanLayerList(s).length === 4 ? '1:1' : '16:9'),
+  sendTargets: [],
+  sendPresets: [{ target: 'urbanLayers', label: 'Stack these layers', settings: { step: 'stack' } }],
+  poolLabel: 'Site diagrams',
+  galleryLabel: 'Urban layers',
+  ui: {
+    eyebrow: 'Site & Urban',
+    title: 'Map → Urban Layer Maps',
+    description:
+      'The same circle of city, four ways: figure-ground, green network, circulation and blocks. Then send the sheet back to stack the layers as an exploded axonometric.',
+    inputLabel: 'Input',
+    inputHint: 'A top-down Earth or Maps screenshot — or, for the stack, the layer sheet made here',
+    outputCaption: 'The layer maps',
+    emptyIcon: Grid3x3,
+    emptyTitle: 'No layer maps yet',
+    emptyDescription: 'Upload a top-down map and press Generate — the layer sheet appears here.',
+    compare: { before: 'Map', after: 'Layers' },
+  },
+  blockedReason: (s, hasInput, mode) => {
+    if (!hasInput) return s.step === 'stack' ? 'Upload the layer sheet to stack.' : 'Upload a top-down map to begin.';
+    if (mode === 'refine') return null;
+    if (urbanLayerList(s).length < 2) return 'Choose at least two layers.';
+    return null;
+  },
+  toOptions: (_s, ctx) => plainOptions(ctx),
+  promptContracts: [
+    { name: 'urban layers reads the map first', pattern: /READ THE MAP FIRST/ },
+    { name: 'urban layers share one extent', pattern: /they must stack perfectly/ },
+    { name: 'urban layers defines figure-ground', pattern: /FIGURE-GROUND: every building solid black/ },
+    { name: 'urban layers checks the overlay', pattern: /same place at the same extent/ },
+  ],
+};
+
+/**
+ * Coordinates, no image → a plausible photograph of the street there (guide
+ * #07). Plausible, never actual: the warning is permanent.
+ */
+const sitePhoto: FeatureDef<SitePhotoSettings> = {
+  key: 'sitePhoto',
+  category: 'site',
+  name: 'Site Photo from Coordinates',
+  blurb: 'Coordinates to Site Photo',
+  verb: 'Picture the place',
+  inputKind: [],
+  outputKind: 'site',
+  icon: Globe,
+  inputMode: 'text',
+  maxReferences: 0,
+  accuracyWarning: (s) =>
+    `A plausible picture of the area, not a photograph of it${
+      searching(s.search) ? '' : ', drawn from the model’s memory'
+    } — buildings, signs and details will not match reality.`,
+  defaultSettings: { coords: '', view: 'street', light: 'overcast', search: true },
+  quick: [
+    {
+      kind: 'choice',
+      key: 'view',
+      label: 'View',
+      options: [
+        { value: 'street', label: 'Street level' },
+        { value: 'aerial', label: '45° aerial' },
+      ],
+    },
+    {
+      kind: 'choice',
+      key: 'light',
+      label: 'Light',
+      options: [
+        { value: 'overcast', label: 'Overcast' },
+        { value: 'sunny', label: 'Sunny' },
+        { value: 'golden', label: 'Golden hour' },
+      ],
+    },
+    { kind: 'toggle', key: 'search', label: 'Look it up with Google Search', hint: SEARCH_TOGGLE_HINT },
+  ],
+  buildPrompt: (s) =>
+    buildSitePhotoPrompt({ where: placeWords(s.coords) || '[coordinates]', view: s.view, light: s.light, search: searching(s.search) }),
+  aspectRatio: () => '3:2',
+  sendTargets: ['placeInSite'],
+  poolLabel: 'Site photos',
+  galleryLabel: 'Site photo',
+  ui: {
+    eyebrow: 'Site & Urban',
+    title: 'Coordinates → Site Photo',
+    description:
+      'Nobody has visited yet. Paste the coordinates and get a believable photograph of that kind of street — local buildings, planting and light — to start a feasibility study from.',
+    inputLabel: 'Location',
+    inputHint: 'Coordinates or a Google Maps link',
+    outputCaption: 'The site photograph',
+    emptyIcon: Globe,
+    emptyTitle: 'No site photo yet',
+    emptyDescription: 'Paste coordinates and press Generate — a site photograph appears here.',
+  },
+  blockedReason: (s) =>
+    !s.coords.trim()
+      ? 'Enter the coordinates to begin.'
+      : parseCoordinates(s.coords)
+        ? null
+        : 'Those coordinates cannot be read — try 27.1751, 78.0421.',
+  toOptions: (s, ctx) => ({ ...plainOptions(ctx), grounding: searching(s.search) || undefined }),
+  promptContracts: [
+    { name: 'site photo works out the place first', pattern: /WORK OUT THE PLACE FIRST/ },
+    { name: 'site photo never invents a landmark', pattern: /Do not invent landmarks/ },
+    { name: 'site photo keeps signs unreadable', pattern: /generic and unreadable/ },
+  ],
+};
+
+/**
+ * Coordinates → the same site in plan at three to five moments in its history,
+ * with years (guide #57). The factual-risk tool: its warning is permanent.
+ */
+const siteHistory: FeatureDef<SiteHistorySettings> = {
+  key: 'siteHistory',
+  category: 'site',
+  name: 'Site History Timeline',
+  blurb: 'Coordinates to Site Chronology',
+  verb: 'Show how the site changed',
+  inputKind: [],
+  outputKind: null,
+  icon: History,
+  inputMode: 'text',
+  maxReferences: 0,
+  accuracyWarning: (s) =>
+    `Dates and events come from ${
+      searching(s.search) ? 'search results' : 'the model’s memory'
+    } — check every one before you publish.`,
+  defaultSettings: { coords: '', place: '', stages: '4', style: 'urban', search: true },
+  quick: [
+    {
+      kind: 'choice',
+      key: 'stages',
+      label: 'Moments',
+      options: [
+        { value: '3', label: '3' },
+        { value: '4', label: '4' },
+        { value: '5', label: '5' },
+      ],
+    },
+    {
+      kind: 'choice',
+      key: 'style',
+      label: 'Style',
+      options: [
+        { value: 'urban', label: 'Urban drawing' },
+        { value: 'vector', label: 'Vector map' },
+      ],
+    },
+    { kind: 'toggle', key: 'search', label: 'Research with Google Search', hint: SEARCH_TOGGLE_HINT },
+  ],
+  buildPrompt: (s) =>
+    buildSiteHistoryPrompt({
+      where: placeWords(s.coords) || '[coordinates]',
+      place: s.place,
+      stages: s.stages,
+      style: s.style,
+      search: searching(s.search),
+    }),
+  aspectRatio: () => '21:9',
+  sendTargets: [],
+  poolLabel: 'Site diagrams',
+  galleryLabel: 'Site history',
+  ui: {
+    eyebrow: 'Site & Urban',
+    title: 'Coordinates → Site History',
+    description:
+      'The same piece of ground drawn in plan at three to five moments in its history — each with its year and what changed — researched, and framed identically so the panels compare.',
+    inputLabel: 'Location',
+    inputHint: 'Coordinates or a Google Maps link, and optionally the name of the place',
+    outputCaption: 'The site chronology',
+    emptyIcon: History,
+    emptyTitle: 'No timeline yet',
+    emptyDescription: 'Paste coordinates and press Generate — the timeline appears here.',
+  },
+  blockedReason: (s) =>
+    !s.coords.trim()
+      ? 'Enter the coordinates to begin.'
+      : parseCoordinates(s.coords)
+        ? null
+        : 'Those coordinates cannot be read — try 27.1751, 78.0421.',
+  toOptions: (s, ctx) => ({ ...plainOptions(ctx), grounding: searching(s.search) || undefined }),
+  promptContracts: [
+    { name: 'site history researches first', pattern: /RESEARCH FIRST/ },
+    { name: 'site history writes uncertain dates as circa', pattern: /circa date/ },
+    { name: 'site history never invents an event', pattern: /Never invent an event/ },
+    { name: 'site history keeps one frame', pattern: /SAME area at the same scale/ },
+    { name: 'site history insists on spelling', pattern: /Spell every word correctly/ },
+  ],
+};
+
+// --- Build plan, Phase 3a ------------------------------------------------------
+
+const STAGE_ORDER: PhaseStage[] = ['excavation', 'structure', 'envelope'];
+const stagesOf = (s: PhasingSettings): PhaseStage[] => STAGE_ORDER.filter((k) => s[k]);
+const stagesFromReq = (req: GenerateRequest): PhaseStage[] =>
+  ((req.options.stages ?? []) as PhaseStage[]).filter((k) => k in PHASE_STAGE);
+
+/**
+ * A finished render → the same view at earlier construction stages, one image
+ * per stage, camera locked (guide #47).
+ */
+const phasing: FeatureDef<PhasingSettings> = {
+  key: 'phasing',
+  category: 'visualization',
+  name: 'Construction Phasing',
+  blurb: 'Render to Construction Stages',
+  verb: 'Show it being built',
+  inputKind: ['building'],
+  outputKind: 'building',
+  icon: Construction,
+  inputMode: 'image',
+  maxReferences: 0,
+  defaultSettings: { excavation: true, structure: true, envelope: true, activity: 'busy' },
+  quick: [
+    { kind: 'toggle', key: 'excavation', label: 'Excavation', hint: 'The plot dug out, nothing above ground.' },
+    { kind: 'toggle', key: 'structure', label: 'Structural frame', hint: 'The bare skeleton at full height.' },
+    { kind: 'toggle', key: 'envelope', label: 'Envelope', hint: 'Cladding going on, lower floors first.' },
+    {
+      kind: 'choice',
+      key: 'activity',
+      label: 'Site',
+      options: [
+        { value: 'busy', label: 'Working' },
+        { value: 'quiet', label: 'At rest' },
+      ],
+    },
+  ],
+  buildPrompt: (s) => buildPhasingPrompt(s),
+  sendTargets: ['upscale'],
+  poolLabel: 'Renders',
+  galleryLabel: 'Construction stage',
+  labelsFor: (req) => stagesFromReq(req).map((k) => PHASE_STAGE[k].label),
+  // One image per stage: the base prompt names "the stage at the end", and
+  // each job ends with its own.
+  jobsFor: (req, base, labels) =>
+    req.options.refine
+      ? undefined
+      : stagesFromReq(req).map((k, i) => ({ label: labels[i], prompt: `${base}\n\nTHE STAGE: ${PHASE_STAGE[k].clause}` })),
+  plannedCount: (s, mode) => (mode === 'refine' ? 1 : Math.max(1, stagesOf(s).length)),
+  ui: {
+    eyebrow: 'Visualization',
+    title: 'Render → Construction Stages',
+    description:
+      'The same view, earlier: dug out, framed, being clad — one image per stage from exactly the camera of your render, so the set lines up as a timeline.',
+    inputLabel: 'Input',
+    inputHint: 'The finished render or photo of the building',
+    outputCaption: 'One image per stage',
+    emptyIcon: Construction,
+    emptyTitle: 'No stages yet',
+    emptyDescription: 'Upload the finished render, pick the stages and press Generate — one image appears per stage.',
+    compare: { before: 'Finished', after: 'Under construction' },
+  },
+  blockedReason: (s, hasInput, mode) => {
+    if (!hasInput) return 'Upload the finished render to begin.';
+    if (mode !== 'refine' && stagesOf(s).length === 0) return 'Choose at least one stage.';
+    return null;
+  },
+  toOptions: (s, ctx) => (ctx.refine ? { refine: true } : { variations: 1, stages: stagesOf(s) }),
+  promptContracts: [
+    { name: 'phasing reads the image first', pattern: /READ THE IMAGE FIRST/ },
+    { name: 'phasing names the camera as what drifts', pattern: /THE CAMERA IS THE PART THAT DRIFTS/ },
+    { name: 'phasing keeps the footprint', pattern: /occupies exactly its footprint/ },
+    { name: 'phasing checks the overlay', pattern: /line up exactly/ },
+  ],
+};
+
+/**
+ * Any image → a new aspect ratio by extending outward; the original pixels are
+ * pasted back by default (guide #29, #33).
+ */
+const reframe: FeatureDef<ReframeSettings> = {
+  key: 'reframe',
+  category: 'visualization',
+  name: 'Reframe & Extend',
+  blurb: 'Any Image to Any Ratio',
+  verb: 'Change the frame',
+  inputKind: ['building', 'room', 'model', 'plan', 'sketch', 'map', 'site', 'inspiration'],
+  outputKind: 'same',
+  icon: Expand,
+  inputMode: 'image',
+  maxReferences: 0,
+  defaultSettings: { ratio: '9:16', anchor: 'centre', fill: 'natural', keepOriginal: true },
+  quick: [
+    {
+      kind: 'choice',
+      key: 'ratio',
+      label: 'New frame',
+      options: [
+        { value: '9:16', label: '9:16 story' },
+        { value: '4:5', label: '4:5 post' },
+        { value: '1:1', label: '1:1' },
+        { value: '3:2', label: '3:2' },
+        { value: '16:9', label: '16:9' },
+        { value: '21:9', label: '21:9 banner' },
+      ],
+    },
+    {
+      kind: 'choice',
+      key: 'anchor',
+      label: 'New space goes',
+      hint: 'For a taller frame: around the image, above it, or below it.',
+      options: [
+        { value: 'centre', label: 'Both sides' },
+        { value: 'bottom', label: 'Above' },
+        { value: 'top', label: 'Below' },
+      ],
+    },
+    {
+      kind: 'choice',
+      key: 'fill',
+      label: 'Fill with',
+      options: [
+        { value: 'natural', label: 'What is there' },
+        { value: 'sky', label: 'Sky & foreground' },
+        { value: 'city', label: 'City depth' },
+      ],
+    },
+    {
+      kind: 'toggle',
+      key: 'keepOriginal',
+      label: 'Keep the original pixels',
+      hint: 'Pastes your image back over the result, so the middle cannot change. Off lets the model blend more freely.',
+    },
+  ],
+  buildPrompt: (s) => buildReframePrompt(s),
+  aspectRatio: (s) => s.ratio,
+  sendTargets: ['upscale'],
+  poolLabel: 'Reframed',
+  galleryLabel: 'Reframe',
+  ui: {
+    eyebrow: 'Visualization',
+    title: 'Any Image → Any Frame',
+    description:
+      'A landscape render becomes a 9:16 story or a 21:9 banner by extending the scene outward — sky, street, landscape — never by stretching or cropping. Your original pixels are put back on top.',
+    inputLabel: 'Input',
+    inputHint: 'Any image — a render, a photo, a drawing',
+    outputCaption: 'The reframed image',
+    emptyIcon: Expand,
+    emptyTitle: 'Nothing reframed yet',
+    emptyDescription: 'Upload an image, pick the new frame and press Generate.',
+    compare: { before: 'Original', after: 'Reframed' },
+  },
+  blockedReason: (_s, hasInput) => (hasInput ? null : 'Upload an image to begin.'),
+  toOptions: (s, ctx) => ({
+    ...plainOptions(ctx),
+    // A refine edits an already-reframed output, which needs no new padding.
+    ...(ctx.refine ? {} : { reframe: { ratio: s.ratio, anchor: s.anchor, keepOriginal: s.keepOriginal } }),
+  }),
+  promptContracts: [
+    { name: 'reframe names the grey margins', pattern: /flat grey areas around it are empty margins/ },
+    { name: 'reframe locks the original', pattern: /LOCK THE ORIGINAL/ },
+    { name: 'reframe adds nothing that competes', pattern: /Add nothing that competes with the subject/ },
+    { name: 'reframe checks for seams and repeats', pattern: /seam, mirrored repeat/ },
+  ],
+};
+
+/**
+ * A facade with the ground floor boxed → a new use tested there, everything
+ * else untouched (guide #20).
+ */
+const groundFloor: FeatureDef<GroundFloorSettings> = {
+  key: 'groundFloor',
+  category: 'visualization',
+  name: 'Ground-Floor Program',
+  blurb: 'Test a New Ground Floor',
+  verb: 'Test a new ground floor',
+  inputKind: ['building'],
+  outputKind: 'building',
+  icon: Store,
+  inputMode: 'image',
+  maxReferences: 0,
+  // Required: without the box the model has no way to know which floor.
+  marker: 'required',
+  defaultSettings: { program: 'cafe', customProgram: '', materials: 'complement', people: true },
+  quick: [
+    {
+      kind: 'choice',
+      key: 'program',
+      label: 'New use',
+      options: [
+        { value: 'cafe', label: 'Café' },
+        { value: 'retail', label: 'Retail' },
+        { value: 'lobby', label: 'Co-working lobby' },
+        { value: 'restaurant', label: 'Restaurant' },
+        { value: 'gallery', label: 'Gallery' },
+        { value: 'custom', label: 'Something else' },
+      ],
+    },
+    {
+      kind: 'choice',
+      key: 'materials',
+      label: 'Shopfront',
+      options: [
+        { value: 'complement', label: 'Match the facade' },
+        { value: 'timber', label: 'Timber & glass' },
+        { value: 'metal', label: 'Bronze & glass' },
+      ],
+    },
+    { kind: 'toggle', key: 'people', label: 'People', hint: 'Staff and customers, so the frontage reads as active.' },
+  ],
+  buildPrompt: (s) => buildGroundFloorPrompt(s),
+  sendTargets: ['humanScale', 'atmosphere', 'upscale'],
+  poolLabel: 'Renders',
+  galleryLabel: 'Ground floor',
+  ui: {
+    eyebrow: 'Visualization',
+    title: 'Facade → New Ground Floor',
+    description:
+      'Box the ground floor and try a café, a shop or a lobby there — the frontage takes its grid from the bays above, and nothing outside the box changes.',
+    inputLabel: 'Input',
+    inputHint: 'A facade or street photo or render — then box the ground floor',
+    outputCaption: 'The new frontage',
+    emptyIcon: Store,
+    emptyTitle: 'No frontage yet',
+    emptyDescription: 'Upload a facade, box the ground floor and press Generate.',
+    compare: { before: 'Existing', after: 'New use' },
+  },
+  blockedReason: (s, hasInput, mode) => {
+    if (!hasInput) return 'Upload a facade to begin.';
+    if (mode === 'refine') return null;
+    if (s.program === 'custom' && !s.customProgram.trim()) return 'Say what the new use is.';
+    return null;
+  },
+  toOptions: (_s, ctx) => plainOptions(ctx),
+  promptContracts: [
+    { name: 'ground floor reads the box as an instruction', pattern: /It is an instruction, not part of the building/ },
+    { name: 'ground floor locks everything outside the box', pattern: /LOCK EVERYTHING OUTSIDE THE RECTANGLE/ },
+    { name: 'ground floor takes its grid from above', pattern: /lines up with the columns and bays above/ },
+    { name: 'ground floor makes an active frontage', pattern: /active frontage/ },
+    { name: 'ground floor removes the box', pattern: /Is the red rectangle gone/ },
+  ],
+};
+
+// --- Build plan, Phase 3b ------------------------------------------------------
+
+/**
+ * A building → the same building sliced open to show one system working:
+ * passive climate, or the planting's soil and water (guide #19 + #51).
+ * Annotation draws ON the image; this one CUTS it.
+ */
+const systemsCutaway: FeatureDef<SystemsCutawaySettings> = {
+  key: 'systemsCutaway',
+  category: 'boards',
+  name: 'Systems Cutaway',
+  blurb: 'Building to Sustainability Section',
+  verb: 'Cut it open',
+  inputKind: ['building', 'model'],
+  outputKind: null,
+  icon: Wind,
+  inputMode: 'image',
+  maxReferences: 0,
+  accuracyWarning: () => 'The inside revealed by the cut is illustrative — the render does not show it.',
+  defaultSettings: { system: 'climate', labels: true },
+  quick: [
+    {
+      kind: 'choice',
+      key: 'system',
+      label: 'Show',
+      options: [
+        { value: 'climate', label: 'Sun & air' },
+        { value: 'green', label: 'Soil & water' },
+      ],
+    },
+    {
+      kind: 'toggle',
+      key: 'labels',
+      label: 'Labels and a legend',
+      hint: 'Off keeps the colours and arrows only — no words to misspell.',
+    },
+  ],
+  buildPrompt: (s) => buildSystemsCutawayPrompt(s),
+  sendTargets: [],
+  poolLabel: 'Diagrams',
+  galleryLabel: 'Systems cutaway',
+  ui: {
+    eyebrow: 'Diagrams & Boards',
+    title: 'Building → Systems Cutaway',
+    description:
+      'The building sliced open from your own camera, showing how it works: summer and winter sun with cool air in and hot air out, or the soil, roots and rainwater that keep its planting alive.',
+    inputLabel: 'Input',
+    inputHint: 'A render or model of the building',
+    outputCaption: 'The cutaway',
+    emptyIcon: Wind,
+    emptyTitle: 'No cutaway yet',
+    emptyDescription: 'Upload the building, choose the system and press Generate.',
+    compare: { before: 'Building', after: 'Cutaway' },
+  },
+  blockedReason: (_s, hasInput) => (hasInput ? null : 'Upload the building to begin.'),
+  toOptions: (_s, ctx) => plainOptions(ctx),
+  promptContracts: [
+    { name: 'cutaway reads the building first', pattern: /READ THE BUILDING FIRST/ },
+    { name: 'cutaway cuts rather than overlays', pattern: /CUT IT OPEN/ },
+    { name: 'cutaway keeps the camera', pattern: /Same building, same camera/ },
+    { name: 'cutaway checks the physics', pattern: /Do warm-air arrows rise and leave high/ },
+    { name: 'cutaway insists on spelling', pattern: /Spell every word correctly/ },
+  ],
+};
+
+/**
+ * A render → a presentation board typeset to match the building, printing only
+ * the facts typed in (guide #54).
+ */
+const marketingBoard: FeatureDef<MarketingBoardSettings> = {
+  key: 'marketingBoard',
+  category: 'boards',
+  name: 'Marketing Board',
+  blurb: 'Render to Presentation Board',
+  verb: 'Make it a board',
+  inputKind: ['building', 'sketch', 'model'],
+  outputKind: null,
+  icon: Presentation,
+  inputMode: 'image',
+  maxReferences: 0,
+  accuracyWarning: (s) =>
+    s.facts.trim() ? 'The board prints only the facts you typed — check them.' : 'No facts were given, so the board states none.',
+  defaultSettings: { format: '4:5', title: '', facts: '' },
+  quick: [
+    {
+      kind: 'choice',
+      key: 'format',
+      label: 'Format',
+      options: [
+        { value: '4:5', label: '4:5 post' },
+        { value: '3:4', label: '3:4 poster' },
+        { value: '16:9', label: '16:9 slide' },
+      ],
+    },
+  ],
+  buildPrompt: (s) => buildMarketingBoardPrompt(s),
+  aspectRatio: (s) => s.format,
+  sendTargets: [],
+  poolLabel: 'Boards',
+  galleryLabel: 'Marketing board',
+  ui: {
+    eyebrow: 'Diagrams & Boards',
+    title: 'Render → Marketing Board',
+    description:
+      'A board whose typefaces, colours and grid are chosen to match the building — the render as the hero, detail crops around it, and only the facts you type.',
+    inputLabel: 'Input',
+    inputHint: 'A render, model or sketch of the building',
+    outputCaption: 'The board',
+    emptyIcon: Presentation,
+    emptyTitle: 'No board yet',
+    emptyDescription: 'Upload the building, add its name and facts, and press Generate.',
+    compare: { before: 'Render', after: 'Board' },
+  },
+  blockedReason: (_s, hasInput) => (hasInput ? null : 'Upload the building to begin.'),
+  toOptions: (_s, ctx) => plainOptions(ctx),
+  promptContracts: [
+    { name: 'board reads the building character first', pattern: /READ THE BUILDING FIRST/ },
+    { name: 'board keeps the hero image', pattern: /not redrawn/ },
+    { name: 'board writes only true text', pattern: /WRITE ONLY TRUE TEXT/ },
+    { name: 'board never invents facts', pattern: /Do not invent numbers, areas, dates/ },
+    { name: 'board insists on spelling', pattern: /Spell every word correctly/ },
+  ],
+};
+
+/**
+ * An interior or building → one magazine feature page about its design
+ * (guide #04, without the guide's paste-a-person step).
+ */
+const magazine: FeatureDef<MagazineSettings> = {
+  key: 'magazine',
+  category: 'boards',
+  name: 'Magazine Layout',
+  blurb: 'Image to Feature Page',
+  verb: 'Publish it as a magazine page',
+  inputKind: ['room', 'building'],
+  outputKind: null,
+  icon: BookOpen,
+  inputMode: 'image',
+  maxReferences: 0,
+  defaultSettings: { subject: 'interior', style: 'dense', format: '9:16', headline: '' },
+  quick: [
+    {
+      kind: 'choice',
+      key: 'subject',
+      label: 'About',
+      options: [
+        { value: 'interior', label: 'An interior' },
+        { value: 'building', label: 'A building' },
+      ],
+    },
+    {
+      kind: 'choice',
+      key: 'style',
+      label: 'Style',
+      options: [
+        { value: 'dense', label: 'Photo book' },
+        { value: 'minimal', label: 'Minimal' },
+        { value: 'scrapbook', label: 'Scrapbook' },
+      ],
+    },
+    {
+      kind: 'choice',
+      key: 'format',
+      label: 'Page',
+      options: [
+        { value: '9:16', label: '9:16' },
+        { value: '4:5', label: '4:5' },
+        { value: '3:4', label: '3:4' },
+      ],
+    },
+  ],
+  buildPrompt: (s) => buildMagazinePrompt(s),
+  aspectRatio: (s) => s.format,
+  sendTargets: [],
+  poolLabel: 'Boards',
+  galleryLabel: 'Magazine page',
+  ui: {
+    eyebrow: 'Diagrams & Boards',
+    title: 'Image → Magazine Feature',
+    description:
+      'A feature page about the design — headline, sections, tips and detail crops — with every picture taken from your image and no invented brands, prices or quotes.',
+    inputLabel: 'Input',
+    inputHint: 'An interior or building render or photo',
+    outputCaption: 'The magazine page',
+    emptyIcon: BookOpen,
+    emptyTitle: 'No page yet',
+    emptyDescription: 'Upload an image and press Generate — the feature page appears here.',
+    compare: { before: 'Image', after: 'Page' },
+  },
+  blockedReason: (_s, hasInput) => (hasInput ? null : 'Upload an image to begin.'),
+  toOptions: (_s, ctx) => plainOptions(ctx),
+  promptContracts: [
+    { name: 'magazine reads the subject first', pattern: /READ THE INTERIOR FIRST/ },
+    { name: 'magazine keeps the subject as it is', pattern: /do not redesign it/ },
+    { name: 'magazine invents no brands or prices', pattern: /No invented brand names, prices/ },
+    { name: 'magazine bans placeholder text', pattern: /no lorem ipsum/ },
+    { name: 'magazine insists on spelling', pattern: /Spell every word correctly/ },
+  ],
+};
+
+// --- Build plan, Phase 4 -------------------------------------------------------
+
+/**
+ * A material named in words, optionally photographed → a bento-grid
+ * educational poster (guide #59). Facts are researched; the warning is permanent.
+ */
+const materialPoster: FeatureDef<MaterialPosterSettings> = {
+  key: 'materialPoster',
+  category: 'boards',
+  name: 'Material Poster',
+  blurb: 'Material to Educational Poster',
+  verb: 'Explain a material',
+  inputKind: ['inspiration'],
+  outputKind: null,
+  icon: FlaskConical,
+  inputMode: 'optional',
+  maxReferences: 0,
+  accuracyWarning: (s) =>
+    `Facts come from ${searching(s.search) ? 'search results' : 'the model’s memory'} — check them before you publish.`,
+  defaultSettings: { topic: '', search: true },
+  quick: [{ kind: 'toggle', key: 'search', label: 'Research with Google Search', hint: SEARCH_TOGGLE_HINT }],
+  buildPrompt: (s, ctx) => buildMaterialPosterPrompt({ topic: s.topic, search: searching(s.search), hasPhoto: Boolean(ctx.hasImage) }),
+  aspectRatio: () => '3:4',
+  sendTargets: [],
+  poolLabel: 'Boards',
+  galleryLabel: 'Material poster',
+  ui: {
+    eyebrow: 'Diagrams & Boards',
+    title: 'Material → Educational Poster',
+    description:
+      'Name a material or system — terracotta jali, rammed earth, CLT — and get a researched bento-grid poster: texture close-up, exploded assembly, a section of how it performs, and short true facts. Add a photo to match the real thing.',
+    inputLabel: 'Photo of the material · optional',
+    inputHint: 'A photo of the actual material, so the poster draws THAT one',
+    outputCaption: 'The poster',
+    emptyIcon: FlaskConical,
+    emptyTitle: 'No poster yet',
+    emptyDescription: 'Name the material and press Generate — the poster appears here.',
+  },
+  blockedReason: (s) => (s.topic.trim() ? null : 'Name the material or system to begin.'),
+  toOptions: (s, ctx) => ({ ...plainOptions(ctx), grounding: searching(s.search) || undefined }),
+  promptContracts: [
+    { name: 'poster researches first', pattern: /RESEARCH FIRST/ },
+    { name: 'poster leaves out what it is unsure of', pattern: /leave out anything uncertain/ },
+    { name: 'poster is a bento grid', pattern: /bento-box grid/ },
+    { name: 'poster invents no statistics', pattern: /No made-up statistics/ },
+    { name: 'poster insists on spelling', pattern: /Spell every word correctly/ },
+  ],
+};
+
+/**
+ * An architect's name → a horizontal illustrated timeline of real built works
+ * (guide #48). An optional image is a style reference only.
+ */
+const architectTimeline: FeatureDef<ArchitectTimelineSettings> = {
+  key: 'architectTimeline',
+  category: 'boards',
+  name: 'Architect Timeline',
+  blurb: 'Architect to Illustrated Timeline',
+  verb: 'Draw an architect’s career',
+  // The optional image is a style reference — a graphic to borrow the look of.
+  inputKind: ['inspiration'],
+  outputKind: null,
+  icon: Milestone,
+  inputMode: 'optional',
+  maxReferences: 0,
+  accuracyWarning: (s) =>
+    `Projects and years come from ${searching(s.search) ? 'search results' : 'the model’s memory'} — check them.`,
+  defaultSettings: { architect: '', fromStyle: '', toStyle: '', count: '6', drawing: 'vector', search: true },
+  quick: [
+    {
+      kind: 'choice',
+      key: 'count',
+      label: 'Projects',
+      options: [
+        { value: '5', label: '5' },
+        { value: '6', label: '6' },
+        { value: '7', label: '7' },
+      ],
+    },
+    {
+      kind: 'choice',
+      key: 'drawing',
+      label: 'Drawn as',
+      options: [
+        { value: 'vector', label: 'Vector illustration' },
+        { value: 'render', label: 'Small renderings' },
+      ],
+    },
+    { kind: 'toggle', key: 'search', label: 'Research with Google Search', hint: SEARCH_TOGGLE_HINT },
+  ],
+  buildPrompt: (s, ctx) =>
+    buildArchitectTimelinePrompt({ ...s, search: searching(s.search), hasReference: Boolean(ctx.hasImage) }),
+  aspectRatio: () => '21:9',
+  sendTargets: [],
+  poolLabel: 'Boards',
+  galleryLabel: 'Architect timeline',
+  ui: {
+    eyebrow: 'Diagrams & Boards',
+    title: 'Architect → Illustrated Timeline',
+    description:
+      'An architect’s real built work along one line, oldest to newest, drawn as one family with names and years — and the shift in style between the ends, if you name it. Add an image to borrow its graphic look.',
+    inputLabel: 'Style reference · optional',
+    inputHint: 'A graphic whose look you want — its content is ignored',
+    outputCaption: 'The timeline',
+    emptyIcon: Milestone,
+    emptyTitle: 'No timeline yet',
+    emptyDescription: 'Name an architect and press Generate — the timeline appears here.',
+  },
+  blockedReason: (s) => (s.architect.trim() ? null : 'Name the architect to begin.'),
+  toOptions: (s, ctx) => ({ ...plainOptions(ctx), grounding: searching(s.search) || undefined }),
+  promptContracts: [
+    { name: 'timeline researches first', pattern: /RESEARCH FIRST/ },
+    { name: 'timeline never invents a project', pattern: /never invent a project, a name or a date/ },
+    { name: 'timeline draws one family', pattern: /read as one family/ },
+    { name: 'timeline checks the order', pattern: /do the years increase left to right/ },
+  ],
+};
+
+/**
+ * A typology in words → one wide blueprint sheet where a drawing rises into a
+ * photo-real model across seven to nine stages (guide #53).
+ */
+const blueprintEvolution: FeatureDef<BlueprintEvolutionSettings> = {
+  key: 'blueprintEvolution',
+  category: 'boards',
+  name: 'Blueprint Evolution',
+  blurb: 'Typology to Living Blueprint',
+  verb: 'Show a typology evolve',
+  inputKind: [],
+  outputKind: null,
+  icon: Scroll,
+  inputMode: 'text',
+  maxReferences: 0,
+  accuracyWarning: (s) =>
+    `Style names and dates are indicative, from ${searching(s.search) ? 'search results' : 'the model’s memory'}.`,
+  defaultSettings: { typology: '', stages: '7', search: true },
+  quick: [
+    {
+      kind: 'choice',
+      key: 'stages',
+      label: 'Stages',
+      options: [
+        { value: '7', label: '7' },
+        { value: '8', label: '8' },
+        { value: '9', label: '9' },
+      ],
+    },
+    { kind: 'toggle', key: 'search', label: 'Research with Google Search', hint: SEARCH_TOGGLE_HINT },
+  ],
+  buildPrompt: (s) => buildBlueprintEvolutionPrompt({ ...s, search: searching(s.search) }),
+  aspectRatio: () => '16:9',
+  sendTargets: [],
+  poolLabel: 'Boards',
+  galleryLabel: 'Blueprint evolution',
+  ui: {
+    eyebrow: 'Diagrams & Boards',
+    title: 'Typology → Living Blueprint',
+    description:
+      'One blueprint sheet where a hand-drafted plan lifts off the paper and becomes, stage by stage, a photo-real model — each stage a real step in the typology’s history, with its style and dates.',
+    inputLabel: 'Typology',
+    inputHint: 'A building type that evolved — e.g. Gothic to contemporary church design',
+    outputCaption: 'The blueprint sheet',
+    emptyIcon: Scroll,
+    emptyTitle: 'No sheet yet',
+    emptyDescription: 'Name a typology and press Generate.',
+  },
+  blockedReason: (s) => (s.typology.trim() ? null : 'Name the typology to begin.'),
+  toOptions: (s, ctx) => ({ ...plainOptions(ctx), grounding: searching(s.search) || undefined }),
+  promptContracts: [
+    { name: 'blueprint researches the lineage', pattern: /RESEARCH THE LINEAGE FIRST/ },
+    { name: 'blueprint draws different buildings', pattern: /DIFFERENT building from the lineage/ },
+    { name: 'blueprint rises in realism', pattern: /more three-dimensional and more real/ },
+    { name: 'blueprint is one image', pattern: /ONE image only/ },
+  ],
+};
+
+/**
+ * A render → the same render marked up in red felt-tip (guide #21).
+ * Constructive by default; the guide's roast is one tap away.
+ */
+const redPen: FeatureDef<RedPenSettings> = {
+  key: 'redPen',
+  category: 'boards',
+  name: 'Red-Pen Review',
+  blurb: 'Render to Marked-Up Critique',
+  verb: 'Critique it',
+  inputKind: ['room', 'building'],
+  outputKind: null,
+  icon: Highlighter,
+  inputMode: 'image',
+  maxReferences: 0,
+  defaultSettings: { subject: 'interior', tone: 'constructive', focus: 'all' },
+  quick: [
+    {
+      kind: 'choice',
+      key: 'subject',
+      label: 'Reviewing',
+      options: [
+        { value: 'interior', label: 'An interior' },
+        { value: 'building', label: 'A building' },
+      ],
+    },
+    {
+      kind: 'choice',
+      key: 'tone',
+      label: 'Tone',
+      options: [
+        { value: 'constructive', label: 'Constructive' },
+        { value: 'roast', label: 'Roast' },
+      ],
+    },
+    {
+      kind: 'choice',
+      key: 'focus',
+      label: 'Look at',
+      options: [
+        { value: 'all', label: 'Everything' },
+        { value: 'scale', label: 'Scale' },
+        { value: 'lighting', label: 'Lighting' },
+        { value: 'materials', label: 'Materials' },
+        { value: 'furniture', label: 'Furniture & entourage' },
+      ],
+    },
+  ],
+  buildPrompt: (s) => buildRedPenPrompt(s),
+  sendTargets: [],
+  poolLabel: 'Reviews',
+  galleryLabel: 'Red-pen review',
+  ui: {
+    eyebrow: 'Diagrams & Boards',
+    title: 'Render → Red-Pen Review',
+    description:
+      'A second pair of eyes: four to six real weaknesses circled in red felt-tip, each with a short note on what to fix — or, for a laugh, a roast. The render underneath is not redrawn.',
+    inputLabel: 'Input',
+    inputHint: 'An interior or exterior render you want reviewed',
+    outputCaption: 'The marked-up render',
+    emptyIcon: Highlighter,
+    emptyTitle: 'No review yet',
+    emptyDescription: 'Upload a render and press Generate — the red-pen review appears here.',
+    compare: { before: 'Render', after: 'Reviewed' },
+  },
+  blockedReason: (_s, hasInput) => (hasInput ? null : 'Upload a render to begin.'),
+  toOptions: (_s, ctx) => plainOptions(ctx),
+  promptContracts: [
+    { name: 'red pen reads the render first', pattern: /READ THE RENDER FIRST/ },
+    { name: 'red pen invents no flaws', pattern: /Do not invent problems/ },
+    { name: 'red pen locks the render', pattern: /LOCK THE RENDER/ },
+    { name: 'red pen keeps notes short', pattern: /under eight words/ },
+    { name: 'red pen insists on spelling', pattern: /Spell every word correctly/ },
+  ],
+};
+
 export const REGISTRY = {
   massing,
   sketchRender,
+  conceptDiagram,
+  conceptBoard,
+  bubblePlan,
+  moodboardSpace,
   render,
   sketchPlan,
   elevation,
@@ -2377,7 +4021,14 @@ export const REGISTRY = {
   section,
   renderToPlan,
   birdsEye,
+  siteLinework,
+  siteAnalysis,
+  siteAnalysis3d,
+  urbanLayers,
+  sitePhoto,
+  siteHistory,
   urbanContext,
+  placeInSite,
   wireframeRender,
   massingRender,
   renderRefine,
@@ -2387,6 +4038,16 @@ export const REGISTRY = {
   multiView,
   reflection,
   upscale,
+  groundFloor,
+  phasing,
+  reframe,
+  systemsCutaway,
+  marketingBoard,
+  magazine,
+  materialPoster,
+  architectTimeline,
+  blueprintEvolution,
+  redPen,
   watercolour,
   axonometric,
   interior,

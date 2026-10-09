@@ -34,6 +34,13 @@ export interface GeneratedImage {
   url: string; // dataURL or remote URL
   label: string; // e.g. 'Golden hour', 'SE axonometric'
   createdAt: number;
+  /** Web pages a search-grounded generation drew on, when the engine reports them. */
+  sources?: GroundingSource[];
+}
+
+export interface GroundingSource {
+  title: string;
+  uri: string;
 }
 
 /** A single job that failed within a multi-image batch (partial failure). */
