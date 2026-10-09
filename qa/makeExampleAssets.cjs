@@ -66,7 +66,7 @@ const MANIFEST = [
   ['run-Y2b-output.png', 'ex-bubble-plan.jpg', 'bubblePlan — labelled, which is now the default'],
   ['run-Z9-output.png', 'ex-site-photo.jpg', 'sitePhoto — an ordinary street, text-only, search sources listed'],
   ['run-Z8-output.png', 'ex-site-photo-landmark.jpg', 'sitePhoto — the landmark rule, at the White House'],
-  ['run-Z10-output.png', 'ex-site-history.jpg', 'siteHistory — Taj Mahal, named; Z11 (unnamed) found the wrong site'],
+  ['run-Z10-output.png', 'ex-site-history.jpg', 'siteHistory — Taj Mahal, named; Z11/Z11b (unnamed) found wrong sites, so the name is now required'],
 ];
 
 function encode(srcFile, tmpDir) {

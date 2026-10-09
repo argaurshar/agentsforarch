@@ -499,8 +499,7 @@ export const EXAMPLES: Partial<Record<FeatureKind, ExampleSet>> = {
         label: 'Taj Mahal complex, four moments',
         note:
           'c. 1631, 1648, 1653, today: one frame, the Yamuna to the north in every panel, the garden and forecourt ' +
-          'appearing in order. Give the place a name as well as coordinates — on coordinates alone, search can pick a ' +
-          'better-known site nearby.',
+          'appearing in order. The name is required: on coordinates alone, search picked a different site twice.',
         output: asset('ex-site-history.jpg'),
         outputLabel: 'Site history',
       },

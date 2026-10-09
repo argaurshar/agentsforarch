@@ -944,12 +944,17 @@ const check = (name, ok, detail = '') => {
   await page.locator('#siteHistory-coords').fill('https://www.google.com/maps/place/Taj/@27.1751,78.0421,17z');
   await page.waitForTimeout(300);
   check('a Google Maps link is read as coordinates', (await page.locator('[data-coords-read]').getAttribute('data-coords-read')) === '27.1751° N, 78.0421° E');
+  check('coordinates alone do not run — the place must be named', !(await gen().isEnabled()));
+  await page.locator('#siteHistory-place').fill('Taj Mahal complex');
+  await page.waitForTimeout(300);
+  check('naming it does', await gen().isEnabled());
   const shBefore = geminiBodies.length;
   await gen().click();
   await page.waitForTimeout(2500);
   check('site history researches with search', /google_search/.test(geminiBodies.slice(shBefore).join('')));
   check('and tells you to check every date', /check every one before you publish/.test(await mainText()));
   await page.locator('#siteHistory-coords').fill('');
+  await page.locator('#siteHistory-place').fill('');
 
   // S2: an OPTIONAL second slot never blocks, and the prompt knows if it is filled.
   await navTo('siteAnalysis3d');

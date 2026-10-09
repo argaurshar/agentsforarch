@@ -419,15 +419,33 @@
         "PASS — the place line names Battersea Power Station; build, closure and redevelopment in order",
         "FAIL — Buckingham Palace again, or any other site than the one at the point"
       ],
-      "status": "no-image",
+      "status": "generated",
       "calls": 1,
-      "failures": [
+      "labels": [
+        "Site history"
+      ],
+      "files": [
+        "run-Z11b-output.png"
+      ],
+      "sources": [
         {
-          "label": "Site history",
-          "error": "Your Gemini project has reached its spending cap — raise it in Google AI Studio, then try again."
+          "uri": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQF93qBo8ewsLe5wtVyFGo7AfxVVHO4sKnfroRZVOY7DbeJoK8xPFwhSQ6albBzqnV-HMeCgD67YYJHvArK1bBpFAmwZlnMuWkUi4XLZJANhkapZXHduhEJK2lDDQx46scQMGEE=",
+          "title": "putneysociety.org.uk"
+        },
+        {
+          "uri": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFiq8x_7IFaTIJie8NfKoGgDdQXwDoNGwXOJlC6vbBEnGlX2srbthKUtYujOAdorXTtPS22cOZ_48yjOtPQBbnf6aLEmuHoS6qNs--iJmRX3nsfj_I8AnwEERBn7BQi",
+          "title": "wikipedia.org"
         }
-      ]
+      ],
+      "searchQueries": [
+        "history of site at 51.4818° N 0.1446° W and construction phases",
+        "site development history of the current location of the University of Roehampton, London",
+        "University of Roehampton Grove House estate history and changes over time",
+        "construction history of Digby Stuart College Roehampton",
+        "historical maps and development of the Roehampton Lane area"
+      ],
+      "failures": []
     }
   ],
-  "generations": 21
+  "generations": 22
 }
