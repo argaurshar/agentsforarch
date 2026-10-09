@@ -664,6 +664,24 @@ export const EXAMPLES: Partial<Record<FeatureKind, ExampleSet>> = {
     ],
   },
 
+  groundFloor: {
+    summary:
+      'Box a ground floor on a street render and test a new use there — a café, a shop, a lobby. Only the boxed ' +
+      'area is sent and pasted back, so every other pixel is yours.',
+    cases: [
+      {
+        label: 'A café in the brick neighbour',
+        note:
+          'The box was on the building at the far left, not the house in the middle. Lit glazing, menus and people ' +
+          'inside; the house, its garage and the street untouched, no seam where it was pasted back.',
+        input: asset('ground-floor-input.jpg'),
+        inputLabel: 'Street, ground floor boxed',
+        output: asset('ex-ground-floor.jpg'),
+        outputLabel: 'New ground floor',
+      },
+    ],
+  },
+
   renderRefine: {
     summary: 'Cleans up an image you have already approved. It resolves execution, it does not redesign.',
     cases: [

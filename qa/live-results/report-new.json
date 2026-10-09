@@ -985,7 +985,36 @@
         "Contemporary church architecture trends and examples"
       ],
       "failures": []
+    },
+    {
+      "id": "Q4c",
+      "tool": "groundFloor",
+      "input": "/home/user/agentsforarch/qa/live-results/fixture-street-marked.png",
+      "marked": true,
+      "markerRect": {
+        "x": 0.005,
+        "y": 0.545,
+        "w": 0.21,
+        "h": 0.2
+      },
+      "title": "CROP FIX — only the boxed corner is sent, and pasted back. Café in the brick building at last?",
+      "verdicts": [
+        "PASS — a lit café in the brick building’s ground floor; outside the crop the image is pixel-identical; no visible seam; no red line",
+        "FAIL — the frontage ignores the box, a visible seam or misalignment at the paste, or the red line left in"
+      ],
+      "status": "generated",
+      "calls": 1,
+      "labels": [
+        "Ground floor"
+      ],
+      "files": [
+        "run-Q4c-output.png",
+        "run-Q4c-final.jpg"
+      ],
+      "sources": [],
+      "searchQueries": [],
+      "failures": []
     }
   ],
-  "generations": 42
+  "generations": 43
 }

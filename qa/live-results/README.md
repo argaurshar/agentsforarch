@@ -619,3 +619,14 @@ the box, and make it unable to do anything else. `src/lib/region.ts`:
 
 **Q4c** (1 call) is defined to confirm it live, awaiting approval. The "What we
 check" badge reads "fixed, re-test pending" until then.
+
+### Q4c — the crop fix, live (1 approved call)
+
+**PASS.** Only the boxed corner was sent (a 308 × 308 crop of the brick
+neighbour's ground floor); the café came back there — lit glazing, chalkboard
+menus, people inside and at the door — and was pasted into place. The house,
+its garage and every other building are the input's own pixels; at full size
+there is no visible seam; the red line is gone. Two prompt-only runs (Q4, Q4b)
+put the café in the house; the crop made that impossible.
+
+Ground Floor ships Q4c as its example and its badge reads passed.
