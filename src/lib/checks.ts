@@ -25,9 +25,10 @@ export interface ToolCheck {
 
 export interface ToolChecks {
   rows: ToolCheck[];
-  /** passed · passed with a caveat · failed live and fixed, re-test pending
-   *  (both said in `note`) · not yet run live. */
-  live: 'passed' | 'caveat' | 'fixed' | 'pending';
+  /** passed · passed with a caveat · failed live and fixed, re-test pending ·
+   *  a known issue that survived its re-test (all three said in `note`) · not
+   *  yet run live. */
+  live: 'passed' | 'caveat' | 'fixed' | 'issue' | 'pending';
   note?: string;
 }
 
@@ -277,10 +278,10 @@ export const CHECKS: Record<FeatureKind, ToolChecks> = {
     ],
   },
   groundFloor: {
-    live: 'fixed',
+    live: 'issue',
     note:
-      'The first live run put the new frontage in the main building, not the boxed neighbour. The box’s ' +
-      'position is now stated in words; the re-test is pending.',
+      'Known issue: in two live runs the new frontage went into the main building rather than the boxed ' +
+      'neighbour. It works best when the box is on the picture’s main building; check the result.',
     rows: [
       { check: 'Box is an instruction', before: 'A facade with a red box', after: 'New ground floor inside the box; box removed' },
       { check: 'Rest untouched', before: NONE, after: 'Everything outside the box unchanged' },
@@ -428,10 +429,10 @@ export const CHECKS: Record<FeatureKind, ToolChecks> = {
     ],
   },
   systemsCutaway: {
-    live: 'fixed',
+    live: 'issue',
     note:
-      'The first live runs tidied an asymmetric house and added floors below another. Fixed to keep every ' +
-      'part and add none; the re-test is pending.',
+      'Known issue: the physics and labels come out right, but the sun can be drawn from both sides and ' +
+      'small parts such as a garage can be dropped. Check before presenting.',
     rows: [
       { check: 'Cut, not overlaid', before: 'A building image', after: 'The building sliced open from the same camera' },
       { check: 'Physics right', before: 'The systems you choose', after: 'Summer sun steeper; cool air low, hot air out high' },
@@ -463,11 +464,10 @@ export const CHECKS: Record<FeatureKind, ToolChecks> = {
     ],
   },
   materialPoster: {
-    live: 'fixed',
+    live: 'caveat',
     note:
-      'The first live runs repeated a panel and stated a doubtful history, and with a photo drew new ' +
-      'patterns rather than the photo’s. Fixed to say each thing once and copy the photo’s shapes; the ' +
-      're-test is pending.',
+      'Each thing is now said once. The history comes from what search finds — often supplier sites — so ' +
+      'check it against the sources listed under the poster.',
     rows: [
       { check: 'Researched', before: 'A material name, optional photo', after: 'Plain, true facts — nothing it is unsure of' },
       { check: 'No invented numbers', before: NONE, after: 'No made-up statistics' },
@@ -504,10 +504,10 @@ export const CHECKS: Record<FeatureKind, ToolChecks> = {
     ],
   },
   blueprintEvolution: {
-    live: 'fixed',
+    live: 'caveat',
     note:
-      'The first live run told the story well but its small captions came back garbled and doubled. Now one ' +
-      'short label per stage — style and dates only; the re-test is pending.',
+      'One short label per stage, in date order. The smallest labels on the far stages can blur; check the ' +
+      'dates.',
     rows: [
       { check: 'Real lineage', before: 'A building type', after: 'Its historical styles, in date order' },
       { check: 'Different buildings', before: NONE, after: 'Each stage a distinct building of its era' },

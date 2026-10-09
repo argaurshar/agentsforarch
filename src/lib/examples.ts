@@ -632,6 +632,38 @@ export const EXAMPLES: Partial<Record<FeatureKind, ExampleSet>> = {
     ],
   },
 
+  materialPoster: {
+    summary:
+      'A material’s name in, a researched educational poster out — close-up, how it is made and assembled, how it ' +
+      'performs. Every fact comes from search; check them against the sources listed.',
+    cases: [
+      {
+        label: 'Terracotta jali blocks',
+        note:
+          'Texture close-up, a manufacturing strip from clay to kiln to wall, and a ventilation section. Each heading ' +
+          'used once. Its history line repeats a supplier-site claim — the kind of thing to check.',
+        output: asset('ex-material-poster.jpg'),
+        outputLabel: 'Poster',
+      },
+    ],
+  },
+
+  blueprintEvolution: {
+    summary:
+      'A building type in, its lineage out as one blueprint sheet: a drafted drawing that rises, stage by stage, into ' +
+      'ever more real models of each period’s building.',
+    cases: [
+      {
+        label: 'Gothic to contemporary church',
+        note:
+          'Seven stages in date order — Gothic, Renaissance, Baroque, Neoclassical, Gothic Revival, Modernist, ' +
+          'Contemporary — each with one label. Check the small dates.',
+        output: asset('ex-blueprint-evolution.jpg'),
+        outputLabel: 'Blueprint sheet',
+      },
+    ],
+  },
+
   renderRefine: {
     summary: 'Cleans up an image you have already approved. It resolves execution, it does not redesign.',
     cases: [

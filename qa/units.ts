@@ -148,7 +148,7 @@ check('no tool lists the same check twice', dupes.length === 0, dupes.join(', ')
 // claim it has not been run.
 const claimsUnrun = FEATURE_KEYS.filter((k) => CHECKS[k].live === 'pending' && EXAMPLES[k]);
 check('a tool with a shipped example does not say it is untested', claimsUnrun.length === 0, claimsUnrun.join(', '));
-const caveatSilent = FEATURE_KEYS.filter((k) => (CHECKS[k].live === 'caveat' || CHECKS[k].live === 'fixed') && !CHECKS[k].note);
+const caveatSilent = FEATURE_KEYS.filter((k) => (CHECKS[k].live === 'caveat' || CHECKS[k].live === 'fixed' || CHECKS[k].live === 'issue') && !CHECKS[k].note);
 check('every caveat and every fix is spelled out', caveatSilent.length === 0, caveatSilent.join(', '));
 
 // ---------------------------------------------------------------------------

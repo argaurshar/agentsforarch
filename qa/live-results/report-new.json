@@ -849,7 +849,143 @@
       "sources": [],
       "searchQueries": [],
       "failures": []
+    },
+    {
+      "id": "Q4b",
+      "tool": "groundFloor",
+      "input": "/home/user/agentsforarch/qa/live-results/fixture-street-marked.png",
+      "marked": true,
+      "markerRect": {
+        "x": 0.005,
+        "y": 0.545,
+        "w": 0.21,
+        "h": 0.2
+      },
+      "title": "FIX CHECK — the box on the brick neighbour, now located in words. Does the café go THERE?",
+      "verdicts": [
+        "PASS — a lit café in the brick building’s ground floor at the lower left; the house and its garage unchanged; no red line",
+        "FAIL — the café in the house again, or anything outside the box changed"
+      ],
+      "status": "generated",
+      "calls": 1,
+      "labels": [
+        "Ground floor"
+      ],
+      "files": [
+        "run-Q4b-output.png"
+      ],
+      "sources": [],
+      "searchQueries": [],
+      "failures": []
+    },
+    {
+      "id": "U1b",
+      "tool": "systemsCutaway",
+      "input": "ex-human-scale.jpg",
+      "title": "FIX CHECK — the same house, garage and all, with the sun from one side?",
+      "verdicts": [
+        "PASS — the asymmetric house with its garage wing, sliced; summer and winter sun from the same side; air physics right",
+        "FAIL — a symmetric house, the garage gone, or sun from both sides"
+      ],
+      "status": "generated",
+      "calls": 1,
+      "labels": [
+        "Systems cutaway"
+      ],
+      "files": [
+        "run-U1b-output.png"
+      ],
+      "sources": [],
+      "searchQueries": [],
+      "failures": []
+    },
+    {
+      "id": "K1b",
+      "tool": "materialPoster",
+      "input": null,
+      "settings": {
+        "topic": "Terracotta jali blocks"
+      },
+      "title": "FIX CHECK — each thing said once, and only well-documented history?",
+      "verdicts": [
+        "PASS — the bento poster with no panel, heading or bullet repeated, and no doubtful origin claim",
+        "FAIL — any panel or bullet repeated, or an invented history"
+      ],
+      "status": "generated",
+      "calls": 1,
+      "labels": [
+        "Material poster"
+      ],
+      "files": [
+        "run-K1b-output.png"
+      ],
+      "sources": [
+        {
+          "uri": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQE1saW7-inZdhZ6w75IJJeWdgw3T1-9fX_hAIFRWW7Hh0oTjlCpfUlwDfXCD8qJG5biWP78f2nwsEW0ZM1Pql3v47fSmvxsd_gsO3_fbdzeBFTtYRgvBSSV1VF-xvW1xba8di8O6tB7JnNRrKwvRDuXhpGeCjd6YoBhT6I9-BeRBM-WxUsRUgrk3ei2AurQ8g==",
+          "title": "thetileshouse.com"
+        },
+        {
+          "uri": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEqycjsz5Jd_NlGixlNwIIYSjgAxDPFSxMOuDVIFO2wEjo6TNMQirW8FADzzn47VTbMBIas1S6ChDpC_6AKtW4c5ONIAXnIm_puogr8D_EP59ABbkR0RIA15rVaxQwNPt2_pSEMH502jmQICTjP49YNMIUb-lzuM-parxmdqafKVbXoUUiw5UapJFuReH1KcP5W7TsBWQ==",
+          "title": "gokulsbuildmart.in"
+        },
+        {
+          "uri": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGtpyMh3KCIOmkP8Npym5XbnNSoc8iy034PMwRZ096LiMCM8TzpsAoTxHFrvwv-gJidCKNwmjcSS597KA_C_GVmlj5NG6oiZNvO3VAiPso9uJ6d1yTRFL42nJ0TIHifTiw7K6BmmAKQ_Wq88nbA-AHdluqRVtkrrUHcttcyxJ6gYTqSMnaT_UATfnZMP3hf-iDWZiJLTgB9sYX2ZKirar_Jqg7ygWaynnSKzy_n5QISAk1Y6VknY1jBNXI=",
+          "title": "sabsunclaystores.com"
+        }
+      ],
+      "searchQueries": [
+        "terracotta jali blocks architectural infographic research material properties history sustainable benefits",
+        "terracotta jali manufacturing assembly process",
+        "terracotta jali thermal performance and ventilation"
+      ],
+      "failures": []
+    },
+    {
+      "id": "K4b",
+      "tool": "blueprintEvolution",
+      "input": null,
+      "settings": {
+        "typology": "Gothic to contemporary church design"
+      },
+      "title": "FIX CHECK — one clean label per stage, nothing garbled or doubled?",
+      "verdicts": [
+        "PASS — seven stages in order, each with ONE legible label (style · dates), no sentences",
+        "FAIL — garbled lettering, or any stage labelled twice"
+      ],
+      "status": "generated",
+      "calls": 1,
+      "labels": [
+        "Blueprint evolution"
+      ],
+      "files": [
+        "run-K4b-output.png"
+      ],
+      "sources": [
+        {
+          "uri": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQG38S38rSHC4w0MR8tx97YdApxjPBQn4xlbwSmPk0VUFfeSSCo_wMLbWFHWiibxvRpyuYTv5-9-QsDaYEp86-lm7JY18-7Uy3i2zU8ZGhEPBLCCJElRQMcRJqVcbhVjLZ13egBsBk9R3Eo8",
+          "title": "maverickframe.com"
+        },
+        {
+          "uri": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQG4oJb7vrc-CGkeX82fRaMxOOyY-IFylzJ4SHhKpaWUuoTs0_9ENBiCLuqw00pKbe9dz2rVqM5HhO3dACHPWK4rismcn7pw8lYq3t1EOTNeLNiPpd_x7hkmO2GfZ9n21m81xkMjiXKy0yUB5bpqzw==",
+          "title": "maverickframe.com"
+        },
+        {
+          "uri": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGUMa92KpsrFTUg2xhQlzDm0HisHoQjjzIOsTdImyFC8UL1_4l4WgaJIdfF-qPqTr-5IPv1oo4PFhJRNvP8eNTGKP3RVbsOPXQTJXCl2-pIXiltNHG-A3qjtdsxO9bUA1OmxrlBN-HC5havUA1ZdjuCWqVmxLo=",
+          "title": "keiserdesigngroup.com"
+        }
+      ],
+      "searchQueries": [
+        "architectural lineage of church design evolution Gothic to contemporary stages dates",
+        "Gothic church design characteristics dates",
+        "Renaissance church architecture features and timeline",
+        "Baroque church style characteristics and period",
+        "Neoclassical church architecture design and era",
+        "Gothic Revival church architecture attributes and dates",
+        "Modernist church design principles and timeframe",
+        "Contemporary church architecture trends and examples"
+      ],
+      "failures": []
     }
   ],
-  "generations": 38
+  "generations": 42
 }
