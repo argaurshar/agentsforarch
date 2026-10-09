@@ -518,6 +518,31 @@ const NEW_TOOLS: Run[] = [
       'FAIL — a different site, invented history, or dates out of order',
     ],
   },
+  // Phase 1 retries, after the fixes — own ids so the partial runs stay beside them.
+  {
+    id: 'Y1b', tool: 'conceptDiagram', input: 'ex-massing.jpg',
+    title: 'FIX CHECK — one row, and the last panel keeps the asymmetry?',
+    verdicts: [
+      'PASS — ONE row of 4 panels, same camera, ending on THIS massing with its uneven heights and steps; captions spelled',
+      'FAIL — two rows again, a repeated panel, or a tidy symmetric ending',
+    ],
+  },
+  {
+    id: 'Y2b', tool: 'bubblePlan', input: 'bubble-input.jpg',
+    title: 'FIX CHECK — the same plan, with no room names lettered in?',
+    verdicts: [
+      'PASS — the adjacencies of Y2 kept, and no text anywhere on the plan',
+      'FAIL — room names or any other text on the plan, or the adjacencies lost',
+    ],
+  },
+  {
+    id: 'Y4b', tool: 'conceptBoard', input: 'guide:uc59-input1.jpg',
+    title: 'FIX CHECK — no printed part names, and a pavilion that is more than a wall of blocks?',
+    verdicts: [
+      'PASS — three parts, title and short lines only (no CONCEPT / MAIN RENDER / SECTION labels); the jali’s light, rhythm and porosity carried into structure and space',
+      'FAIL — part names printed again, or the pavilion still simply built out of jali blocks',
+    ],
+  },
   {
     id: 'Y1', tool: 'conceptDiagram', input: 'ex-massing.jpg',
     title: 'Moves read from the form. Same camera throughout, ending on THIS massing?',

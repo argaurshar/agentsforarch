@@ -390,3 +390,13 @@ images; Y4 on the guide's jali photo (#59, test-only; output kept locally).
 Each has a new contract; the snapshot changed in those three tools only (24
 variants). Retries Y1b, Y2b, Y4b await approval — 3 calls, one more than
 Phase 1's reserve of 2.
+
+### Phase 1 retries (3 approved calls)
+
+| Run | Verdict |
+|---|---|
+| Y1b Concept Diagram | **Better, still PARTIAL.** Fixed: one row of four, one camera, one move per panel, captions spelled (SITE VOLUME, CARVE COURTYARD, STEP TERRACES, CREATE TOWERS). Still wrong: the last move adds four symmetric corner towers our massing does not have. |
+| Y2b Bubble to Plan | **Same plan, same labels.** The adjacencies hold and every label is spelled right, but the room names came back again under an explicit "do not letter the rooms". Twice now: names written on a bubble diagram are kept, whatever the prompt says. |
+| Y4b Concept Board | **Better, still FAIL on text.** The pavilion now reads as folding screens and thresholds with dappled light rather than a wall of blocks, and no "TOP SECTION" captions — but it printed CONCEPT / MAIN RENDER / INTERIOR VIGNETTES as headings, and spelled the title "TERRACOTA". |
+
+Retries spent; nothing further run. Proposed next steps are in the PR thread.
