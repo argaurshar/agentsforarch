@@ -468,6 +468,45 @@ export const EXAMPLES: Partial<Record<FeatureKind, ExampleSet>> = {
     ],
   },
 
+  sitePhoto: {
+    summary:
+      'Coordinates in, a believable photograph of the street there out — its local buildings, paving, trees and light, ' +
+      'researched first. Plausible, not a record: a famous landmark appears only where it really stands.',
+    cases: [
+      {
+        label: 'An ordinary street in Shoreditch',
+        note:
+          '51.5246, -0.0787, with nothing else typed: London stock brick and Victorian warehouses, a plane tree, a red ' +
+          'bus, unreadable shop signs — and no landmark moved in. The search behind it is listed under the image.',
+        output: asset('ex-site-photo.jpg'),
+        outputLabel: 'Site photo',
+      },
+      {
+        label: 'The White House, because it is there',
+        note: '38.8977° N, 77.0365° W: the landmark appears because it stands at those coordinates.',
+        output: asset('ex-site-photo-landmark.jpg'),
+        outputLabel: 'Site photo',
+      },
+    ],
+  },
+
+  siteHistory: {
+    summary:
+      'Coordinates and a name in, the same piece of ground drawn in plan at three to five moments in its history, ' +
+      'each with its year — researched, one frame throughout. Check every date before you publish.',
+    cases: [
+      {
+        label: 'Taj Mahal complex, four moments',
+        note:
+          'c. 1631, 1648, 1653, today: one frame, the Yamuna to the north in every panel, the garden and forecourt ' +
+          'appearing in order. Give the place a name as well as coordinates — on coordinates alone, search can pick a ' +
+          'better-known site nearby.',
+        output: asset('ex-site-history.jpg'),
+        outputLabel: 'Site history',
+      },
+    ],
+  },
+
   renderRefine: {
     summary: 'Cleans up an image you have already approved. It resolves execution, it does not redesign.',
     cases: [
