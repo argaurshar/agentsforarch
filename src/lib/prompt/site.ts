@@ -13,7 +13,14 @@
 // instruction rather than left to chance.
 
 import { NO_TEXT } from './clauses';
-import type { AerialLight, AnalysisLayer, UrbanDensity } from '../../store/generation';
+import type {
+  AerialLight,
+  AnalysisLayer,
+  PlaceInSiteSettings,
+  SiteAnalysisSettings,
+  SiteLineworkSettings,
+  UrbanDensity,
+} from '../../store/generation';
 
 export type { AerialLight, AnalysisLayer, UrbanDensity };
 
@@ -178,4 +185,158 @@ export function buildFloorAnalysisPrompt(a: { layer: AnalysisLayer; labels: bool
     'Before you finish, check the plan under the overlay: same outline, same rooms in the same places. If the ' +
       'underlying plan has changed, redraw it — an analysis of a different plan is worthless.',
   ].join(' ');
+}
+
+// --- Vector site map (guide #32) --------------------------------------------
+
+/**
+ * A satellite or map screenshot → black-and-white vector linework of the same
+ * place.
+ *
+ * The guide's prompt names a city and asks for line weights. What it does not
+ * say is that the drawing must OVERLAY the input — and a model asked to "draw"
+ * a city tidies it: streets straightened, blocks regularised, a missing road
+ * added. A base layer that does not overlay its source is useless as a base
+ * layer, so the overlay is the lock and the closing check.
+ */
+export function buildSiteLineworkPrompt(a: SiteLineworkSettings): string {
+  return [
+    'You are tracing the satellite or map image in the input into a clean black-and-white vector site drawing for a ' +
+      'presentation board.',
+    STRIP_UI,
+    'STEP 1 — READ THE MAP FIRST. Identify every building footprint, road and kerb, footpath, plot boundary, open ' +
+      'space and water edge, and the exact position of each. The drawing must overlay the input exactly: same extent, ' +
+      'same orientation, same scale, nothing moved, nothing invented.',
+    'STEP 2 — DRAW IT. Pure black line on pure white, flat and top-down, with no perspective, no shading, no colour and ' +
+      'no photographic texture. A clear hierarchy of line weights: the heaviest line for building outlines, a medium ' +
+      'line for road edges and kerbs, a fine line for footpaths, plot lines and paving edges, a fine dashed line for ' +
+      'water edges.',
+    a.buildings === 'solid' ? 'Fill every building footprint solid black, so the drawing reads as a figure-ground.' : '',
+    a.trees === 'remove'
+      ? 'Remove all trees and vegetation, and draw the ground beneath them as if they were not there.'
+      : 'Show each tree as a simple thin-line circle at its canopy size, and no other vegetation.',
+    'Draw no text of any kind: no street names, labels, icons, compass or scale bar.',
+    NO_TEXT,
+    'CHECK before you finish: lay the drawing over the input in your mind — does every building outline land on a ' +
+      'building? Is any text, interface element or grey fill left? Fix it.',
+  ]
+    .filter(Boolean)
+    .join(' ');
+}
+
+// --- Site analysis diagram (guide #44) --------------------------------------
+
+/**
+ * A Maps screenshot with the site outlined → a flat pastel analysis diagram.
+ *
+ * Two corrections to the guide's prompt. Its sun arc runs along the bottom edge,
+ * which is right only north of the equator; the hemisphere is a setting. And it
+ * invites labels "for important streets" — which the model happily invents. A
+ * label is only allowed if the name can be READ in the input.
+ */
+export function buildSiteAnalysisPrompt(a: SiteAnalysisSettings & { marked: boolean }): string {
+  const south = a.hemisphere === 'north';
+  const layers: string[] = [];
+  if (a.sun) {
+    layers.push(
+      `– Sun path: one arc along the ${south ? 'BOTTOM (south)' : 'TOP (north)'} edge, rising in the east on the right ` +
+        'and setting in the west on the left, with a small yellow sun at each end joined by a curved arrow.',
+    );
+  }
+  if (a.access) layers.push('– Access: bold black arrows for the main pedestrian and vehicle approaches, on real streets.');
+  if (a.views) layers.push('– Views: dashed radial lines from the site toward two or three notable landmarks or open views.');
+  layers.push('– A minimal north arrow pointing up.');
+  if (a.labels) {
+    layers.push(
+      '– Labels: clean sans-serif labels with thin leader lines for the important streets, landmarks and features near ' +
+        'the site. Use only names you can read in the input; never invent a name. Spell every word correctly.',
+    );
+  }
+  return [
+    'You are turning the map or satellite screenshot in the input into a clean, flat site analysis diagram for a ' +
+      'presentation board.',
+    STRIP_UI,
+    'STEP 1 — READ THE MAP FIRST. ' +
+      (a.marked
+        ? 'Find the site: it is inside the RED RECTANGLE drawn on the image. That rectangle is an instruction, not part ' +
+          'of the map — draw the site, not the rectangle.'
+        : 'Find the site: it is the area outlined in red.') +
+      ' Read the streets, blocks, buildings, parks, water and landmarks around it, and any names you can see — use them ' +
+      'to understand the context only. Note which way is north; if the input is not north-up, rotate the diagram so ' +
+      'north points straight up.',
+    'STEP 2 — DRAW THE BASE in a flat vector style with no photorealism: a muted, desaturated base with buildings in ' +
+      'soft greys and the ground in pale neutral tones; trees, grass and parks as simplified sage-green shapes; water ' +
+      'as pale blue. Keep the geometry of streets and buildings true to the input.',
+    'STEP 3 — MARK THE SITE: a soft pastel red fill, a bold red outline, and a subtle transparent halo around it for ' +
+      'its zone of influence.',
+    'STEP 4 — ADD THE ANALYSIS, and only this:',
+    ...layers,
+    a.labels ? '' : `${NO_TEXT} No labels, street names or notes anywhere on the diagram.`,
+    'CHECK before you finish: is the site in the same place relative to its streets as in the input? ' +
+      (a.labels ? 'Is every label a name that appears in the input? ' : '') +
+      'Is any interface element left?',
+  ]
+    .filter(Boolean)
+    .join(' ');
+}
+
+// --- Place a building in a real site photo (guide #46) ----------------------
+
+/**
+ * A real site photograph + a building → a photomontage of the finished project.
+ *
+ * The guide's prompt asks for "a central garden, green space and water
+ * features" AND "keep @img1 as it is" — the two cannot both be done, and the
+ * model resolves it by re-rendering the whole photograph. Here the photograph
+ * outside the plot is locked, and the landscape is an option fenced INSIDE the
+ * plot. Different from Urban Context, which invents surroundings: this one
+ * keeps a real place and changes only the plot.
+ */
+export function buildPlaceInSitePrompt(a: PlaceInSiteSettings & { marked: boolean }): string {
+  return [
+    'TWO IMAGES ARE ATTACHED. The FIRST is a real photograph of a site. The SECOND shows a proposed building. Place the ' +
+      'building from the second image into the site in the first, as a photomontage that looks like a real photograph ' +
+      'of the finished project.',
+    'STEP 1 — READ THE SITE FIRST. ' +
+      (a.marked
+        ? 'Find the plot: the area inside the RED RECTANGLE drawn on the first image. That rectangle is an instruction, ' +
+          'not part of the scene.'
+        : 'Find the plot: the area outlined in red in the first image, or, if nothing is outlined, the empty plot or ' +
+          'open ground in it.') +
+      ' Note the camera height and lens, the horizon line and vanishing points, the direction and colour of the ' +
+      'sunlight and its shadows, and the heights of the neighbouring buildings.',
+    'STEP 2 — READ THE BUILDING. Note its massing, storeys, roof form, materials, colours and openings. That design is ' +
+      'fixed — same form, same proportions, same facade pattern, same materials. Do not redesign it, simplify it or ' +
+      'swap it for a generic building.',
+    'STEP 3 — PLACE IT. Set the building on the plot at a believable scale — storey heights consistent with the ' +
+      'neighbours and with any people or cars in the photo — and orient it to the street. Draw it in the FIRST ' +
+      'image’s perspective: its lines converge to the site photo’s vanishing points, and it sits on the ground with ' +
+      'contact shadows.',
+    a.light === 'site'
+      ? 'Light it with the site’s own sun, from the same direction, its shadows falling the same way as every other ' +
+        'shadow in the photo.'
+      : 'Relight the whole scene to a warm golden hour, low sun from the side the existing shadows come from, every ' +
+        'shadow — the building’s and the neighbours’ — lengthened consistently.',
+    // Relighting changes every pixel's light, so the golden-hour lock keeps the
+    // GEOMETRY outside the plot and says the light is the one thing that moves.
+    a.light === 'site'
+      ? 'Everything outside the plot stays exactly as it is in the first image — same neighbours, same street, same ' +
+        'trees, same sky, same camera. Do not re-render or tidy the rest of the photograph.'
+      : 'Outside the plot, nothing is added, removed or moved — same neighbours, same street, same trees, same camera; ' +
+        'the light is the only thing that changes there.',
+    a.landscape
+      ? 'Within the plot only, add a considered landscape: paths leading to the entrance, planting and a small garden ' +
+        'with a water feature.'
+      : '',
+    'Remove any red outline or rectangle completely.',
+    NO_TEXT,
+    'CHECK before you finish: does the building match the second image’s design? Do its shadows fall the same way as ' +
+      `the neighbours’? ${
+        a.light === 'site'
+          ? 'Is everything outside the plot unchanged?'
+          : 'Is everything outside the plot still in place, changed only by the new light?'
+      } If not, redo it.`,
+  ]
+    .filter(Boolean)
+    .join(' ');
 }

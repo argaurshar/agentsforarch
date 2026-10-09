@@ -299,6 +299,31 @@ const SKIPPED: Run[] = [
  * not copy" — there is no object to copy.
  */
 const NEW_TOOLS: Run[] = [
+  // Phase 2a — all on guide inputs (test-only).
+  {
+    id: 'Z1', tool: 'siteLinework', input: 'guide:uc32-input1.jpg',
+    title: 'Satellite to linework. Does it OVERLAY the tile, with no text and no trees?',
+    verdicts: [
+      'PASS — black line on white matching the tile’s streets and footprints, clear weight hierarchy, no labels, no trees',
+      'FAIL — straightened or invented streets, grey fills, labels, or trees left in',
+    ],
+  },
+  {
+    id: 'Z2', tool: 'siteAnalysis', input: 'guide:uc44-input1.jpg',
+    title: 'The site in red, the sun on the south edge — and only street names that are really there?',
+    verdicts: [
+      'PASS — site where it was, sun arc along the bottom rising on the right, access arrows on real streets, labels readable in the input',
+      'FAIL — invented street names, a moved site, the sun on the wrong edge, or Maps UI left in',
+    ],
+  },
+  {
+    id: 'Z3', tool: 'placeInSite', input: 'guide:uc46-input1.jpg', extra: 'guide:uc46-input2.jpg',
+    title: 'THAT villa, on THAT plot, in the photo’s own light — and the rest of the photo untouched?',
+    verdicts: [
+      'PASS — the white villa on the outlined plot, scaled to the trees and houses, shadows agreeing, hillside unchanged, red line gone',
+      'FAIL — a generic building, the photo re-rendered, a wrong scale, or the red outline still visible',
+    ],
+  },
   {
     id: 'Y1', tool: 'conceptDiagram', input: 'ex-massing.jpg',
     title: 'Moves read from the form. Same camera throughout, ending on THIS massing?',

@@ -19,6 +19,9 @@ import {
   Building,
   Building2,
   Leaf,
+  LandPlot,
+  MapPinned,
+  Spline,
   Shapes,
   Waypoints,
   WandSparkles,
@@ -73,6 +76,9 @@ import {
   buildProgramDiagramPrompt,
 } from '../../lib/prompt/boards';
 import {
+  buildPlaceInSitePrompt,
+  buildSiteAnalysisPrompt,
+  buildSiteLineworkPrompt,
   buildBirdsEyePrompt,
   buildFloorAnalysisPrompt,
   buildUrbanContextPrompt,
@@ -107,6 +113,9 @@ import { LIGHTING, MATERIAL_PRESETS, MOODS, SEASONS, defaultScene } from '../../
 import type { AspectRatio } from '../../providers/options';
 import type { GenerateOptions, GenerateRequest } from '../../providers/types';
 import type {
+  PlaceInSiteSettings,
+  SiteAnalysisSettings,
+  SiteLineworkSettings,
   BubblePlanSettings,
   ConceptBoardSettings,
   ConceptDiagramSettings,
@@ -2696,6 +2705,206 @@ const moodboardSpace: FeatureDef<MoodboardSpaceSettings> = {
   ],
 };
 
+// --- Build plan, Phase 2a ------------------------------------------------------
+
+/**
+ * A satellite or map screenshot → black-and-white vector linework that overlays
+ * it (guide #32).
+ */
+const siteLinework: FeatureDef<SiteLineworkSettings> = {
+  key: 'siteLinework',
+  category: 'site',
+  name: 'Vector Site Map',
+  blurb: 'Satellite to Linework',
+  verb: 'Trace it as linework',
+  inputKind: ['map'],
+  outputKind: null,
+  icon: Spline,
+  inputMode: 'image',
+  maxReferences: 0,
+  defaultSettings: { trees: 'remove', buildings: 'outline' },
+  quick: [
+    {
+      kind: 'choice',
+      key: 'trees',
+      label: 'Trees',
+      options: [
+        { value: 'remove', label: 'Remove' },
+        { value: 'circles', label: 'Simple circles' },
+      ],
+    },
+    {
+      kind: 'choice',
+      key: 'buildings',
+      label: 'Buildings',
+      options: [
+        { value: 'outline', label: 'Outlined' },
+        { value: 'solid', label: 'Solid black' },
+      ],
+    },
+  ],
+  buildPrompt: (s) => buildSiteLineworkPrompt(s),
+  sendTargets: [],
+  poolLabel: 'Site drawings',
+  galleryLabel: 'Site map',
+  ui: {
+    eyebrow: 'Site & Urban',
+    title: 'Satellite → Vector Site Map',
+    description:
+      'A clean black-and-white base drawing of the place, with real line weights — buildings heaviest, kerbs medium, paths fine. No labels, no trees, and it overlays the screenshot it came from.',
+    inputLabel: 'Input',
+    inputHint: 'A top-down satellite or Maps screenshot',
+    outputCaption: 'The site linework',
+    emptyIcon: Spline,
+    emptyTitle: 'No site map yet',
+    emptyDescription: 'Upload a satellite screenshot and press Generate — the linework appears here.',
+    compare: { before: 'Satellite', after: 'Linework' },
+  },
+  blockedReason: (_s, hasInput) => (hasInput ? null : 'Upload a satellite or map screenshot to begin.'),
+  toOptions: (_s, ctx) => plainOptions(ctx),
+  promptContracts: [
+    { name: 'site linework reads the map first', pattern: /READ THE MAP FIRST/ },
+    { name: 'site linework overlays its source', pattern: /must overlay the input exactly/ },
+    { name: 'site linework has a line-weight hierarchy', pattern: /hierarchy of line weights/ },
+    { name: 'site linework carries no text', pattern: /Draw no text of any kind/ },
+  ],
+};
+
+/**
+ * A Maps screenshot with the site outlined → a flat pastel analysis diagram
+ * (guide #44). The site may be outlined in the screenshot, or boxed here.
+ */
+const siteAnalysis: FeatureDef<SiteAnalysisSettings> = {
+  key: 'siteAnalysis',
+  category: 'site',
+  name: 'Site Analysis Diagram',
+  blurb: 'Map to Analysis Diagram',
+  verb: 'Analyse the site',
+  inputKind: ['map'],
+  outputKind: null,
+  icon: MapPinned,
+  inputMode: 'image',
+  maxReferences: 0,
+  // Optional: a screenshot may already carry the site in red. A required marker
+  // would also take the tool out of batch runs.
+  marker: 'optional',
+  accuracyWarning: (s) =>
+    s.labels
+      ? 'Street names are copied from your screenshot, and the sun path is schematic — check both.'
+      : 'The sun path is schematic, not a solar study.',
+  defaultSettings: { hemisphere: 'north', sun: true, access: true, views: true, labels: true },
+  quick: [
+    {
+      kind: 'choice',
+      key: 'hemisphere',
+      label: 'Hemisphere',
+      hint: 'Decides which edge the sun arc runs along.',
+      options: [
+        { value: 'north', label: 'North of the equator' },
+        { value: 'south', label: 'South of the equator' },
+      ],
+    },
+    { kind: 'toggle', key: 'sun', label: 'Sun path', hint: 'One schematic arc, east to west.' },
+    { kind: 'toggle', key: 'access', label: 'Access arrows', hint: 'Main pedestrian and vehicle approaches.' },
+    { kind: 'toggle', key: 'views', label: 'Views', hint: 'Dashed sightlines to landmarks and open views.' },
+  ],
+  buildPrompt: (s, ctx) => buildSiteAnalysisPrompt({ ...s, marked: Boolean(ctx.hasMarker) }),
+  sendTargets: [],
+  poolLabel: 'Site diagrams',
+  galleryLabel: 'Site analysis',
+  ui: {
+    eyebrow: 'Site & Urban',
+    title: 'Map → Site Analysis Diagram',
+    description:
+      'The site in red with its zone of influence, the sun path, access and sightlines, on a calm pastel base — and only street names that are really on your screenshot.',
+    inputLabel: 'Input',
+    inputHint: 'A Maps or Earth screenshot with the site outlined in red — or box it here',
+    outputCaption: 'The analysis diagram',
+    emptyIcon: MapPinned,
+    emptyTitle: 'No diagram yet',
+    emptyDescription: 'Upload a map with the site marked and press Generate — the diagram appears here.',
+    compare: { before: 'Map', after: 'Analysis' },
+  },
+  blockedReason: (_s, hasInput) => (hasInput ? null : 'Upload a map or satellite screenshot to begin.'),
+  toOptions: (_s, ctx) => plainOptions(ctx),
+  promptContracts: [
+    { name: 'site analysis reads the map first', pattern: /READ THE MAP FIRST/ },
+    { name: 'site analysis marks the site in pastel red', pattern: /soft pastel red fill/ },
+    { name: 'site analysis puts the sun arc on the equator side', pattern: /BOTTOM \(south\) edge/ },
+    { name: 'site analysis never invents a name', pattern: /never invent a name/ },
+    { name: 'site analysis strips the map interface', pattern: /remove every one of them/ },
+  ],
+};
+
+/**
+ * A real site photograph + a building → a photomontage of the finished project
+ * (guide #46). Urban Context invents the surroundings; this keeps a real place.
+ */
+const placeInSite: FeatureDef<PlaceInSiteSettings> = {
+  key: 'placeInSite',
+  category: 'site',
+  name: 'Place in Real Site',
+  blurb: 'Site Photo + Building to Montage',
+  verb: 'Put it on the real site',
+  inputKind: ['site'],
+  outputKind: 'building',
+  icon: LandPlot,
+  inputMode: 'images',
+  maxReferences: 0,
+  extraInputs: [
+    {
+      label: 'Input · your building',
+      hint: 'A render, model or massing of the proposal — its design is kept exactly',
+    },
+  ],
+  marker: 'optional',
+  defaultSettings: { landscape: false, light: 'site' },
+  quick: [
+    {
+      kind: 'toggle',
+      key: 'landscape',
+      label: 'Landscape the plot',
+      hint: 'Paths, planting and a small water garden — inside the plot only. The rest of the photo is never touched.',
+    },
+    {
+      kind: 'choice',
+      key: 'light',
+      label: 'Light',
+      options: [
+        { value: 'site', label: 'Match the photo' },
+        { value: 'golden', label: 'Golden hour' },
+      ],
+    },
+  ],
+  buildPrompt: (s, ctx) => buildPlaceInSitePrompt({ ...s, marked: Boolean(ctx.hasMarker) }),
+  accuracyWarning: (s) => (s.light === 'golden' ? 'The whole photograph was relit to golden hour.' : undefined),
+  sendTargets: ['humanScale', 'atmosphere', 'upscale'],
+  poolLabel: 'Renders',
+  galleryLabel: 'Site montage',
+  ui: {
+    eyebrow: 'Site & Urban',
+    title: 'Site Photo + Building → Photomontage',
+    description:
+      'Your building on the real plot, in the photo’s own perspective and sunlight — the neighbours, the street and the sky left exactly as photographed.',
+    inputLabel: 'Input · the site photo',
+    inputHint: 'A photograph of the plot as it is now — outline it in red, or box it here',
+    outputCaption: 'The photomontage',
+    emptyIcon: LandPlot,
+    emptyTitle: 'No montage yet',
+    emptyDescription: 'Add the site photo and your building, then press Generate.',
+    compare: { before: 'Site', after: 'Montage' },
+  },
+  blockedReason: (_s, hasInput) => (hasInput ? null : 'Upload the site photo to begin.'),
+  toOptions: (_s, ctx) => plainOptions(ctx),
+  promptContracts: [
+    { name: 'site montage names both images', pattern: /TWO IMAGES ARE ATTACHED/ },
+    { name: 'site montage keeps the building design', pattern: /That design is fixed/ },
+    { name: 'site montage uses the photo’s perspective', pattern: /FIRST image’s perspective/ },
+    { name: 'site montage locks everything outside the plot', pattern: /Everything outside the plot stays exactly/ },
+    { name: 'site montage checks the shadows', pattern: /shadows fall the same way as the neighbours/ },
+  ],
+};
+
 export const REGISTRY = {
   massing,
   sketchRender,
@@ -2710,7 +2919,10 @@ export const REGISTRY = {
   section,
   renderToPlan,
   birdsEye,
+  siteLinework,
+  siteAnalysis,
   urbanContext,
+  placeInSite,
   wireframeRender,
   massingRender,
   renderRefine,

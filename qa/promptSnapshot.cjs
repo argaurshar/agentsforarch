@@ -46,7 +46,9 @@ if (actual === expected) {
 const parse = (t) => new Map(t.split('\n\n### ').map((b, i) => {
   const s = i === 0 ? b.replace(/^### /, '') : b;
   const nl = s.indexOf('\n');
-  return [s.slice(0, nl), s.slice(nl + 1)];
+  // Trimmed: the dump ends with one newline, so the LAST variant used to carry
+  // it and every new tool appended after it reported that variant as changed.
+  return [s.slice(0, nl), s.slice(nl + 1).replace(/\n+$/, '')];
 }));
 const [a, e] = [parse(actual), parse(expected)];
 const changed = [...e.keys()].filter((k) => a.has(k) && a.get(k) !== e.get(k));

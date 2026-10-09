@@ -34,7 +34,12 @@ export const FEATURE_KEYS = [
   'renderToPlan',
   // Site & Urban: read the place, then put the building in it.
   'birdsEye',
+  // Read the place first: the map as linework, then analysed.
+  'siteLinework',
+  'siteAnalysis',
   'urbanContext',
+  // A real photograph of the plot, with the building put into it.
+  'placeInSite',
   // Visualization, in the order a render matures: build it, resolve it, light
   // it, study it, populate it, sheet it, tune the glass, print it.
   'wireframeRender',
@@ -107,7 +112,11 @@ export const CATEGORY_BLURB: Record<CategoryKey, string> = {
 // an artwork or a material photo — something to design FROM, not something to
 // redraw. None of the original six covered it, and filing a seashell under
 // `building` would offer it every facade tool.
-export const INPUT_KINDS = ['plan', 'sketch', 'room', 'building', 'model', 'map', 'inspiration'] as const;
+// `site` arrived with Phase 2a: a photograph of the place as it is now, from the
+// ground, with the plot empty. It is not a `building` (there is none yet) and
+// not a `map` (it is not top-down), and filing it under either offered tools
+// that cannot read it.
+export const INPUT_KINDS = ['plan', 'sketch', 'room', 'building', 'model', 'map', 'site', 'inspiration'] as const;
 
 export type InputKind = (typeof INPUT_KINDS)[number];
 
@@ -118,6 +127,7 @@ export const INPUT_KIND_LABEL: Record<InputKind, string> = {
   building: 'Building',
   model: '3D model',
   map: 'Map or satellite',
+  site: 'Site photo',
   inspiration: 'Moodboard or inspiration',
 };
 
@@ -129,6 +139,7 @@ export const INPUT_KIND_HINT: Record<InputKind, string> = {
   building: 'A render or photo of the outside',
   model: 'A SketchUp, Revit or Rhino viewport',
   map: 'A top-down Google Earth or Maps grab',
+  site: 'The place as it is now, from the ground',
   inspiration: 'A collage, an object, an artwork or a material photo',
 };
 

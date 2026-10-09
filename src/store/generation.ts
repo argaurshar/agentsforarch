@@ -421,6 +421,29 @@ export interface ConceptBoardSettings {
   title: string;
 }
 
+// --- Build plan Phase 2a -----------------------------------------------------
+
+export interface SiteLineworkSettings {
+  trees: 'remove' | 'circles';
+  buildings: 'outline' | 'solid';
+}
+
+/** Which way the sun arc leans: the south edge north of the equator. */
+export type Hemisphere = 'north' | 'south';
+export interface SiteAnalysisSettings {
+  hemisphere: Hemisphere;
+  sun: boolean;
+  access: boolean;
+  views: boolean;
+  labels: boolean;
+}
+
+export interface PlaceInSiteSettings {
+  /** Add a designed landscape inside the plot — never outside it. */
+  landscape: boolean;
+  light: 'site' | 'golden';
+}
+
 export type FeatureSettings =
   | RenderSettings
   | ElevationSettings
@@ -456,7 +479,10 @@ export type FeatureSettings =
   | ConceptDiagramSettings
   | BubblePlanSettings
   | MoodboardSpaceSettings
-  | ConceptBoardSettings;
+  | ConceptBoardSettings
+  | SiteLineworkSettings
+  | SiteAnalysisSettings
+  | PlaceInSiteSettings;
 
 /** Quick-action refinement of a specific output (P2). */
 export interface RefineState {

@@ -850,6 +850,48 @@ const check = (name, ok, detail = '') => {
   await page.getByRole('button', { name: /^Pavilion$/ }).click();
   await page.locator('#conceptBoard-title').fill('');
 
+  // --- Build plan, Phase 2a --------------------------------------------------
+  await navTo('siteLinework');
+  check('site linework must overlay its source', /must overlay the input exactly/.test(await page.locator('#siteLinework-prompt').inputValue()));
+  await page.getByRole('button', { name: /^Solid black$/ }).click();
+  await page.waitForTimeout(300);
+  check('solid buildings turn it into a figure-ground', /Fill every building footprint solid black/.test(await page.locator('#siteLinework-prompt').inputValue()));
+  await page.getByRole('button', { name: /^Outlined$/ }).click();
+
+  await navTo('siteAnalysis');
+  const saPrompt = page.locator('#siteAnalysis-prompt');
+  check('site analysis puts the sun on the south edge by default', /BOTTOM \(south\) edge/.test(await saPrompt.inputValue()));
+  await page.getByRole('button', { name: /^South of the equator$/ }).click();
+  await page.waitForTimeout(300);
+  check('and on the north edge south of the equator', /TOP \(north\) edge/.test(await saPrompt.inputValue()));
+  await page.getByRole('button', { name: /^North of the equator$/ }).click();
+  await page.setInputFiles('input[type=file]', PLAN);
+  await page.waitForTimeout(400);
+  check('the site marker is optional — an outlined screenshot runs as is', await gen().isEnabled());
+  await gen().click();
+  await page.waitForTimeout(2500);
+  check('site analysis warns that street names are copied, not checked', /Street names are copied from your screenshot/.test(await mainText()));
+
+  await navTo('placeInSite');
+  const siteZones = page.locator('input[type=file]');
+  check('place in site takes the site photo and the building separately', (await siteZones.count()) >= 2);
+  // The building slot first: once a zone holds an image its file input goes,
+  // so the indices shift (the same order Place Object's test uses).
+  await siteZones.nth(1).setInputFiles(PLAN);
+  await page.waitForTimeout(400);
+  check('it will not run on the building alone', !(await gen().isEnabled()));
+  await siteZones.nth(0).setInputFiles(PLAN);
+  await page.waitForTimeout(400);
+  check('with the site photo added it runs', await gen().isEnabled());
+  const pisPrompt = page.locator('#placeInSite-prompt');
+  check('the photo outside the plot is locked', /Everything outside the plot stays exactly/.test(await pisPrompt.inputValue()));
+  check('landscape is off unless asked for', !/add a considered landscape/.test(await pisPrompt.inputValue()));
+  await page.getByRole('button', { name: /^Golden hour$/ }).click();
+  await page.waitForTimeout(300);
+  check('golden hour releases the light, not the geometry', /the light is the only thing that changes there/.test(await pisPrompt.inputValue()));
+  check('and never claims the photo is unchanged', !/Everything outside the plot stays exactly/.test(await pisPrompt.inputValue()));
+  await page.getByRole('button', { name: /^Match the photo$/ }).click();
+
   // The shared lock must not name a thing the tool exists to change. This is the
   // contradiction that the static gate catches across all 624 variants; here it
   // is checked once, live, on the two tools most likely to regress.
@@ -1112,6 +1154,9 @@ const check = (name, ok, detail = '') => {
   check('a mood board or inspiration offers Moodboard to Space', (await page.locator('[data-card="moodboardSpace"]').count()) === 1);
   check('and the Concept Board', (await page.locator('[data-card="conceptBoard"]').count()) === 1);
   check('and no facade tool', (await page.locator('[data-card="facadeMaterial"]').count()) === 0);
+  await page.locator('[data-kind="site"]').click();
+  await page.waitForTimeout(400);
+  check('a site photo offers Place in Real Site', (await page.locator('[data-card="placeInSite"]').count()) === 1);
 
   // 22. The key is asked at the first generation, not on arrival — and pasting
   //     it continues the run the user already started, with no second tap.

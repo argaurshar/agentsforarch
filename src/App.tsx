@@ -28,6 +28,9 @@ import { MoodboardFeature } from './features/moodboard/MoodboardFeature';
 import { StudioScreen } from './features/studio/StudioScreen';
 import { BirdsEyeFeature } from './features/site/BirdsEyeFeature';
 import { UrbanContextFeature } from './features/site/UrbanContextFeature';
+import { PlaceInSiteFeature } from './features/site/PlaceInSiteFeature';
+import { SiteAnalysisFeature } from './features/site/SiteAnalysisFeature';
+import { SiteLineworkFeature } from './features/site/SiteLineworkFeature';
 import { AtmosphereFeature } from './features/visualization/AtmosphereFeature';
 import { FacadeMaterialFeature } from './features/visualization/FacadeMaterialFeature';
 import { HumanScaleFeature } from './features/visualization/HumanScaleFeature';
@@ -65,6 +68,9 @@ const FEATURES: Record<FeatureKind | 'studio' | 'home' | 'gallery', ComponentTyp
   renderToPlan: RenderToPlanFeature,
   birdsEye: BirdsEyeFeature,
   urbanContext: UrbanContextFeature,
+  siteLinework: SiteLineworkFeature,
+  siteAnalysis: SiteAnalysisFeature,
+  placeInSite: PlaceInSiteFeature,
   wireframeRender: WireframeRenderFeature,
   massingRender: MassingRenderFeature,
   renderRefine: RenderRefineFeature,

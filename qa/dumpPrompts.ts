@@ -10,7 +10,7 @@
 import { buildAxonometricPrompt, buildElevationPrompt, buildInteriorPrompt, buildMoodboardPrompt, buildRefinePrompt, buildRenderPrompt } from '../src/lib/prompts';
 import { buildConceptBoardPrompt, buildConceptDiagramPrompt, buildMassingPrompt, buildSketchRenderPrompt } from '../src/lib/prompt/concept';
 import { buildAnnotationPrompt, buildExplodedAxonPrompt, buildProgramDiagramPrompt } from '../src/lib/prompt/boards';
-import { buildBirdsEyePrompt, buildFloorAnalysisPrompt, buildUrbanContextPrompt } from '../src/lib/prompt/site';
+import { buildBirdsEyePrompt, buildFloorAnalysisPrompt, buildPlaceInSitePrompt, buildSiteAnalysisPrompt, buildSiteLineworkPrompt, buildUrbanContextPrompt } from '../src/lib/prompt/site';
 import {
   buildAtmospherePrompt,
   buildFacadeMaterialPrompt,
@@ -215,5 +215,22 @@ for (const view of ['corner', 'onepoint'] as const)
   add(`mspace:view:${view}`, buildMoodboardSpacePrompt({ room: 'living', customRoom: '', view, light: 'board' }));
 for (const light of ['daylight', 'evening'] as const)
   add(`mspace:light:${light}`, buildMoodboardSpacePrompt({ room: 'living', customRoom: '', view: 'wide', light }));
+
+// --- Build plan, Phase 2a -----------------------------------------------------
+for (const trees of ['remove', 'circles'] as const)
+  for (const buildings of ['outline', 'solid'] as const)
+    add(`linework:${trees}:${buildings}`, buildSiteLineworkPrompt({ trees, buildings }));
+// Site analysis: both hemispheres, outlined vs boxed, every layer off in turn,
+// labels off, and everything off at once (north arrow and site still drawn).
+for (const hemisphere of ['north', 'south'] as const)
+  for (const marked of [false, true])
+    add(`analysis:${hemisphere}:m${marked}`, buildSiteAnalysisPrompt({ hemisphere, sun: true, access: true, views: true, labels: true, marked }));
+for (const off of ['sun', 'access', 'views', 'labels'] as const)
+  add(`analysis:no-${off}`, buildSiteAnalysisPrompt({ hemisphere: 'north', sun: true, access: true, views: true, labels: true, marked: false, [off]: false }));
+add('analysis:bare', buildSiteAnalysisPrompt({ hemisphere: 'north', sun: false, access: false, views: false, labels: false, marked: false }));
+for (const landscape of [false, true])
+  for (const light of ['site', 'golden'] as const)
+    for (const marked of [false, true])
+      add(`placesite:l${landscape}:${light}:m${marked}`, buildPlaceInSitePrompt({ landscape, light, marked }));
 
 console.log(out.join('\n\n'));
