@@ -16,6 +16,10 @@ import { NO_TEXT } from './clauses';
 // drifted, and structural typing hid it until something far away stopped
 // assigning. These files kept four such copies.
 import type {
+  ArchitectTimelineSettings,
+  BlueprintEvolutionSettings,
+  RedPenFocus,
+  RedPenSettings,
   AnnotationSubject,
   ExplodeAxis,
   MagazineSettings,
@@ -313,5 +317,207 @@ export function buildMagazinePrompt(a: {
     'Spell every word correctly and keep every word legible. No coordinates, no lorem ipsum, no placeholder text. Do not ' +
       'add any watermark or signature.',
     `CHECK before you finish: is every block of text real, readable English? Does every picture on the page show this ${what}?`,
+  ].join(' ');
+}
+
+// --- Knowledge tools: shared research step ----------------------------------
+
+/** How a fact-stating tool is told to research — with search, or honestly without. */
+function research(search: boolean, what: string): string {
+  return search
+    ? `Use Google Search to find and confirm ${what}.`
+    : `From what you reliably know, identify ${what}.`;
+}
+
+// --- Material poster (guide #59) --------------------------------------------
+
+/**
+ * A material or system named in words (and optionally photographed) → a bento
+ * grid educational poster.
+ *
+ * Research, a 3D diagram and a layout in one generation: the risk is invented
+ * numbers — U-values, percentages, temperatures — set in a confident sans. So
+ * uncertain facts are LEFT OUT rather than guessed, and "no made-up statistics"
+ * is a line of its own. The airflow panel is the guide's, for a jali; for a
+ * material where airflow does not apply, it becomes "how it performs".
+ */
+export function buildMaterialPosterPrompt(a: { topic: string; search: boolean; hasPhoto: boolean }): string {
+  const topic = a.topic.trim() || 'the material in the photograph';
+  const title = (a.topic.trim() || 'the material').toUpperCase();
+  return [
+    `Create a detailed architectural infographic poster about ${topic.toUpperCase()}.`,
+    `STEP 1 — RESEARCH FIRST. ${research(a.search, 'its material properties, its history and its sustainable benefits')} ` +
+      'Use only facts you are confident are true; leave out anything uncertain rather than guessing a number.',
+    a.hasPhoto
+      ? 'STEP 2 — READ THE PHOTO. The input image shows the real material. Every depiction of it on the poster — colour, ' +
+        'texture, pattern and proportion — matches this photo.'
+      : '',
+    'STEP 3 — LAY OUT ONE POSTER as a bento-box grid on a textured paper background:',
+    '1. Top left — a photorealistic close-up of the raw material’s texture and colour.',
+    '2. Centre — an exploded axonometric diagram of how its units or layers are made and assembled.',
+    '3. Bottom right — a cross-section sketch of how it performs in a building; where it moves air or heat, show it with ' +
+      'arrows (blue for cool air, red for heat).',
+    '4. Remaining panels — short bullet summaries of its performance and sustainability benefits, and a brief history.',
+    `Title “${title}” in large, legible sans-serif; bullets under twelve words each.`,
+    'Spell every word correctly and keep every word legible. No made-up statistics. Do not add any watermark or signature.',
+    'CHECK before you finish: is every panel about this material? Is every bullet a plain, true statement? Is the title ' +
+      'spelled exactly?',
+  ]
+    .filter(Boolean)
+    .join(' ');
+}
+
+// --- Architect timeline (guide #48) -----------------------------------------
+
+/**
+ * An architect's name → their built work as a horizontal illustrated timeline.
+ *
+ * The facts ARE the picture: real buildings, real names, real years, in order.
+ * So the research step forbids invention outright, and the drawings are unified
+ * (one view, one size, one line) because the guide's outputs mix styles and the
+ * timeline then reads as a collage.
+ */
+export function buildArchitectTimelinePrompt(a: {
+  architect: string;
+  fromStyle: string;
+  toStyle: string;
+  count: ArchitectTimelineSettings['count'];
+  drawing: ArchitectTimelineSettings['drawing'];
+  search: boolean;
+  hasReference: boolean;
+}): string {
+  const who = a.architect.trim() || 'the architect';
+  const from = a.fromStyle.trim();
+  const to = a.toStyle.trim();
+  const arc = from && to ? `, from ${from} on the left to ${to} on the right` : '';
+  return [
+    `Create a horizontal infographic timeline showing how the architecture of ${who.toUpperCase()} evolved${arc}.`,
+    `STEP 1 — RESEARCH FIRST. ${research(a.search, 'their built works and the year each was completed')} Choose ${a.count} ` +
+      'real, built projects that best show the change, spread across the career. Use each building’s real name and real ' +
+      'completion year; never invent a project, a name or a date.',
+    `STEP 2 — DRAW THEM. Each project as a ${
+      a.drawing === 'vector' ? 'clean vector-style architectural illustration' : 'small, crisp architectural rendering'
+    } of the real building, recognisable from its actual form — all at a similar size, from a similar three-quarter ` +
+      'view, in the same line weight and palette, so they read as one family.',
+    a.hasReference
+      ? 'The input image is a style reference — copy its graphic language (palette, line, layout), never its content.'
+      : '',
+    'STEP 3 — LAY OUT THE TIMELINE. White background, one horizontal timeline line, the projects in date order from left ' +
+      'to right, evenly spaced, each with a dot on the line. Under each: the building’s name and its year in a clean ' +
+      'sans-serif.' +
+      (from && to ? ` At the far left and far right, a short style label: ${from.toUpperCase()} … ${to.toUpperCase()}.` : ''),
+    'Spell every name correctly and keep every label legible. Do not add any watermark or signature, and no portrait of ' +
+      'the architect.',
+    'CHECK before you finish: do the years increase left to right? Is every project a real building by this architect, ' +
+      'with its real year?',
+  ]
+    .filter(Boolean)
+    .join(' ');
+}
+
+// --- Blueprint evolution (guide #53) ----------------------------------------
+
+const BLUEPRINT_STEPS = [
+  'a flat, hand-drafted 2D drawing (plan, section and elevation) of the earliest form',
+  'its lines lifting off the paper as folded paper planes',
+  'a partial axonometric model emerging from the drawing',
+  'a complete, unpainted miniature model',
+  'a painted miniature with material cues',
+  'a detailed scale model with lighting and context',
+  'a near photo-real miniature',
+  'a photo-real miniature with people and weather',
+  'a near photo-real miniature of the present-day expression',
+];
+
+/**
+ * A typology in words → one wide blueprint sheet where a technical drawing rises
+ * into a photo-real model across seven to nine stages.
+ *
+ * The guide's art direction is kept almost whole. What it lacked is that the
+ * stages are HISTORY — style names and dates — so a research step, date order
+ * and "each stage is a different building of the lineage" are added; without
+ * that the model draws one church seven times at rising fidelity.
+ */
+export function buildBlueprintEvolutionPrompt(a: { typology: string; stages: BlueprintEvolutionSettings['stages']; search: boolean }): string {
+  const n = Number(a.stages);
+  const typology = (a.typology.trim() || 'the building typology').toUpperCase();
+  // The last stage is always the present-day one, however many there are.
+  const steps = [...BLUEPRINT_STEPS.slice(0, n - 1), BLUEPRINT_STEPS[BLUEPRINT_STEPS.length - 1]];
+  return [
+    `Create ONE wide architectural illustration showing how ${typology} evolved, as a single blueprint sheet on which a ` +
+      'technical drawing comes to life from left to right.',
+    `STEP 1 — RESEARCH THE LINEAGE FIRST. ${research(a.search, `${n} real, major stages in this typology’s evolution, from its earliest built form to today, each with its correct style name and approximate date range`)} ` +
+      'Use only stages and dates you are confident of; write uncertain dates as circa.',
+    'STEP 2 — BUILD THE SHEET. Authentic blueprint paper — white linework on blue, with subtle ageing, fold marks, ' +
+      'smudges and one coffee stain. Cool backlight under the flat drawing zones; warm studio light on the 3D models.',
+    'STEP 3 — TRANSFORM ACROSS THE PAGE, one stage per position, left to right:',
+    ...steps.map((st, i) => `Stage ${i + 1} — ${st}.`),
+    'Each stage is a DIFFERENT building from the lineage, in its own period’s style, and each is more three-dimensional ' +
+      'and more real than the one before.',
+    `STEP 4 — SCALE AND TOOLS. A 2D drafted human figure beside stage 1 becomes a 3D miniature figure by stage ${n}, at ` +
+      'consistent scale. A compass, protractor, mechanical pencil and T-square rest on the flat zones, touching the ' +
+      'lines they draw.',
+    'STEP 5 — ANNOTATE like a drafter: grid lines, dimension strings, and for each stage its style name and date range ' +
+      'plus one short callout on what changed. Drafting lettering. Spell every word correctly and keep every word legible.',
+    'ONE image only. Do not add any watermark or signature.',
+    'CHECK before you finish: do the stages run in date order? Does each add dimension and realism? Is every style name ' +
+      'spelled correctly?',
+  ].join(' ');
+}
+
+// --- Red-pen review (guide #21) ---------------------------------------------
+
+const PEN_FLAWS: Record<RedPenSettings['subject'], Record<RedPenFocus, string>> = {
+  interior: {
+    all:
+      'furniture at the wrong scale for the room, awkward circulation or a blocked door, clashing patterns or colours, ' +
+      'light that does not match its source, repeating textures, dated pieces, cluttered or empty corners, odd perspective',
+    scale: 'furniture, rugs, art and lights at the wrong size for the room or for each other',
+    lighting: 'light that does not match its source, missing or doubled shadows, flat or over-bright areas',
+    materials: 'clashing finishes and patterns, repeating or stretched textures, materials that read as fake',
+    furniture: 'pieces that are dated, mismatched, badly placed or blocking circulation',
+  },
+  building: {
+    all:
+      'proportions that feel off, an unresolved facade rhythm, an awkward roofline, a weak or hidden entrance, materials ' +
+      'that clash or read as fake, landscape that does not fit, odd perspective',
+    scale: 'elements at the wrong size for the building or for the people around it',
+    lighting: 'light that does not match the sky, missing or contradictory shadows',
+    materials: 'clashing or fake-looking materials, repeating textures, joints that make no sense',
+    furniture: 'landscape, street furniture and entourage that are mis-scaled, cliché or badly placed',
+  },
+};
+
+/**
+ * A render → the same render marked up in red felt-tip, like a design director's
+ * review.
+ *
+ * Constructive by default (it is a QA tool); the guide's "mean-spirited" roast is
+ * one tap away and still critiques only what is visible. The base image is
+ * locked the Annotation way — drawn ON, never redrawn — or the critique is of a
+ * different render.
+ */
+export function buildRedPenPrompt(a: RedPenSettings): string {
+  const what = a.subject === 'interior' ? 'interior render' : 'architectural render';
+  const roast = a.tone === 'roast';
+  return [
+    roast
+      ? `You are a veteran designer with a sharp, funny tongue, marking up the ${what} in the input with a red pen — roasting it the way you would in a crit, but only for flaws that are really there.`
+      : `You are a senior design reviewer marking up the ${what} in the input with a red pen, the way a design director marks up a print on their desk.`,
+    `STEP 1 — READ THE RENDER FIRST and find its real weaknesses — things a client or a seasoned designer would notice: ` +
+      `${PEN_FLAWS[a.subject][a.focus]}. Choose the four to six that matter most. Do not invent problems the image does ` +
+      'not have; if something is good, you may tick it.',
+    'STEP 2 — LOCK THE RENDER. The image underneath stays completely unchanged — same scene, same light, same camera. ' +
+      'You are drawing ON it, not redrawing it.',
+    'STEP 3 — MARK IT UP in hand-drawn red ink, like a felt-tip marker on paper: circles and loose outlines around each ' +
+      'problem, an arrow to it, and a short handwritten note beside it ' +
+      (roast
+        ? 'with a dry, sarcastic one-liner about the flaw — for example “THAT RUG IS A BATH MAT” — mocking the design, ' +
+          'never a person.'
+        : 'saying what is wrong and what to do — for example “RUG TOO SMALL — ANCHOR THE SOFA LEGS”.') +
+      ' Notes under eight words, in clear block capitals, placed in empty areas so they do not cover what they describe.',
+    'Spell every word correctly and keep every note legible. Do not add any watermark or signature.',
+    'CHECK before you finish: compare the scene under the ink with the input — any change to it is a mistake. Does every ' +
+      'note point at something actually visible?',
   ].join(' ');
 }

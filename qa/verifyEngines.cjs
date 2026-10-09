@@ -1082,6 +1082,55 @@ const check = (name, ok, detail = '') => {
   check('a building page reads the building', /READ THE BUILDING FIRST/.test(await mgPrompt.inputValue()));
   await page.getByRole('button', { name: /^An interior$/ }).click();
 
+  // --- Build plan, Phase 4 ---------------------------------------------------
+  await navTo('materialPoster');
+  const mpPrompt = page.locator('#materialPoster-prompt');
+  check('the material poster will not run unnamed', !(await gen().isEnabled()));
+  await page.locator('#materialPoster-topic').fill('Terracotta jali blocks');
+  await page.waitForTimeout(300);
+  check('a named material runs with no photo', await gen().isEnabled());
+  check('and the poster is about it', /about TERRACOTTA JALI BLOCKS/.test(await mpPrompt.inputValue()));
+  check('without a photo it does not claim to match one', !/READ THE PHOTO/.test(await mpPrompt.inputValue()));
+  await page.setInputFiles('input[type=file]', PLAN);
+  await page.waitForTimeout(400);
+  check('with a photo it draws THAT material', /READ THE PHOTO/.test(await mpPrompt.inputValue()));
+  const mpBefore = geminiBodies.length;
+  await gen().click();
+  await page.waitForTimeout(2500);
+  check('the poster researches with search', /google_search/.test(geminiBodies.slice(mpBefore).join('')));
+  check('and warns to check its facts', /check them before you publish/.test(await mainText()));
+  await page.locator('#materialPoster-topic').fill('');
+
+  await navTo('architectTimeline');
+  const atPrompt = page.locator('#architectTimeline-prompt');
+  check('the timeline will not run without an architect', !(await gen().isEnabled()));
+  await page.locator('#architectTimeline-architect').fill('Zaha Hadid');
+  await page.locator('#architectTimeline-from').fill('sharp angles');
+  await page.locator('#architectTimeline-to').fill('fluid curves');
+  await page.waitForTimeout(300);
+  check('a named architect runs', await gen().isEnabled());
+  check('the style arc reaches the prompt', /from sharp angles on the left to fluid curves on the right/.test(await atPrompt.inputValue()));
+  check('and invention is ruled out', /never invent a project, a name or a date/.test(await atPrompt.inputValue()));
+  for (const id of ['#architectTimeline-architect', '#architectTimeline-from', '#architectTimeline-to']) await page.locator(id).fill('');
+
+  await navTo('blueprintEvolution');
+  check('the blueprint will not run without a typology', !(await gen().isEnabled()));
+  await page.locator('#blueprintEvolution-typology').fill('Gothic to contemporary church design');
+  await page.getByRole('button', { name: /^9$/ }).click();
+  await page.waitForTimeout(300);
+  check('nine stages end on the present day', /Stage 9 — a near photo-real miniature of the present-day expression/.test(await page.locator('#blueprintEvolution-prompt').inputValue()));
+  await page.getByRole('button', { name: /^7$/ }).click();
+  await page.locator('#blueprintEvolution-typology').fill('');
+
+  await navTo('redPen');
+  const rpPrompt = page.locator('#redPen-prompt');
+  check('the review is constructive by default', /senior design reviewer/.test(await rpPrompt.inputValue()));
+  await page.getByRole('button', { name: /^Roast$/ }).click();
+  await page.waitForTimeout(300);
+  check('the roast mocks the design, never a person', /mocking the design, never a person/.test(await rpPrompt.inputValue()));
+  check('and still only for real flaws', /Do not invent problems/.test(await rpPrompt.inputValue()));
+  await page.getByRole('button', { name: /^Constructive$/ }).click();
+
   // The shared lock must not name a thing the tool exists to change. This is the
   // contradiction that the static gate catches across all 624 variants; here it
   // is checked once, live, on the two tools most likely to regress.

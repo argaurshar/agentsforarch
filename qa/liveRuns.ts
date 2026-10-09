@@ -307,6 +307,56 @@ const SKIPPED: Run[] = [
  * not copy" — there is no object to copy.
  */
 const NEW_TOOLS: Run[] = [
+  // Phase 4 — the knowledge tools, all searched.
+  {
+    id: 'K1', tool: 'materialPoster', input: null, settings: { topic: 'Terracotta jali blocks' },
+    title: 'A researched poster from a name alone. True bullets, no invented numbers?',
+    verdicts: [
+      'PASS — a bento poster: clay close-up, exploded block assembly, airflow section; plain true bullets; title spelled',
+      'FAIL — fabricated U-values or percentages, panels about something else, or garbled text',
+    ],
+  },
+  {
+    id: 'K2', tool: 'materialPoster', input: 'guide:uc59-input1.jpg', settings: { topic: 'Terracotta jali blocks' },
+    title: 'The same poster, with a photo of THE jali. Does the poster draw that pattern?',
+    verdicts: [
+      'PASS — the close-up and assembly show the photo’s colour and perforation pattern',
+      'FAIL — a generic jali unlike the photo',
+    ],
+  },
+  {
+    id: 'K3', tool: 'architectTimeline', input: null,
+    settings: { architect: 'Zaha Hadid', fromStyle: 'sharp deconstructivist angles', toStyle: 'fluid organic curves' },
+    title: 'Six real buildings, real years, in order — and drawn as one family?',
+    verdicts: [
+      'PASS — real built works (e.g. Vitra Fire Station 1993 … Heydar Aliyev Centre 2012) in date order, names spelled, one drawing style',
+      'FAIL — invented projects, wrong or out-of-order years, mixed styles, or a portrait of the architect',
+    ],
+  },
+  {
+    id: 'K4', tool: 'blueprintEvolution', input: null, settings: { typology: 'Gothic to contemporary church design' },
+    title: 'Seven stages, flat to photo-real, each a different church in date order?',
+    verdicts: [
+      'PASS — blueprint sheet; stage 1 a drafted plan, stage 7 a photo-real modern church; style names and dates in order',
+      'FAIL — one church repeated, dates out of order, or text soup',
+    ],
+  },
+  {
+    id: 'K5', tool: 'redPen', input: 'interior-stage.jpg',
+    title: 'A constructive review of our staged room. Real flaws, room unchanged?',
+    verdicts: [
+      'PASS — 4-6 red circles on visible issues, short legible block-capital notes, the room underneath identical',
+      'FAIL — the room redrawn, notes pointing at nothing, or illegible scrawl',
+    ],
+  },
+  {
+    id: 'K6', tool: 'redPen', input: 'interior-restyle.jpg', settings: { tone: 'roast' },
+    title: 'The roast. Funny about the DESIGN — and still about real flaws?',
+    verdicts: [
+      'PASS — sarcastic one-liners about visible design choices, nothing about people, room unchanged',
+      'FAIL — invented flaws, insults aimed at people, or the room altered',
+    ],
+  },
   // Phase 3b.
   {
     id: 'U1', tool: 'systemsCutaway', input: 'ex-human-scale.jpg',

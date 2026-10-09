@@ -229,6 +229,11 @@ const AWAITING_LIVE_RUN = {
   systemsCutaway: 'new; fixture ex-human-scale.jpg (U1, climate); green systems on guide #51 (U2, test-only)',
   marketingBoard: 'new; fixture ex-atmosphere.jpg, awaiting one approved paid run (U3)',
   magazine: 'new; fixture interior-stage.jpg, awaiting one approved paid run (U4)',
+  // Build plan, Phase 4. Text-first tools — an example needs no published input.
+  materialPoster: 'new; text-only and with guide #59 photo (K1, K2), awaiting approved paid runs',
+  architectTimeline: 'new; text-only, awaiting one approved paid run (K3)',
+  blueprintEvolution: 'new; text-only, awaiting one approved paid run (K4)',
+  redPen: 'new; fixtures interior-stage.jpg, interior-restyle.jpg, awaiting approved paid runs (K5, K6)',
 };
 const exempt = (k) => k in NO_FIXTURE || k in AWAITING_LIVE_RUN;
 const documented = new Set(

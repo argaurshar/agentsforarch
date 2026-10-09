@@ -9,7 +9,7 @@
 
 import { buildAxonometricPrompt, buildElevationPrompt, buildInteriorPrompt, buildMoodboardPrompt, buildRefinePrompt, buildRenderPrompt } from '../src/lib/prompts';
 import { buildConceptBoardPrompt, buildConceptDiagramPrompt, buildMassingPrompt, buildSketchRenderPrompt } from '../src/lib/prompt/concept';
-import { buildAnnotationPrompt, buildExplodedAxonPrompt, buildMagazinePrompt, buildMarketingBoardPrompt, buildProgramDiagramPrompt, buildSystemsCutawayPrompt } from '../src/lib/prompt/boards';
+import { buildArchitectTimelinePrompt, buildBlueprintEvolutionPrompt, buildMaterialPosterPrompt, buildRedPenPrompt, buildAnnotationPrompt, buildExplodedAxonPrompt, buildMagazinePrompt, buildMarketingBoardPrompt, buildProgramDiagramPrompt, buildSystemsCutawayPrompt } from '../src/lib/prompt/boards';
 import { buildBirdsEyePrompt, buildFloorAnalysisPrompt, buildPlaceInSitePrompt, buildSiteAnalysis3dPrompt, buildSiteAnalysisPrompt, buildSiteHistoryPrompt, buildSiteLineworkPrompt, buildSitePhotoPrompt, buildUrbanContextPrompt, buildUrbanLayersPrompt } from '../src/lib/prompt/site';
 import {
   buildAtmospherePrompt,
@@ -290,5 +290,23 @@ for (const subject of ['interior', 'building'] as const)
   for (const style of ['dense', 'minimal', 'scrapbook'] as const)
     add(`magazine:${subject}:${style}`, buildMagazinePrompt({ subject, style, format: '9:16', headline: '' }));
 add('magazine:headline', buildMagazinePrompt({ subject: 'interior', style: 'dense', format: '4:5', headline: 'A Quiet Room in Bengaluru' }));
+
+// --- Build plan, Phase 4 ------------------------------------------------------
+for (const search of [true, false])
+  for (const hasPhoto of [false, true])
+    add(`poster:s${search}:p${hasPhoto}`, buildMaterialPosterPrompt({ topic: 'Terracotta jali blocks', search, hasPhoto }));
+add('poster:photo-only', buildMaterialPosterPrompt({ topic: '', search: true, hasPhoto: true }));
+for (const count of ['5', '6', '7'] as const)
+  for (const drawing of ['vector', 'render'] as const)
+    add(`atimeline:${count}:${drawing}`, buildArchitectTimelinePrompt({ architect: 'Zaha Hadid', fromStyle: '', toStyle: '', count, drawing, search: true, hasReference: false }));
+add('atimeline:arc', buildArchitectTimelinePrompt({ architect: 'Zaha Hadid', fromStyle: 'sharp deconstructivist angles', toStyle: 'fluid organic curves', count: '6', drawing: 'vector', search: true, hasReference: false }));
+add('atimeline:memory:ref', buildArchitectTimelinePrompt({ architect: 'Zaha Hadid', fromStyle: '', toStyle: '', count: '6', drawing: 'vector', search: false, hasReference: true }));
+for (const stages of ['7', '8', '9'] as const)
+  for (const search of [true, false])
+    add(`blueprint:${stages}:s${search}`, buildBlueprintEvolutionPrompt({ typology: 'Gothic to contemporary church design', stages, search }));
+for (const subject of ['interior', 'building'] as const)
+  for (const tone of ['constructive', 'roast'] as const)
+    for (const focus of ['all', 'scale', 'lighting', 'materials', 'furniture'] as const)
+      add(`redpen:${subject}:${tone}:${focus}`, buildRedPenPrompt({ subject, tone, focus }));
 
 console.log(out.join('\n\n'));

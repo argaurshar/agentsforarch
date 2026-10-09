@@ -26,6 +26,10 @@ import {
   Wind,
   Presentation,
   BookOpen,
+  FlaskConical,
+  Milestone,
+  Scroll,
+  Highlighter,
   Store,
   Globe,
   Grid3x3,
@@ -81,6 +85,10 @@ import {
   parseMoves,
 } from '../../lib/prompt/concept';
 import {
+  buildArchitectTimelinePrompt,
+  buildBlueprintEvolutionPrompt,
+  buildMaterialPosterPrompt,
+  buildRedPenPrompt,
   buildMagazinePrompt,
   buildMarketingBoardPrompt,
   buildSystemsCutawayPrompt,
@@ -137,6 +145,10 @@ import { LIGHTING, MATERIAL_PRESETS, MOODS, SEASONS, defaultScene } from '../../
 import type { AspectRatio } from '../../providers/options';
 import type { GenerateOptions, GenerateRequest } from '../../providers/types';
 import type {
+  ArchitectTimelineSettings,
+  BlueprintEvolutionSettings,
+  MaterialPosterSettings,
+  RedPenSettings,
   MagazineSettings,
   MarketingBoardSettings,
   SystemsCutawaySettings,
@@ -2967,7 +2979,7 @@ const placeWords = (coords: string): string => {
 /** Search is offered only where the engine has it; the prompt follows suit. */
 const searching = (on: boolean): boolean => on && engineSupportsGrounding();
 const SEARCH_TOGGLE_HINT =
-  'Gemini looks the place up before drawing, and lists its sources under the result. Not available on kie.ai.';
+  'Gemini looks the facts up before drawing, and lists its sources under the result. Not available on kie.ai.';
 
 /**
  * A top-down map → an isometric "coin" of the site with compass, sun path and,
@@ -3743,6 +3755,258 @@ const magazine: FeatureDef<MagazineSettings> = {
   ],
 };
 
+// --- Build plan, Phase 4 -------------------------------------------------------
+
+/**
+ * A material named in words, optionally photographed → a bento-grid
+ * educational poster (guide #59). Facts are researched; the warning is permanent.
+ */
+const materialPoster: FeatureDef<MaterialPosterSettings> = {
+  key: 'materialPoster',
+  category: 'boards',
+  name: 'Material Poster',
+  blurb: 'Material to Educational Poster',
+  verb: 'Explain a material',
+  inputKind: ['inspiration'],
+  outputKind: null,
+  icon: FlaskConical,
+  inputMode: 'optional',
+  maxReferences: 0,
+  accuracyWarning: (s) =>
+    `Facts come from ${searching(s.search) ? 'search results' : 'the model’s memory'} — check them before you publish.`,
+  defaultSettings: { topic: '', search: true },
+  quick: [{ kind: 'toggle', key: 'search', label: 'Research with Google Search', hint: SEARCH_TOGGLE_HINT }],
+  buildPrompt: (s, ctx) => buildMaterialPosterPrompt({ topic: s.topic, search: searching(s.search), hasPhoto: Boolean(ctx.hasImage) }),
+  aspectRatio: () => '3:4',
+  sendTargets: [],
+  poolLabel: 'Boards',
+  galleryLabel: 'Material poster',
+  ui: {
+    eyebrow: 'Diagrams & Boards',
+    title: 'Material → Educational Poster',
+    description:
+      'Name a material or system — terracotta jali, rammed earth, CLT — and get a researched bento-grid poster: texture close-up, exploded assembly, a section of how it performs, and short true facts. Add a photo to match the real thing.',
+    inputLabel: 'Photo of the material · optional',
+    inputHint: 'A photo of the actual material, so the poster draws THAT one',
+    outputCaption: 'The poster',
+    emptyIcon: FlaskConical,
+    emptyTitle: 'No poster yet',
+    emptyDescription: 'Name the material and press Generate — the poster appears here.',
+  },
+  blockedReason: (s) => (s.topic.trim() ? null : 'Name the material or system to begin.'),
+  toOptions: (s, ctx) => ({ ...plainOptions(ctx), grounding: searching(s.search) || undefined }),
+  promptContracts: [
+    { name: 'poster researches first', pattern: /RESEARCH FIRST/ },
+    { name: 'poster leaves out what it is unsure of', pattern: /leave out anything uncertain/ },
+    { name: 'poster is a bento grid', pattern: /bento-box grid/ },
+    { name: 'poster invents no statistics', pattern: /No made-up statistics/ },
+    { name: 'poster insists on spelling', pattern: /Spell every word correctly/ },
+  ],
+};
+
+/**
+ * An architect's name → a horizontal illustrated timeline of real built works
+ * (guide #48). An optional image is a style reference only.
+ */
+const architectTimeline: FeatureDef<ArchitectTimelineSettings> = {
+  key: 'architectTimeline',
+  category: 'boards',
+  name: 'Architect Timeline',
+  blurb: 'Architect to Illustrated Timeline',
+  verb: 'Draw an architect’s career',
+  // The optional image is a style reference — a graphic to borrow the look of.
+  inputKind: ['inspiration'],
+  outputKind: null,
+  icon: Milestone,
+  inputMode: 'optional',
+  maxReferences: 0,
+  accuracyWarning: (s) =>
+    `Projects and years come from ${searching(s.search) ? 'search results' : 'the model’s memory'} — check them.`,
+  defaultSettings: { architect: '', fromStyle: '', toStyle: '', count: '6', drawing: 'vector', search: true },
+  quick: [
+    {
+      kind: 'choice',
+      key: 'count',
+      label: 'Projects',
+      options: [
+        { value: '5', label: '5' },
+        { value: '6', label: '6' },
+        { value: '7', label: '7' },
+      ],
+    },
+    {
+      kind: 'choice',
+      key: 'drawing',
+      label: 'Drawn as',
+      options: [
+        { value: 'vector', label: 'Vector illustration' },
+        { value: 'render', label: 'Small renderings' },
+      ],
+    },
+    { kind: 'toggle', key: 'search', label: 'Research with Google Search', hint: SEARCH_TOGGLE_HINT },
+  ],
+  buildPrompt: (s, ctx) =>
+    buildArchitectTimelinePrompt({ ...s, search: searching(s.search), hasReference: Boolean(ctx.hasImage) }),
+  aspectRatio: () => '21:9',
+  sendTargets: [],
+  poolLabel: 'Boards',
+  galleryLabel: 'Architect timeline',
+  ui: {
+    eyebrow: 'Diagrams & Boards',
+    title: 'Architect → Illustrated Timeline',
+    description:
+      'An architect’s real built work along one line, oldest to newest, drawn as one family with names and years — and the shift in style between the ends, if you name it. Add an image to borrow its graphic look.',
+    inputLabel: 'Style reference · optional',
+    inputHint: 'A graphic whose look you want — its content is ignored',
+    outputCaption: 'The timeline',
+    emptyIcon: Milestone,
+    emptyTitle: 'No timeline yet',
+    emptyDescription: 'Name an architect and press Generate — the timeline appears here.',
+  },
+  blockedReason: (s) => (s.architect.trim() ? null : 'Name the architect to begin.'),
+  toOptions: (s, ctx) => ({ ...plainOptions(ctx), grounding: searching(s.search) || undefined }),
+  promptContracts: [
+    { name: 'timeline researches first', pattern: /RESEARCH FIRST/ },
+    { name: 'timeline never invents a project', pattern: /never invent a project, a name or a date/ },
+    { name: 'timeline draws one family', pattern: /read as one family/ },
+    { name: 'timeline checks the order', pattern: /do the years increase left to right/ },
+  ],
+};
+
+/**
+ * A typology in words → one wide blueprint sheet where a drawing rises into a
+ * photo-real model across seven to nine stages (guide #53).
+ */
+const blueprintEvolution: FeatureDef<BlueprintEvolutionSettings> = {
+  key: 'blueprintEvolution',
+  category: 'boards',
+  name: 'Blueprint Evolution',
+  blurb: 'Typology to Living Blueprint',
+  verb: 'Show a typology evolve',
+  inputKind: [],
+  outputKind: null,
+  icon: Scroll,
+  inputMode: 'text',
+  maxReferences: 0,
+  accuracyWarning: (s) =>
+    `Style names and dates are indicative, from ${searching(s.search) ? 'search results' : 'the model’s memory'}.`,
+  defaultSettings: { typology: '', stages: '7', search: true },
+  quick: [
+    {
+      kind: 'choice',
+      key: 'stages',
+      label: 'Stages',
+      options: [
+        { value: '7', label: '7' },
+        { value: '8', label: '8' },
+        { value: '9', label: '9' },
+      ],
+    },
+    { kind: 'toggle', key: 'search', label: 'Research with Google Search', hint: SEARCH_TOGGLE_HINT },
+  ],
+  buildPrompt: (s) => buildBlueprintEvolutionPrompt({ ...s, search: searching(s.search) }),
+  aspectRatio: () => '16:9',
+  sendTargets: [],
+  poolLabel: 'Boards',
+  galleryLabel: 'Blueprint evolution',
+  ui: {
+    eyebrow: 'Diagrams & Boards',
+    title: 'Typology → Living Blueprint',
+    description:
+      'One blueprint sheet where a hand-drafted plan lifts off the paper and becomes, stage by stage, a photo-real model — each stage a real step in the typology’s history, with its style and dates.',
+    inputLabel: 'Typology',
+    inputHint: 'A building type that evolved — e.g. Gothic to contemporary church design',
+    outputCaption: 'The blueprint sheet',
+    emptyIcon: Scroll,
+    emptyTitle: 'No sheet yet',
+    emptyDescription: 'Name a typology and press Generate.',
+  },
+  blockedReason: (s) => (s.typology.trim() ? null : 'Name the typology to begin.'),
+  toOptions: (s, ctx) => ({ ...plainOptions(ctx), grounding: searching(s.search) || undefined }),
+  promptContracts: [
+    { name: 'blueprint researches the lineage', pattern: /RESEARCH THE LINEAGE FIRST/ },
+    { name: 'blueprint draws different buildings', pattern: /DIFFERENT building from the lineage/ },
+    { name: 'blueprint rises in realism', pattern: /more three-dimensional and more real/ },
+    { name: 'blueprint is one image', pattern: /ONE image only/ },
+  ],
+};
+
+/**
+ * A render → the same render marked up in red felt-tip (guide #21).
+ * Constructive by default; the guide's roast is one tap away.
+ */
+const redPen: FeatureDef<RedPenSettings> = {
+  key: 'redPen',
+  category: 'boards',
+  name: 'Red-Pen Review',
+  blurb: 'Render to Marked-Up Critique',
+  verb: 'Critique it',
+  inputKind: ['room', 'building'],
+  outputKind: null,
+  icon: Highlighter,
+  inputMode: 'image',
+  maxReferences: 0,
+  defaultSettings: { subject: 'interior', tone: 'constructive', focus: 'all' },
+  quick: [
+    {
+      kind: 'choice',
+      key: 'subject',
+      label: 'Reviewing',
+      options: [
+        { value: 'interior', label: 'An interior' },
+        { value: 'building', label: 'A building' },
+      ],
+    },
+    {
+      kind: 'choice',
+      key: 'tone',
+      label: 'Tone',
+      options: [
+        { value: 'constructive', label: 'Constructive' },
+        { value: 'roast', label: 'Roast' },
+      ],
+    },
+    {
+      kind: 'choice',
+      key: 'focus',
+      label: 'Look at',
+      options: [
+        { value: 'all', label: 'Everything' },
+        { value: 'scale', label: 'Scale' },
+        { value: 'lighting', label: 'Lighting' },
+        { value: 'materials', label: 'Materials' },
+        { value: 'furniture', label: 'Furniture & entourage' },
+      ],
+    },
+  ],
+  buildPrompt: (s) => buildRedPenPrompt(s),
+  sendTargets: [],
+  poolLabel: 'Reviews',
+  galleryLabel: 'Red-pen review',
+  ui: {
+    eyebrow: 'Diagrams & Boards',
+    title: 'Render → Red-Pen Review',
+    description:
+      'A second pair of eyes: four to six real weaknesses circled in red felt-tip, each with a short note on what to fix — or, for a laugh, a roast. The render underneath is not redrawn.',
+    inputLabel: 'Input',
+    inputHint: 'An interior or exterior render you want reviewed',
+    outputCaption: 'The marked-up render',
+    emptyIcon: Highlighter,
+    emptyTitle: 'No review yet',
+    emptyDescription: 'Upload a render and press Generate — the red-pen review appears here.',
+    compare: { before: 'Render', after: 'Reviewed' },
+  },
+  blockedReason: (_s, hasInput) => (hasInput ? null : 'Upload a render to begin.'),
+  toOptions: (_s, ctx) => plainOptions(ctx),
+  promptContracts: [
+    { name: 'red pen reads the render first', pattern: /READ THE RENDER FIRST/ },
+    { name: 'red pen invents no flaws', pattern: /Do not invent problems/ },
+    { name: 'red pen locks the render', pattern: /LOCK THE RENDER/ },
+    { name: 'red pen keeps notes short', pattern: /under eight words/ },
+    { name: 'red pen insists on spelling', pattern: /Spell every word correctly/ },
+  ],
+};
+
 export const REGISTRY = {
   massing,
   sketchRender,
@@ -3780,6 +4044,10 @@ export const REGISTRY = {
   systemsCutaway,
   marketingBoard,
   magazine,
+  materialPoster,
+  architectTimeline,
+  blueprintEvolution,
+  redPen,
   watercolour,
   axonometric,
   interior,

@@ -531,6 +531,35 @@ export interface MagazineSettings {
   headline: string;
 }
 
+// --- Build plan Phase 4 ------------------------------------------------------
+
+export interface MaterialPosterSettings {
+  topic: string;
+  search: boolean;
+}
+
+export interface ArchitectTimelineSettings {
+  architect: string;
+  fromStyle: string;
+  toStyle: string;
+  count: '5' | '6' | '7';
+  drawing: 'vector' | 'render';
+  search: boolean;
+}
+
+export interface BlueprintEvolutionSettings {
+  typology: string;
+  stages: '7' | '8' | '9';
+  search: boolean;
+}
+
+export type RedPenFocus = 'all' | 'scale' | 'lighting' | 'materials' | 'furniture';
+export interface RedPenSettings {
+  subject: 'interior' | 'building';
+  tone: 'constructive' | 'roast';
+  focus: RedPenFocus;
+}
+
 export type FeatureSettings =
   | RenderSettings
   | ElevationSettings
@@ -579,7 +608,11 @@ export type FeatureSettings =
   | GroundFloorSettings
   | SystemsCutawaySettings
   | MarketingBoardSettings
-  | MagazineSettings;
+  | MagazineSettings
+  | MaterialPosterSettings
+  | ArchitectTimelineSettings
+  | BlueprintEvolutionSettings
+  | RedPenSettings;
 
 /** Quick-action refinement of a specific output (P2). */
 export interface RefineState {

@@ -77,10 +77,17 @@ export const FEATURE_KEYS = [
   // Cut it open to show how it works, then draw over it.
   'systemsCutaway',
   'annotation',
+  // Drawing over it the other way: a critique, not an explanation.
+  'redPen',
   'moodboard',
+  // Explain what it is made of.
+  'materialPoster',
   // Then publish it.
   'marketingBoard',
   'magazine',
+  // Two that explain a lineage rather than a project — from words alone.
+  'architectTimeline',
+  'blueprintEvolution',
 ] as const;
 
 export type FeatureKind = (typeof FEATURE_KEYS)[number];

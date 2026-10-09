@@ -12,6 +12,10 @@ import { ExplodedAxonFeature } from './features/boards/ExplodedAxonFeature';
 import { FloorAnalysisFeature } from './features/boards/FloorAnalysisFeature';
 import { ProgramDiagramFeature } from './features/boards/ProgramDiagramFeature';
 import { MagazineFeature } from './features/boards/MagazineFeature';
+import { ArchitectTimelineFeature } from './features/boards/ArchitectTimelineFeature';
+import { BlueprintEvolutionFeature } from './features/boards/BlueprintEvolutionFeature';
+import { MaterialPosterFeature } from './features/boards/MaterialPosterFeature';
+import { RedPenFeature } from './features/boards/RedPenFeature';
 import { MarketingBoardFeature } from './features/boards/MarketingBoardFeature';
 import { SystemsCutawayFeature } from './features/boards/SystemsCutawayFeature';
 import { CadElevationFeature } from './features/drawings/CadElevationFeature';
@@ -112,6 +116,10 @@ const FEATURES: Record<FeatureKind | 'studio' | 'home' | 'gallery', ComponentTyp
   systemsCutaway: SystemsCutawayFeature,
   marketingBoard: MarketingBoardFeature,
   magazine: MagazineFeature,
+  materialPoster: MaterialPosterFeature,
+  architectTimeline: ArchitectTimelineFeature,
+  blueprintEvolution: BlueprintEvolutionFeature,
+  redPen: RedPenFeature,
   gallery: GalleryFeature,
 };
 
