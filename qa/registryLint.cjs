@@ -214,10 +214,17 @@ const AWAITING_LIVE_RUN = {
   siteLinework: 'new; tested on guide #32 (Z1, test-only); publishable public-domain aerial still to source',
   siteAnalysis: 'new; tested on guide #44 (Z2, test-only); publishable public-domain aerial still to source',
   placeInSite: 'new; tested on guide #46 (Z3, test-only); a publishable site photo still to source',
+  // Build plan, Phase 2b.
+  siteAnalysis3d: 'new; tested on guide #56 with and without its reference (Z4, Z5, test-only)',
+  urbanLayers: 'new; tested on guide #58, both steps chained (Z6 then Z7, test-only)',
+  // Text-only: no input to publish, so these can earn an example from their
+  // first passing run.
+  sitePhoto: 'new; text-only, awaiting approved paid runs (Z8 landmark rule, Z9 ordinary street)',
+  siteHistory: 'new; text-only, awaiting approved paid runs (Z10 Taj Mahal, Z11 Battersea)',
 };
 const exempt = (k) => k in NO_FIXTURE || k in AWAITING_LIVE_RUN;
 const documented = new Set(
-  [...stripComments(examplesSrc).matchAll(/^  ([a-zA-Z]+): \{$/gm)].map((m) => m[1]),
+  [...stripComments(examplesSrc).matchAll(/^  ([a-zA-Z][a-zA-Z0-9]*): \{$/gm)].map((m) => m[1]),
 );
 const undocumented = declaredKeys.filter((k) => !documented.has(k) && !exempt(k));
 check(
@@ -555,7 +562,7 @@ const appSrc = fs.readFileSync(path.join(SRC, 'App.tsx'), 'utf8');
 // `  render: RenderFeature,` in App.tsx's FEATURES map — the one place that
 // already maps a tool to the component that draws it.
 const screenOf = {};
-for (const m of stripComments(appSrc).matchAll(/^\s{2}([a-zA-Z]+): (\w+Feature),$/gm)) screenOf[m[1]] = m[2];
+for (const m of stripComments(appSrc).matchAll(/^\s{2}([a-zA-Z][a-zA-Z0-9]*): (\w+Feature),$/gm)) screenOf[m[1]] = m[2];
 
 const quickKeys = {};
 for (const b of defBlocks) {

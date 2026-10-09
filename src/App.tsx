@@ -31,6 +31,10 @@ import { UrbanContextFeature } from './features/site/UrbanContextFeature';
 import { PlaceInSiteFeature } from './features/site/PlaceInSiteFeature';
 import { SiteAnalysisFeature } from './features/site/SiteAnalysisFeature';
 import { SiteLineworkFeature } from './features/site/SiteLineworkFeature';
+import { SiteAnalysis3dFeature } from './features/site/SiteAnalysis3dFeature';
+import { SiteHistoryFeature } from './features/site/SiteHistoryFeature';
+import { SitePhotoFeature } from './features/site/SitePhotoFeature';
+import { UrbanLayersFeature } from './features/site/UrbanLayersFeature';
 import { AtmosphereFeature } from './features/visualization/AtmosphereFeature';
 import { FacadeMaterialFeature } from './features/visualization/FacadeMaterialFeature';
 import { HumanScaleFeature } from './features/visualization/HumanScaleFeature';
@@ -71,6 +75,10 @@ const FEATURES: Record<FeatureKind | 'studio' | 'home' | 'gallery', ComponentTyp
   siteLinework: SiteLineworkFeature,
   siteAnalysis: SiteAnalysisFeature,
   placeInSite: PlaceInSiteFeature,
+  siteAnalysis3d: SiteAnalysis3dFeature,
+  urbanLayers: UrbanLayersFeature,
+  sitePhoto: SitePhotoFeature,
+  siteHistory: SiteHistoryFeature,
   wireframeRender: WireframeRenderFeature,
   massingRender: MassingRenderFeature,
   renderRefine: RenderRefineFeature,

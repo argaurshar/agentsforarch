@@ -50,6 +50,9 @@ interface Run {
   extra?: string;
   /** Settings overrides — the non-default variant, when that IS the risk. */
   settings?: Record<string, unknown>;
+  /** The input is the output of an EARLIER run in the same set (a chained
+   *  two-step tool). A dry run cannot read it yet and uses a placeholder. */
+  chained?: boolean;
   /** Request-option overrides a tool's own `toOptions` does not set yet. */
   options?: Partial<GenerateOptions>;
   verdicts: string[];
@@ -325,6 +328,72 @@ const NEW_TOOLS: Run[] = [
     ],
   },
   {
+    id: 'Z4', tool: 'siteAnalysis3d', input: 'guide:uc56-input1.jpg',
+    settings: { coords: '27.1751, 78.0421', wind: 'NW' },
+    title: 'The coin, without a reference. Compass clockwise, sun leaning south, wind from where we SAID?',
+    verdicts: [
+      'PASS — a circular isometric base, white beyond it, N top-right then E S W clockwise, sun arc to the south, wind arrows from the north-west',
+      'FAIL — the whole map uncropped, compass out of order, wind from elsewhere, or photoreal texture',
+    ],
+  },
+  {
+    id: 'Z5', tool: 'siteAnalysis3d', input: 'guide:uc56-input1.jpg', extra: 'guide:uc56-output1.jpg',
+    settings: { coords: '27.1751, 78.0421', wind: 'none' },
+    title: 'With the reference diagram. Does it copy the LOOK — and not the place?',
+    verdicts: [
+      'PASS — the reference’s graphic language on THIS site’s geography; no wind arrows (none set)',
+      'FAIL — the reference’s own buildings reproduced, or wind arrows drawn anyway',
+    ],
+  },
+  {
+    id: 'Z6', tool: 'urbanLayers', input: 'guide:uc58-input1.jpg',
+    title: 'Four layer maps of ONE circle. Do they stack?',
+    verdicts: [
+      'PASS — four circles of the same extent; roads in map 3 run between the buildings of map 1; four titles spelled',
+      'FAIL — maps of different extents or places, buildings in the pink blocks map, or garbled titles',
+    ],
+  },
+  {
+    id: 'Z7', tool: 'urbanLayers', input: path.join(OUT, 'run-Z6-output.png'), chained: true, settings: { step: 'stack' },
+    title: 'Step two, on step one’s own sheet. Are the discs the SAME maps?',
+    verdicts: [
+      'PASS — the four maps from Z6, stacked isometrically in order, dotted alignment lines, titles to the right',
+      'FAIL — redrawn or different maps, shadows on the discs, or titles missing',
+    ],
+  },
+  {
+    id: 'Z8', tool: 'sitePhoto', input: null, settings: { coords: '38.8977° N, 77.0365° W' },
+    title: 'The guide’s own coordinates — the White House. Is the landmark there because it IS there?',
+    verdicts: [
+      'PASS — a believable Washington street view near the White House; any landmark genuinely at that spot; signs unreadable; sources listed',
+      'FAIL — a generic street, a different city, or readable invented signage',
+    ],
+  },
+  {
+    id: 'Z9', tool: 'sitePhoto', input: null, settings: { coords: '51.5246, -0.0787' },
+    title: 'An ordinary street in Shoreditch. Local character without a landmark to lean on?',
+    verdicts: [
+      'PASS — London brick, Victorian warehouses and terraces, London street furniture; no famous landmark moved in',
+      'FAIL — an anywhere-street, or the Shard/Big Ben dropped into an ordinary road',
+    ],
+  },
+  {
+    id: 'Z10', tool: 'siteHistory', input: null, settings: { coords: '27.1751, 78.0421', place: 'Taj Mahal complex' },
+    title: 'A well-documented site. Same frame in every panel, real years in order?',
+    verdicts: [
+      'PASS — four plans of one frame, years increasing (c. 1632 onward), the last matching today, captions spelled',
+      'FAIL — panels at different scales, invented events or dates, or garbled captions',
+    ],
+  },
+  {
+    id: 'Z11', tool: 'siteHistory', input: null, settings: { coords: '51.4818, -0.1446' },
+    title: 'Battersea Power Station, unnamed. Does search find it — and does it stay honest?',
+    verdicts: [
+      'PASS — the power station recognised; build, closure and redevelopment in order with plausible years or circa dates',
+      'FAIL — a different site, invented history, or dates out of order',
+    ],
+  },
+  {
     id: 'Y1', tool: 'conceptDiagram', input: 'ex-massing.jpg',
     title: 'Moves read from the form. Same camera throughout, ending on THIS massing?',
     verdicts: [
@@ -434,6 +503,10 @@ const PROBE: Run[] = [
   },
 ];
 
+/** A 1×1 PNG, standing in for a chained input a dry run has not produced yet. */
+const PLACEHOLDER =
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
+
 function resolveInput(file: string): string {
   if (file.startsWith('guide:')) {
     const p = path.join(GUIDE, file.slice('guide:'.length));
@@ -488,9 +561,12 @@ function dataUrl(file: string): string {
       useStyleRef: false,
       hasMarker: run.marked ?? false,
       hasImage: Boolean(run.input),
+      extras: run.extra ? [true] : [],
     });
     const req = buildFeatureRequest(run.tool, settings, {
-      inputImages: [run.input, run.extra].filter((f): f is string => Boolean(f)).map(dataUrl),
+      inputImages: [run.input, run.extra]
+        .filter((f): f is string => Boolean(f))
+        .map((f) => (dry && run.chained && f === run.input && !fs.existsSync(f) ? PLACEHOLDER : dataUrl(f))),
       prompt,
       ctx,
     });

@@ -11,7 +11,7 @@ interface OutputCardProps {
   onDelete?: (imageId: string) => void;
   onRefine?: (image: GeneratedImage) => void;
   sendTargets?: SendTarget[];
-  onSend?: (target: FeatureKind, image: GeneratedImage) => void;
+  onSend?: (target: FeatureKind, image: GeneratedImage, settings?: Record<string, unknown>) => void;
   /** 'full' shows the image at input size (single result); 'grid' is the compact card. */
   size?: 'grid' | 'full';
   /** Open this image in the full-screen lightbox viewer. */
@@ -86,14 +86,15 @@ export function OutputCard({
             {sendTargets && onSend
               ? sendTargets.map((t) => (
                   <Button
-                    key={t.target}
+                    key={`${t.target}:${t.short ?? ''}`}
                     variant="secondary"
                     size="sm"
                     icon={<ArrowRight size={14} strokeWidth={1.75} />}
-                    onClick={() => onSend(t.target, image)}
+                    onClick={() => onSend(t.target, image, t.settings)}
                     title={t.label}
+                    data-send-preset={t.settings ? t.target : undefined}
                   >
-                    {TARGET_LABEL[t.target] ?? t.target}
+                    {t.short ?? TARGET_LABEL[t.target] ?? t.target}
                   </Button>
                 ))
               : null}

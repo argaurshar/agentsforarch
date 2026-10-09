@@ -37,6 +37,11 @@ export const FEATURE_KEYS = [
   // Read the place first: the map as linework, then analysed.
   'siteLinework',
   'siteAnalysis',
+  'siteAnalysis3d',
+  'urbanLayers',
+  // From coordinates alone: what is there now, and what was there before.
+  'sitePhoto',
+  'siteHistory',
   'urbanContext',
   // A real photograph of the plot, with the building put into it.
   'placeInSite',

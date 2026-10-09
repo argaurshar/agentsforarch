@@ -20,6 +20,10 @@ import {
   Building2,
   Leaf,
   LandPlot,
+  Compass,
+  Globe,
+  Grid3x3,
+  History,
   MapPinned,
   Spline,
   Shapes,
@@ -75,7 +79,14 @@ import {
   buildExplodedAxonPrompt,
   buildProgramDiagramPrompt,
 } from '../../lib/prompt/boards';
+import { engineSupportsGrounding } from '../../providers/runtimeConfig';
+import { formatCoordinates, parseCoordinates } from '../../lib/coords';
 import {
+  buildSiteAnalysis3dPrompt,
+  buildSiteHistoryPrompt,
+  buildSitePhotoPrompt,
+  buildUrbanLayersPrompt,
+  urbanLayerList,
   buildPlaceInSitePrompt,
   buildSiteAnalysisPrompt,
   buildSiteLineworkPrompt,
@@ -113,6 +124,10 @@ import { LIGHTING, MATERIAL_PRESETS, MOODS, SEASONS, defaultScene } from '../../
 import type { AspectRatio } from '../../providers/options';
 import type { GenerateOptions, GenerateRequest } from '../../providers/types';
 import type {
+  SiteAnalysis3dSettings,
+  SiteHistorySettings,
+  SitePhotoSettings,
+  UrbanLayersSettings,
   PlaceInSiteSettings,
   SiteAnalysisSettings,
   SiteLineworkSettings,
@@ -183,6 +198,10 @@ export interface PromptContext {
    *  and without one, and the builder cannot see the store. Every caller that
    *  always has an image (the front door, a batch run) passes true. */
   hasImage?: boolean;
+  /** Which of the tool's `extraInputs` slots hold an image, by index. Only an
+   *  OPTIONAL slot can be empty at run time; callers that know nothing of slots
+   *  (a batch, the front door) leave it undefined, which reads as "none". */
+  extras?: boolean[];
 }
 
 /** A batch job: one output image, with the clause that distinguishes it. */
@@ -279,7 +298,14 @@ export interface FeatureDef<S extends FeatureSettings = FeatureSettings> {
    * is always that one, which is why this is an ordered list of labelled slots
    * rather than "up to N images".
    */
-  extraInputs?: { label: string; hint: string }[];
+  extraInputs?: {
+    label: string;
+    hint: string;
+    /** An OPTIONAL slot never blocks Generate; the prompt is told whether it
+     *  was filled through `PromptContext.extras`. Optional slots go LAST, so an
+     *  empty one never shifts the position of a slot the prompt names. */
+    optional?: boolean;
+  }[];
   /**
    * Whether this tool offers a region marker, and whether it insists on one.
    *
@@ -324,6 +350,12 @@ export interface FeatureDef<S extends FeatureSettings = FeatureSettings> {
 
   /** Cross-feature pipeline destinations offered on this tool's outputs. */
   sendTargets: FeatureKind[];
+  /**
+   * Destinations that open with a setting already chosen — the second step of a
+   * two-step tool, e.g. Urban Layer Maps' "Stack these layers", which sends the
+   * four-map sheet back into the same tool with Step set to stack.
+   */
+  sendPresets?: { target: FeatureKind; label: string; settings: Record<string, unknown> }[];
   /** Display group for the image pool / style-reference picker. */
   poolLabel: string;
   /** Gallery filter label. */
@@ -2905,6 +2937,349 @@ const placeInSite: FeatureDef<PlaceInSiteSettings> = {
   ],
 };
 
+// --- Build plan, Phase 2b ------------------------------------------------------
+
+/** The prompt's wording for a typed location — formatted when it parses. */
+const placeWords = (coords: string): string => {
+  const c = parseCoordinates(coords);
+  return c ? formatCoordinates(c) : coords.trim();
+};
+/** Search is offered only where the engine has it; the prompt follows suit. */
+const searching = (on: boolean): boolean => on && engineSupportsGrounding();
+const SEARCH_TOGGLE_HINT =
+  'Gemini looks the place up before drawing, and lists its sources under the result. Not available on kie.ai.';
+
+/**
+ * A top-down map → an isometric "coin" of the site with compass, sun path and,
+ * only when the architect sets it, wind (guide #56).
+ */
+const siteAnalysis3d: FeatureDef<SiteAnalysis3dSettings> = {
+  key: 'siteAnalysis3d',
+  category: 'site',
+  name: '3D Site Analysis',
+  blurb: 'Map to Isometric Site Diagram',
+  verb: 'Model the site in 3D',
+  inputKind: ['map'],
+  outputKind: null,
+  icon: Compass,
+  inputMode: 'image',
+  maxReferences: 0,
+  extraInputs: [
+    {
+      label: 'Input · a reference diagram',
+      hint: 'Optional — a circular isometric diagram whose look you want. Its graphic language is copied, never its place.',
+      optional: true,
+    },
+  ],
+  marker: 'optional',
+  accuracyWarning: (s) =>
+    s.wind === 'none'
+      ? 'The sun path is schematic for the latitude, not a solar study.'
+      : 'The sun path is schematic, and the wind is the direction you chose — the model has no wind data.',
+  defaultSettings: { coords: '', hemisphere: 'north', wind: 'none', north: 'topright' },
+  quick: [
+    {
+      kind: 'choice',
+      key: 'wind',
+      label: 'Prevailing wind from',
+      hint: 'The model cannot know local wind. Set it, or leave it off.',
+      options: [
+        { value: 'none', label: 'Not shown' },
+        { value: 'N', label: 'N' },
+        { value: 'NE', label: 'NE' },
+        { value: 'E', label: 'E' },
+        { value: 'SE', label: 'SE' },
+        { value: 'S', label: 'S' },
+        { value: 'SW', label: 'SW' },
+        { value: 'W', label: 'W' },
+        { value: 'NW', label: 'NW' },
+      ],
+    },
+    {
+      kind: 'choice',
+      key: 'north',
+      label: 'North points',
+      options: [
+        { value: 'topright', label: 'Top right' },
+        { value: 'up', label: 'Up' },
+      ],
+    },
+    {
+      kind: 'choice',
+      key: 'hemisphere',
+      label: 'Hemisphere',
+      hint: 'Used when no coordinates are given — decides which way the sun arc leans.',
+      options: [
+        { value: 'north', label: 'North of the equator' },
+        { value: 'south', label: 'South of the equator' },
+      ],
+    },
+  ],
+  buildPrompt: (s, ctx) =>
+    buildSiteAnalysis3dPrompt({
+      lat: parseCoordinates(s.coords)?.lat ?? null,
+      hemisphere: s.hemisphere,
+      wind: s.wind,
+      north: s.north,
+      marked: Boolean(ctx.hasMarker),
+      reference: Boolean(ctx.extras?.[0]),
+    }),
+  aspectRatio: () => '1:1',
+  sendTargets: [],
+  poolLabel: 'Site diagrams',
+  galleryLabel: '3D site analysis',
+  ui: {
+    eyebrow: 'Site & Urban',
+    title: 'Map → 3D Site Analysis',
+    description:
+      'The site and its neighbours on a circular isometric base, white all round — compass, sun path for the latitude, and the prevailing wind if you set it. Add a reference diagram to borrow its look.',
+    inputLabel: 'Input · the map',
+    inputHint: 'A top-down satellite or Maps screenshot — outline the site, or box it here',
+    outputCaption: 'The 3D site diagram',
+    emptyIcon: Compass,
+    emptyTitle: 'No diagram yet',
+    emptyDescription: 'Upload a top-down map and press Generate — the isometric diagram appears here.',
+    compare: { before: 'Map', after: '3D diagram' },
+  },
+  blockedReason: (s, hasInput, mode) => {
+    if (!hasInput) return 'Upload a top-down map to begin.';
+    if (mode === 'refine') return null;
+    if (s.coords.trim() && !parseCoordinates(s.coords)) return 'Those coordinates cannot be read — fix them or clear the box.';
+    return null;
+  },
+  toOptions: (_s, ctx) => plainOptions(ctx),
+  promptContracts: [
+    { name: '3D site reads the map first', pattern: /READ THE MAP FIRST/ },
+    { name: '3D site whites out everything beyond the circle', pattern: /Everything outside the circle is plain white/ },
+    { name: '3D site orders the compass clockwise', pattern: /clockwise/ },
+    { name: '3D site leans the sun arc to the equator', pattern: /to the SOUTH of overhead/ },
+    { name: '3D site draws no wind it was not given', pattern: /^(?![\s\S]*Prevailing wind from)/ },
+  ],
+};
+
+/**
+ * A map → two to four circular layer maps of one circle; then, sent back with
+ * "Stack these layers", the same maps as an exploded isometric stack (guide #58).
+ */
+const urbanLayers: FeatureDef<UrbanLayersSettings> = {
+  key: 'urbanLayers',
+  category: 'site',
+  name: 'Urban Layer Maps',
+  blurb: 'Map to Figure-Ground Layers',
+  verb: 'X-ray the city',
+  inputKind: ['map'],
+  outputKind: null,
+  icon: Grid3x3,
+  inputMode: 'image',
+  maxReferences: 0,
+  marker: 'optional',
+  defaultSettings: { step: 'maps', figure: true, green: true, circulation: true, blocks: true },
+  quick: [
+    {
+      kind: 'choice',
+      key: 'step',
+      label: 'Step',
+      hint: 'Make the maps from a screenshot, then stack the sheet they come out on.',
+      options: [
+        { value: 'maps', label: 'Layer maps' },
+        { value: 'stack', label: 'Stack a sheet' },
+      ],
+    },
+    { kind: 'toggle', key: 'figure', label: 'Figure-ground', hint: 'Buildings in black.' },
+    { kind: 'toggle', key: 'green', label: 'Green network', hint: 'Landscape and trees.' },
+    { kind: 'toggle', key: 'circulation', label: 'Circulation', hint: 'Roads in blue.' },
+    { kind: 'toggle', key: 'blocks', label: 'Blocks', hint: 'Street blocks in pink, no buildings.' },
+  ],
+  buildPrompt: (s, ctx) => buildUrbanLayersPrompt({ ...s, marked: Boolean(ctx.hasMarker) }),
+  aspectRatio: (s) => (s.step === 'stack' ? '3:4' : urbanLayerList(s).length === 4 ? '1:1' : '16:9'),
+  sendTargets: [],
+  sendPresets: [{ target: 'urbanLayers', label: 'Stack these layers', settings: { step: 'stack' } }],
+  poolLabel: 'Site diagrams',
+  galleryLabel: 'Urban layers',
+  ui: {
+    eyebrow: 'Site & Urban',
+    title: 'Map → Urban Layer Maps',
+    description:
+      'The same circle of city, four ways: figure-ground, green network, circulation and blocks. Then send the sheet back to stack the layers as an exploded axonometric.',
+    inputLabel: 'Input',
+    inputHint: 'A top-down Earth or Maps screenshot — or, for the stack, the layer sheet made here',
+    outputCaption: 'The layer maps',
+    emptyIcon: Grid3x3,
+    emptyTitle: 'No layer maps yet',
+    emptyDescription: 'Upload a top-down map and press Generate — the layer sheet appears here.',
+    compare: { before: 'Map', after: 'Layers' },
+  },
+  blockedReason: (s, hasInput, mode) => {
+    if (!hasInput) return s.step === 'stack' ? 'Upload the layer sheet to stack.' : 'Upload a top-down map to begin.';
+    if (mode === 'refine') return null;
+    if (urbanLayerList(s).length < 2) return 'Choose at least two layers.';
+    return null;
+  },
+  toOptions: (_s, ctx) => plainOptions(ctx),
+  promptContracts: [
+    { name: 'urban layers reads the map first', pattern: /READ THE MAP FIRST/ },
+    { name: 'urban layers share one extent', pattern: /they must stack perfectly/ },
+    { name: 'urban layers defines figure-ground', pattern: /FIGURE-GROUND: every building solid black/ },
+    { name: 'urban layers checks the overlay', pattern: /same place at the same extent/ },
+  ],
+};
+
+/**
+ * Coordinates, no image → a plausible photograph of the street there (guide
+ * #07). Plausible, never actual: the warning is permanent.
+ */
+const sitePhoto: FeatureDef<SitePhotoSettings> = {
+  key: 'sitePhoto',
+  category: 'site',
+  name: 'Site Photo from Coordinates',
+  blurb: 'Coordinates to Site Photo',
+  verb: 'Picture the place',
+  inputKind: [],
+  outputKind: 'site',
+  icon: Globe,
+  inputMode: 'text',
+  maxReferences: 0,
+  accuracyWarning: (s) =>
+    `A plausible picture of the area, not a photograph of it${
+      searching(s.search) ? '' : ', drawn from the model’s memory'
+    } — buildings, signs and details will not match reality.`,
+  defaultSettings: { coords: '', view: 'street', light: 'overcast', search: true },
+  quick: [
+    {
+      kind: 'choice',
+      key: 'view',
+      label: 'View',
+      options: [
+        { value: 'street', label: 'Street level' },
+        { value: 'aerial', label: '45° aerial' },
+      ],
+    },
+    {
+      kind: 'choice',
+      key: 'light',
+      label: 'Light',
+      options: [
+        { value: 'overcast', label: 'Overcast' },
+        { value: 'sunny', label: 'Sunny' },
+        { value: 'golden', label: 'Golden hour' },
+      ],
+    },
+    { kind: 'toggle', key: 'search', label: 'Look it up with Google Search', hint: SEARCH_TOGGLE_HINT },
+  ],
+  buildPrompt: (s) =>
+    buildSitePhotoPrompt({ where: placeWords(s.coords) || '[coordinates]', view: s.view, light: s.light, search: searching(s.search) }),
+  aspectRatio: () => '3:2',
+  sendTargets: ['placeInSite'],
+  poolLabel: 'Site photos',
+  galleryLabel: 'Site photo',
+  ui: {
+    eyebrow: 'Site & Urban',
+    title: 'Coordinates → Site Photo',
+    description:
+      'Nobody has visited yet. Paste the coordinates and get a believable photograph of that kind of street — local buildings, planting and light — to start a feasibility study from.',
+    inputLabel: 'Location',
+    inputHint: 'Coordinates or a Google Maps link',
+    outputCaption: 'The site photograph',
+    emptyIcon: Globe,
+    emptyTitle: 'No site photo yet',
+    emptyDescription: 'Paste coordinates and press Generate — a site photograph appears here.',
+  },
+  blockedReason: (s) =>
+    !s.coords.trim()
+      ? 'Enter the coordinates to begin.'
+      : parseCoordinates(s.coords)
+        ? null
+        : 'Those coordinates cannot be read — try 27.1751, 78.0421.',
+  toOptions: (s, ctx) => ({ ...plainOptions(ctx), grounding: searching(s.search) || undefined }),
+  promptContracts: [
+    { name: 'site photo works out the place first', pattern: /WORK OUT THE PLACE FIRST/ },
+    { name: 'site photo never invents a landmark', pattern: /Do not invent landmarks/ },
+    { name: 'site photo keeps signs unreadable', pattern: /generic and unreadable/ },
+  ],
+};
+
+/**
+ * Coordinates → the same site in plan at three to five moments in its history,
+ * with years (guide #57). The factual-risk tool: its warning is permanent.
+ */
+const siteHistory: FeatureDef<SiteHistorySettings> = {
+  key: 'siteHistory',
+  category: 'site',
+  name: 'Site History Timeline',
+  blurb: 'Coordinates to Site Chronology',
+  verb: 'Show how the site changed',
+  inputKind: [],
+  outputKind: null,
+  icon: History,
+  inputMode: 'text',
+  maxReferences: 0,
+  accuracyWarning: (s) =>
+    `Dates and events come from ${
+      searching(s.search) ? 'search results' : 'the model’s memory'
+    } — check every one before you publish.`,
+  defaultSettings: { coords: '', place: '', stages: '4', style: 'urban', search: true },
+  quick: [
+    {
+      kind: 'choice',
+      key: 'stages',
+      label: 'Moments',
+      options: [
+        { value: '3', label: '3' },
+        { value: '4', label: '4' },
+        { value: '5', label: '5' },
+      ],
+    },
+    {
+      kind: 'choice',
+      key: 'style',
+      label: 'Style',
+      options: [
+        { value: 'urban', label: 'Urban drawing' },
+        { value: 'vector', label: 'Vector map' },
+      ],
+    },
+    { kind: 'toggle', key: 'search', label: 'Research with Google Search', hint: SEARCH_TOGGLE_HINT },
+  ],
+  buildPrompt: (s) =>
+    buildSiteHistoryPrompt({
+      where: placeWords(s.coords) || '[coordinates]',
+      place: s.place,
+      stages: s.stages,
+      style: s.style,
+      search: searching(s.search),
+    }),
+  aspectRatio: () => '21:9',
+  sendTargets: [],
+  poolLabel: 'Site diagrams',
+  galleryLabel: 'Site history',
+  ui: {
+    eyebrow: 'Site & Urban',
+    title: 'Coordinates → Site History',
+    description:
+      'The same piece of ground drawn in plan at three to five moments in its history — each with its year and what changed — researched, and framed identically so the panels compare.',
+    inputLabel: 'Location',
+    inputHint: 'Coordinates or a Google Maps link, and optionally the name of the place',
+    outputCaption: 'The site chronology',
+    emptyIcon: History,
+    emptyTitle: 'No timeline yet',
+    emptyDescription: 'Paste coordinates and press Generate — the timeline appears here.',
+  },
+  blockedReason: (s) =>
+    !s.coords.trim()
+      ? 'Enter the coordinates to begin.'
+      : parseCoordinates(s.coords)
+        ? null
+        : 'Those coordinates cannot be read — try 27.1751, 78.0421.',
+  toOptions: (s, ctx) => ({ ...plainOptions(ctx), grounding: searching(s.search) || undefined }),
+  promptContracts: [
+    { name: 'site history researches first', pattern: /RESEARCH FIRST/ },
+    { name: 'site history writes uncertain dates as circa', pattern: /circa date/ },
+    { name: 'site history never invents an event', pattern: /Never invent an event/ },
+    { name: 'site history keeps one frame', pattern: /SAME area at the same scale/ },
+    { name: 'site history insists on spelling', pattern: /Spell every word correctly/ },
+  ],
+};
+
 export const REGISTRY = {
   massing,
   sketchRender,
@@ -2921,6 +3296,10 @@ export const REGISTRY = {
   birdsEye,
   siteLinework,
   siteAnalysis,
+  siteAnalysis3d,
+  urbanLayers,
+  sitePhoto,
+  siteHistory,
   urbanContext,
   placeInSite,
   wireframeRender,

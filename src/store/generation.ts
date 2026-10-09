@@ -444,6 +444,44 @@ export interface PlaceInSiteSettings {
   light: 'site' | 'golden';
 }
 
+// --- Build plan Phase 2b -----------------------------------------------------
+
+/** Where the prevailing wind comes FROM, or not drawn — the model has no wind data. */
+export type WindFrom = 'none' | 'N' | 'NE' | 'E' | 'SE' | 'S' | 'SW' | 'W' | 'NW';
+export interface SiteAnalysis3dSettings {
+  /** Optional: sets the sun path's latitude. Empty → the hemisphere setting. */
+  coords: string;
+  hemisphere: Hemisphere;
+  wind: WindFrom;
+  north: 'topright' | 'up';
+}
+
+export type UrbanStep = 'maps' | 'stack';
+export interface UrbanLayersSettings {
+  step: UrbanStep;
+  figure: boolean;
+  green: boolean;
+  circulation: boolean;
+  blocks: boolean;
+}
+
+export interface SitePhotoSettings {
+  coords: string;
+  view: 'street' | 'aerial';
+  light: 'overcast' | 'sunny' | 'golden';
+  /** Ground the picture in Google Search (Gemini only). */
+  search: boolean;
+}
+
+export interface SiteHistorySettings {
+  coords: string;
+  /** Optional name, to anchor the search and the captions. */
+  place: string;
+  stages: DiagramSteps;
+  style: 'urban' | 'vector';
+  search: boolean;
+}
+
 export type FeatureSettings =
   | RenderSettings
   | ElevationSettings
@@ -482,7 +520,11 @@ export type FeatureSettings =
   | ConceptBoardSettings
   | SiteLineworkSettings
   | SiteAnalysisSettings
-  | PlaceInSiteSettings;
+  | PlaceInSiteSettings
+  | SiteAnalysis3dSettings
+  | UrbanLayersSettings
+  | SitePhotoSettings
+  | SiteHistorySettings;
 
 /** Quick-action refinement of a specific output (P2). */
 export interface RefineState {

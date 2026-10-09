@@ -10,7 +10,7 @@
 import { buildAxonometricPrompt, buildElevationPrompt, buildInteriorPrompt, buildMoodboardPrompt, buildRefinePrompt, buildRenderPrompt } from '../src/lib/prompts';
 import { buildConceptBoardPrompt, buildConceptDiagramPrompt, buildMassingPrompt, buildSketchRenderPrompt } from '../src/lib/prompt/concept';
 import { buildAnnotationPrompt, buildExplodedAxonPrompt, buildProgramDiagramPrompt } from '../src/lib/prompt/boards';
-import { buildBirdsEyePrompt, buildFloorAnalysisPrompt, buildPlaceInSitePrompt, buildSiteAnalysisPrompt, buildSiteLineworkPrompt, buildUrbanContextPrompt } from '../src/lib/prompt/site';
+import { buildBirdsEyePrompt, buildFloorAnalysisPrompt, buildPlaceInSitePrompt, buildSiteAnalysis3dPrompt, buildSiteAnalysisPrompt, buildSiteHistoryPrompt, buildSiteLineworkPrompt, buildSitePhotoPrompt, buildUrbanContextPrompt, buildUrbanLayersPrompt } from '../src/lib/prompt/site';
 import {
   buildAtmospherePrompt,
   buildFacadeMaterialPrompt,
@@ -232,5 +232,35 @@ for (const landscape of [false, true])
   for (const light of ['site', 'golden'] as const)
     for (const marked of [false, true])
       add(`placesite:l${landscape}:${light}:m${marked}`, buildPlaceInSitePrompt({ landscape, light, marked }));
+
+// --- Build plan, Phase 2b -----------------------------------------------------
+// 3D site: latitude north / south / none (hemisphere both ways), wind off and
+// on, both north orientations, with and without the reference and the marker.
+for (const lat of [27.1751, -33.8568, null])
+  for (const wind of ['none', 'NW'] as const)
+    add(`site3d:${lat ?? 'nolat'}:${wind}`, buildSiteAnalysis3dPrompt({ lat, hemisphere: 'north', wind, north: 'topright', marked: false, reference: false }));
+add('site3d:nolat:south', buildSiteAnalysis3dPrompt({ lat: null, hemisphere: 'south', wind: 'none', north: 'topright', marked: false, reference: false }));
+add('site3d:up', buildSiteAnalysis3dPrompt({ lat: 27.1751, hemisphere: 'north', wind: 'none', north: 'up', marked: false, reference: false }));
+add('site3d:ref:marked', buildSiteAnalysis3dPrompt({ lat: 27.1751, hemisphere: 'north', wind: 'none', north: 'topright', marked: true, reference: true }));
+// Urban layers: all four, each one dropped, two only, marked, and the stack.
+const ALL4 = { figure: true, green: true, circulation: true, blocks: true };
+add('urban:maps:all', buildUrbanLayersPrompt({ step: 'maps', ...ALL4, marked: false }));
+for (const off of ['figure', 'green', 'circulation', 'blocks'] as const)
+  add(`urban:maps:no-${off}`, buildUrbanLayersPrompt({ step: 'maps', ...ALL4, [off]: false, marked: false }));
+add('urban:maps:two', buildUrbanLayersPrompt({ step: 'maps', figure: true, green: false, circulation: true, blocks: false, marked: false }));
+// Blocked in the UI, but the prompt box still renders it — it must not throw.
+add('urban:maps:one', buildUrbanLayersPrompt({ step: 'maps', figure: true, green: false, circulation: false, blocks: false, marked: false }));
+add('urban:maps:marked', buildUrbanLayersPrompt({ step: 'maps', ...ALL4, marked: true }));
+add('urban:stack:all', buildUrbanLayersPrompt({ step: 'stack', ...ALL4, marked: false }));
+add('urban:stack:three', buildUrbanLayersPrompt({ step: 'stack', ...ALL4, blocks: false, marked: false }));
+for (const view of ['street', 'aerial'] as const)
+  for (const light of ['overcast', 'sunny', 'golden'] as const)
+    for (const search of [true, false])
+      add(`sitephoto:${view}:${light}:s${search}`, buildSitePhotoPrompt({ where: '38.8977° N, 77.0365° W', view, light, search }));
+for (const stages of ['3', '4', '5'] as const)
+  for (const style of ['urban', 'vector'] as const)
+    for (const search of [true, false])
+      add(`history:${stages}:${style}:s${search}`, buildSiteHistoryPrompt({ where: '27.1751° N, 78.0421° E', place: '', stages, style, search }));
+add('history:named', buildSiteHistoryPrompt({ where: '27.1751° N, 78.0421° E', place: 'Taj Mahal complex', stages: '4', style: 'urban', search: true }));
 
 console.log(out.join('\n\n'));

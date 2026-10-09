@@ -892,6 +892,98 @@ const check = (name, ok, detail = '') => {
   check('and never claims the photo is unchanged', !/Everything outside the plot stays exactly/.test(await pisPrompt.inputValue()));
   await page.getByRole('button', { name: /^Match the photo$/ }).click();
 
+  // --- Build plan, Phase 2b --------------------------------------------------
+  // S1: a coordinates box reads back what it understood, and blocks on what it
+  // cannot read rather than sending it to be "interpreted".
+  await navTo('sitePhoto');
+  const coords = page.locator('#sitePhoto-coords');
+  const coordsRead = page.locator('[data-coords-read]');
+  check('site photo has no image dropzone', (await page.locator('input[type=file]').count()) === 0);
+  check('and will not run with no location', !(await gen().isEnabled()));
+  await coords.fill('Taj Mahal');
+  await page.waitForTimeout(300);
+  check('a place name is not read as coordinates', (await coordsRead.getAttribute('data-coords-read')) === 'invalid' && !(await gen().isEnabled()));
+  await coords.fill('38°53′52″N 77°2′11″W');
+  await page.waitForTimeout(300);
+  check('degrees-minutes-seconds are read back', (await coordsRead.getAttribute('data-coords-read')) === '38.8978° N, 77.0364° W', await coordsRead.getAttribute('data-coords-read'));
+  check('and unblock Generate', await gen().isEnabled());
+  const spPrompt = page.locator('#sitePhoto-prompt');
+  check('the prompt states the place in one normal form', /site photograph of the place at 38\.8978° N, 77\.0364° W/.test(await spPrompt.inputValue()));
+  check('search is on by default where the engine has it', /Use Google Search to look these coordinates up/.test(await spPrompt.inputValue()));
+  // G3 end to end: the request asks for search, and the sources come back.
+  const spBefore = geminiBodies.length;
+  mock.sources = true;
+  await gen().click();
+  await page.waitForTimeout(2500);
+  mock.sources = false;
+  const spBody = geminiBodies.slice(spBefore).join('');
+  check('a searching tool sends the google_search tool', /"tools":\[\{"google_search":\{\}\}\]/.test(spBody));
+  check('its result lists the sources', (await page.locator('[data-grounding-sources]').count()) >= 1);
+  check('and says it is a plausible picture, not a photograph', /not a photograph of it/.test(await mainText()));
+  await page.getByRole('switch', { name: /Look it up with Google Search/ }).click();
+  await page.waitForTimeout(300);
+  check('search off: the prompt says it works from memory', /From what you know about these coordinates/.test(await spPrompt.inputValue()));
+  const spOff = geminiBodies.length;
+  await gen().click();
+  await page.waitForTimeout(2500);
+  check('and no tools field is sent', !/"tools"/.test(geminiBodies.slice(spOff).join('')));
+  check('and the warning says so', /drawn from the model’s memory/.test(await mainText()));
+  await page.getByRole('switch', { name: /Look it up with Google Search/ }).click();
+  await coords.fill('');
+
+  await navTo('siteHistory');
+  await page.locator('#siteHistory-coords').fill('https://www.google.com/maps/place/Taj/@27.1751,78.0421,17z');
+  await page.waitForTimeout(300);
+  check('a Google Maps link is read as coordinates', (await page.locator('[data-coords-read]').getAttribute('data-coords-read')) === '27.1751° N, 78.0421° E');
+  const shBefore = geminiBodies.length;
+  await gen().click();
+  await page.waitForTimeout(2500);
+  check('site history researches with search', /google_search/.test(geminiBodies.slice(shBefore).join('')));
+  check('and tells you to check every date', /check every one before you publish/.test(await mainText()));
+  await page.locator('#siteHistory-coords').fill('');
+
+  // S2: an OPTIONAL second slot never blocks, and the prompt knows if it is filled.
+  await navTo('siteAnalysis3d');
+  const s3Prompt = page.locator('#siteAnalysis3d-prompt');
+  check('3D site draws no wind unless it is set', !/Prevailing wind/.test(await s3Prompt.inputValue()));
+  await page.getByRole('button', { name: /^NW$/ }).click();
+  await page.waitForTimeout(300);
+  check('setting it draws wind from that side', /Prevailing wind from the north-west/.test(await s3Prompt.inputValue()));
+  await page.getByRole('button', { name: /^Not shown$/ }).click();
+  check('3D site offers the optional reference slot', (await page.locator('input[type=file]').count()) >= 2);
+  await page.locator('input[type=file]').first().setInputFiles(PLAN);
+  await page.waitForTimeout(400);
+  check('it runs with the map alone — the reference is optional', await gen().isEnabled());
+  check('and the prompt does not mention a reference it has not got', !/SECOND image is a reference diagram/.test(await s3Prompt.inputValue()));
+  await page.locator('input[type=file]').last().setInputFiles(PLAN);
+  await page.waitForTimeout(400);
+  check('adding one tells the prompt to copy its look, not its place', /SECOND image is a reference diagram/.test(await s3Prompt.inputValue()));
+  await page.locator('#siteAnalysis3d-coords').fill('-33.8568, 151.2153');
+  await page.waitForTimeout(300);
+  check('a southern latitude leans the sun arc north', /to the NORTH of overhead/.test(await s3Prompt.inputValue()));
+  await page.locator('#siteAnalysis3d-coords').fill('');
+
+  // S3: a send preset opens the next step of a two-step tool.
+  await navTo('urbanLayers');
+  const ulPrompt = page.locator('#urbanLayers-prompt');
+  await page.setInputFiles('input[type=file]', PLAN);
+  await page.waitForTimeout(400);
+  for (const name of ['Green network', 'Circulation', 'Blocks']) await page.getByRole('switch', { name }).click();
+  await page.waitForTimeout(300);
+  check('one layer is not an analysis — it blocks', !(await gen().isEnabled()));
+  for (const name of ['Green network', 'Circulation', 'Blocks']) await page.getByRole('switch', { name }).click();
+  await page.waitForTimeout(300);
+  check('four layers share one extent', /they must stack perfectly/.test(await ulPrompt.inputValue()));
+  await gen().click();
+  await page.waitForTimeout(2500);
+  const stackBtn = page.locator('[data-send-preset="urbanLayers"]').first();
+  check('the layer sheet offers "Stack these layers"', (await stackBtn.count()) === 1 && /Stack these layers/.test(await stackBtn.innerText()));
+  await stackBtn.click();
+  await page.waitForTimeout(600);
+  check('which opens the stack step', /Rearrange those same maps/.test(await ulPrompt.inputValue()));
+  check('with the sheet already loaded', await gen().isEnabled());
+  await page.getByRole('button', { name: /^Layer maps$/ }).click();
+
   // The shared lock must not name a thing the tool exists to change. This is the
   // contradiction that the static gate catches across all 624 variants; here it
   // is checked once, live, on the two tools most likely to regress.

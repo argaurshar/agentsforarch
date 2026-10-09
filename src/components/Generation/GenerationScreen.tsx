@@ -116,8 +116,9 @@ export function GenerationScreen<K extends FeatureKind>({
             useStyleRef,
             hasMarker: marker !== null,
             hasImage: input !== null,
+            extras: (def.extraInputs ?? []).map((_, i) => Boolean(extraInputs[i])),
           }),
-    [mode, refine, settings, def, useMoodboard, useStyleRef, marker, input, runExtras?.promptSettings],
+    [mode, refine, settings, def, useMoodboard, useStyleRef, marker, input, extraInputs, runExtras?.promptSettings],
   );
 
   // Controls drive the prompt until the user edits it, then they stop.
@@ -139,7 +140,7 @@ export function GenerationScreen<K extends FeatureKind>({
   const hasInput = def.inputMode === 'text' || def.inputMode === 'optional' || hasImage;
 
   const slots = def.extraInputs ?? [];
-  const missingSlot = slots.findIndex((_, i) => !extraInputs[i]);
+  const missingSlot = slots.findIndex((slot, i) => !slot.optional && !extraInputs[i]);
 
   const blocked =
     def.blockedReason?.(settings, def.inputMode === 'optional' ? hasImage : hasInput, mode) ??
@@ -365,8 +366,16 @@ export function GenerationScreen<K extends FeatureKind>({
               loadingCount={mode === 'refine' ? 1 : plannedCount}
               onDelete={removeImage}
               onRefine={(image) => beginRefine(feature, image)}
-              sendTargets={def.sendTargets.map((t) => ({ target: t, label: `Send to ${featureDef(t).name}` }))}
-              onSend={(target, image) => sendToFeature(target, image.url)}
+              sendTargets={[
+                ...def.sendTargets.map((t) => ({ target: t, label: `Send to ${featureDef(t).name}` })),
+                ...(def.sendPresets ?? []).map((p) => ({ ...p, short: p.label })),
+              ]}
+              onSend={(target, image, presetSettings) => {
+                // The preset lands BEFORE the image, so the target screen opens
+                // already showing the step it was sent for.
+                if (presetSettings) updateFeatureSettings(target, presetSettings as never);
+                sendToFeature(target, image.url);
+              }}
             />
           ) : !error ? (
             <EmptyState
