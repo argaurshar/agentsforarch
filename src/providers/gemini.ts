@@ -45,6 +45,10 @@ function friendlyError(status: number, body: string, key: string): string {
   if (status === 400 && /API key not valid/i.test(safe)) return 'That Gemini API key is not valid — check it in Settings.';
   if (status === 401 || status === 403) return 'Gemini rejected the request (invalid key or no access). Check your key in Settings.';
   if (status === 404) return 'The configured Gemini model was not found — check the model name in Settings.';
+  // Two different 429s: a spending cap does not clear by waiting, so it must
+  // not be reported as a rate limit (Phase 0 and Z11b hit it).
+  if (status === 429 && /spend(ing)? cap|billing/i.test(safe))
+    return 'Your Gemini project hit its spending cap. Raise it in Google AI Studio, then retry.';
   if (status === 429) return 'Gemini rate limit reached. Wait a moment and try again.';
   return `Gemini request failed (HTTP ${status}). ${safe.slice(0, 160)}`.trim();
 }

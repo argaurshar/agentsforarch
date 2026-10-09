@@ -552,6 +552,14 @@ const NEW_TOOLS: Run[] = [
     ],
   },
   {
+    id: 'Z11b', tool: 'siteHistory', input: null, settings: { coords: '51.4818, -0.1446' },
+    title: 'FIX CHECK — Battersea again, unnamed. Do the coordinates beat Buckingham Palace now?',
+    verdicts: [
+      'PASS — the place line names Battersea Power Station; build, closure and redevelopment in order',
+      'FAIL — Buckingham Palace again, or any other site than the one at the point',
+    ],
+  },
+  {
     id: 'Y1', tool: 'conceptDiagram', input: 'ex-massing.jpg',
     title: 'Moves read from the form. Same camera throughout, ending on THIS massing?',
     verdicts: [

@@ -406,7 +406,28 @@
         "Queen Victoria Memorial Gardens construction"
       ],
       "failures": []
+    },
+    {
+      "id": "Z11b",
+      "tool": "siteHistory",
+      "input": null,
+      "settings": {
+        "coords": "51.4818, -0.1446"
+      },
+      "title": "FIX CHECK — Battersea again, unnamed. Do the coordinates beat Buckingham Palace now?",
+      "verdicts": [
+        "PASS — the place line names Battersea Power Station; build, closure and redevelopment in order",
+        "FAIL — Buckingham Palace again, or any other site than the one at the point"
+      ],
+      "status": "no-image",
+      "calls": 1,
+      "failures": [
+        {
+          "label": "Site history",
+          "error": "Your Gemini project has reached its spending cap — raise it in Google AI Studio, then try again."
+        }
+      ]
     }
   ],
-  "generations": 19
+  "generations": 21
 }

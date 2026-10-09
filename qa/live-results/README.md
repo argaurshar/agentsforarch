@@ -465,6 +465,12 @@ have been billed twice: **12 calls billed at most.**
 
 A retry of Z11 (1 call) awaits approval.
 
+**Z11b (approved): not run — blocked by the account.** Both attempts returned
+HTTP 429 for the project's **monthly spending cap**; nothing was generated or
+billed. The app reported that as "rate limit reached — wait a moment", which is
+wrong advice for a cap, so a 429 that names the spending cap now says so. Z11b
+is defined in `liveRuns` and runs as soon as the cap is raised.
+
 ### Examples
 
 Z8–Z10 are text-only, so they ship: `ex-site-photo.jpg` (Z9),
