@@ -323,6 +323,16 @@ named in "do not build the reference". The closing check compares the viewpoint.
 | O3b | **PASS.** The 9:16 portrait room came back 9:16 (0.558 in, 0.558 out), same camera, the same mountain painting hung on the wall, nothing else changed. The two-image frame fix works. |
 | X1b | **Better, still FAIL.** Fixed: the high aerial camera is kept, the frame is the massing's 3:2 (1.49 → 1.491), and there is no garage door. Still wrong: the single courtyard block comes back split into separate stepped buildings, and windows are cut into faces the model shows as solid. Its one retry is spent; the next prompt change waits for approval. |
 
+### O1 — Bird's Eye View, through curl (approved separately, 1 call)
+
+**PASS, with a caveat.** Returned in 67 s — so the two earlier 300 s timeouts
+were a stalled connection, not a slow model; curl would have caught either. A
+convincing oblique drone view at the tool's pinned 16:9: the Google Maps label
+and interface are gone, the diagonal street grid runs the same way as the tile,
+and the main road on the left is there. Caveat: individual parks and blocks
+cannot be matched one for one — it is plausibly the same district, not provably
+the same buildings. Output kept locally (derived from a Google Maps image).
+
 ### X1c — the fix that held (approved separately, 1 call)
 
 Two changes after X1b: **openings default to "Keep it solid"** (given leave to
@@ -350,6 +360,6 @@ Phase 0: **5 planned calls** (G1, O2, O3, X1 returned images; O1's two
 attempts timed out) and **2 reserve calls** (X1b, O3b — first refused by the
 spend cap, unbilled; then run once the cap was raised).
 
-O2, O3 and O3b outputs are **not committed**: they were made from the guide's own
+O1, O2, O3 and O3b outputs are **not committed**: they were made from the guide's own
 images and reproduce them closely, and guide material stays out of this public
 repository. Their prompts and verdicts are here; the images were kept locally.

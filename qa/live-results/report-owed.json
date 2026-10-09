@@ -1,24 +1,6 @@
 {
   "runs": [
     {
-      "id": "O1",
-      "tool": "birdsEye",
-      "input": "guide:uc32-input1.jpg",
-      "title": "A flat satellite tile becomes an aerial view. Is it the SAME place?",
-      "verdicts": [
-        "PASS \u2014 an oblique aerial of this street grid and these footprints, no map interface",
-        "FAIL \u2014 a generic city, streets that are not in the tile, or labels and UI left in"
-      ],
-      "status": "no-image",
-      "calls": 1,
-      "failures": [
-        {
-          "label": "Bird's eye",
-          "error": "Could not reach the Gemini API from the browser (network or CORS block). This app calls Gemini directly with no backend."
-        }
-      ]
-    },
-    {
       "id": "O2",
       "tool": "wireframeRender",
       "input": "guide:uc09-input1.jpg",
@@ -161,7 +143,29 @@
       "sources": [],
       "searchQueries": [],
       "failures": []
+    },
+    {
+      "id": "O1",
+      "tool": "birdsEye",
+      "input": "guide:uc32-input1.jpg",
+      "title": "A flat satellite tile becomes an aerial view. Is it the SAME place?",
+      "verdicts": [
+        "PASS \u2014 an oblique aerial of this street grid and these footprints, no map interface",
+        "FAIL \u2014 a generic city, streets that are not in the tile, or labels and UI left in"
+      ],
+      "status": "generated",
+      "calls": 1,
+      "labels": [
+        "Bird's eye"
+      ],
+      "sources": [],
+      "searchQueries": [],
+      "failures": [],
+      "files_kept_locally": [
+        "run-O1-output.png"
+      ],
+      "note": "output not committed: derived from a Google Maps satellite image (test-only guide fixture)"
     }
   ],
-  "generations": 7
+  "generations": 8
 }
