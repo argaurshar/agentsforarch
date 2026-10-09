@@ -482,6 +482,33 @@ export interface SiteHistorySettings {
   search: boolean;
 }
 
+// --- Build plan Phase 3a -----------------------------------------------------
+
+export type PhaseStage = 'excavation' | 'structure' | 'envelope';
+export interface PhasingSettings {
+  excavation: boolean;
+  structure: boolean;
+  envelope: boolean;
+  activity: 'busy' | 'quiet';
+}
+
+export type ReframeRatio = '9:16' | '4:5' | '1:1' | '3:2' | '16:9' | '21:9';
+export interface ReframeSettings {
+  ratio: ReframeRatio;
+  anchor: 'centre' | 'top' | 'bottom';
+  fill: 'natural' | 'sky' | 'city';
+  /** Paste the original pixels back over the result. */
+  keepOriginal: boolean;
+}
+
+export type GroundProgram = 'cafe' | 'retail' | 'lobby' | 'restaurant' | 'gallery' | 'custom';
+export interface GroundFloorSettings {
+  program: GroundProgram;
+  customProgram: string;
+  materials: 'complement' | 'timber' | 'metal';
+  people: boolean;
+}
+
 export type FeatureSettings =
   | RenderSettings
   | ElevationSettings
@@ -524,7 +551,10 @@ export type FeatureSettings =
   | SiteAnalysis3dSettings
   | UrbanLayersSettings
   | SitePhotoSettings
-  | SiteHistorySettings;
+  | SiteHistorySettings
+  | PhasingSettings
+  | ReframeSettings
+  | GroundFloorSettings;
 
 /** Quick-action refinement of a specific output (P2). */
 export interface RefineState {

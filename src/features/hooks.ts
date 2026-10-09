@@ -1,5 +1,7 @@
 import { useCallback, useMemo } from 'react';
 import { getActiveProvider } from '../providers';
+import { padToRatio, pasteBack } from '../lib/reframe';
+import type { Placement } from '../lib/reframe';
 import type { GenerateRequest, GenerateResult } from '../providers';
 import { poolFromProject, useProjectStore } from '../store/useProjectStore';
 import type { GenerateStatus } from '../store/generation';
@@ -65,7 +67,24 @@ export async function runFeature(req: GenerateRequest): Promise<RunOutcome> {
   const controller = startRun(feature);
   const current = () => useProjectStore.getState().generation[feature].runId;
   try {
-    const result = await provider.generate(req, controller.signal);
+    // Reframe & Extend pads the input to the target ratio before sending and
+    // pastes the original back afterwards — see src/lib/reframe.ts.
+    const frame = req.options.reframe;
+    const original = req.inputImages[0];
+    let sent = req;
+    let place: Placement | null = null;
+    if (frame && original) {
+      const padded = await padToRatio(original, frame.ratio, frame.anchor);
+      place = padded.place;
+      sent = { ...req, inputImages: [padded.dataURL, ...req.inputImages.slice(1)] };
+    }
+    const result = await provider.generate(sent, controller.signal);
+    if (frame?.keepOriginal && original && place) {
+      const at = place;
+      result.images = await Promise.all(
+        result.images.map(async (img) => ({ ...img, url: await pasteBack(original, img.url, at) })),
+      );
+    }
     if (current() !== myRunId) return 'superseded'; // a newer run took over
     if (result.images.length > 0) {
       const asset = addAsset({

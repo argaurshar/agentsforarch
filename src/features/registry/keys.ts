@@ -52,9 +52,13 @@ export const FEATURE_KEYS = [
   'renderRefine',
   'atmosphere',
   'facadeMaterial',
+  'groundFloor',
   'humanScale',
   'multiView',
+  'phasing',
   'reflection',
+  // Frame it, then print it.
+  'reframe',
   'upscale',
   'watercolour',
   // Interiors start from a mood board when there is no room yet.

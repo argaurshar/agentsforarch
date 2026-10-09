@@ -15,7 +15,16 @@
 
 import { LIGHTING, MATERIAL_PRESETS, MOODS, SEASONS } from '../scene';
 import { NO_TEXT } from './clauses';
-import type { MassingOpenings, ReferenceTake, WatercolourPalette, WireframeSubject } from '../../store/generation';
+import type {
+  GroundFloorSettings,
+  GroundProgram,
+  MassingOpenings,
+  PhaseStage,
+  ReferenceTake,
+  ReframeSettings,
+  WatercolourPalette,
+  WireframeSubject,
+} from '../../store/generation';
 
 export type { WatercolourPalette };
 import type {
@@ -694,5 +703,162 @@ export function buildWatercolourPrompt(a: {
       'gives it. Do not let a soft edge become a different edge.',
     only.check,
     NO_TEXT,
+  ].join(' ');
+}
+
+// --- Construction phasing (guide #47) ---------------------------------------
+
+/** One clause per stage, appended to the shared base — one output each. */
+export const PHASE_STAGE: Record<PhaseStage, { label: string; clause: string }> = {
+  excavation: {
+    label: 'Excavation',
+    clause:
+      'EXCAVATION — the plot cleared and dug down to foundation level: excavators, spoil heaps, shoring along the ' +
+      'edges and the first foundation formwork. Nothing stands above ground yet; the footprint is marked only by ' +
+      'setting-out pegs and formwork.',
+  },
+  structure: {
+    label: 'Structural frame',
+    clause:
+      'STRUCTURAL FRAME — the bare concrete or steel skeleton at full height: columns, floor slabs and cores complete; ' +
+      'no facade, no glazing, no finishes; scaffolding and edge protection around the frame; a tower crane on site.',
+  },
+  envelope: {
+    label: 'Envelope',
+    clause:
+      'ENVELOPE — the frame being closed in: cladding and windows installed on the lower floors and still missing on ' +
+      'the upper floors, where the frame shows through; scaffolding wrapped around the upper levels.',
+  },
+};
+
+/**
+ * A finished render → the same view at earlier construction stages, one image
+ * per stage, for a timeline comparison.
+ *
+ * A timeline is only a timeline if the frames overlay, so the lock is on the
+ * CAMERA and the surroundings — and the camera is named as the part that
+ * drifts, the same move that fixed the roof in the shared lock. The stage itself
+ * is appended per job; this base names it only as "the stage at the end".
+ */
+export function buildPhasingPrompt(a: { activity: 'busy' | 'quiet' }): string {
+  return [
+    'You are showing the building in the input image at an earlier moment in its construction, as a photograph taken ' +
+      'from exactly the same spot.',
+    'STEP 1 — READ THE IMAGE FIRST. Note the building’s exact footprint, outline and height, the position of every ' +
+      'floor slab, column, opening and the roof, and the camera position, lens, crop and horizon, plus the surroundings ' +
+      '— street, neighbours, trees, sky.',
+    'STEP 2 — LOCK THE VIEW. The camera, lens, crop and horizon are identical to the input. The surroundings that exist ' +
+      'before construction — street, neighbouring buildings, mature trees, sky — are identical too. Whatever stands of ' +
+      'the building occupies exactly its footprint and never exceeds its height: the same floor levels, the same column ' +
+      'grid behind the facade. THE CAMERA IS THE PART THAT DRIFTS: do not move it, zoom it or re-frame it.',
+    'STEP 3 — SHOW THE STAGE named at the end of this brief.',
+    a.activity === 'busy'
+      ? 'Make it a real construction site at that stage: hoarding along the street edge, a site cabin, materials on ' +
+        'pallets, workers in hi-vis and hard hats at believable scale, plant and a crane where the work needs them.'
+      : 'Make it a construction site at rest: hoarding along the street edge, a site cabin and materials on pallets, ' +
+        'with no workers and no machinery moving.',
+    'Remove finished landscaping, parked cars and residents that would not be there yet.',
+    NO_TEXT,
+    'CHECK before you finish: overlay this image and the input in your mind — do the horizon, the neighbours and the ' +
+      'building’s outline line up exactly? If the camera moved or the building grew or shrank, redo it.',
+  ].join(' ');
+}
+
+// --- Reframe & extend (guide #29, #33) --------------------------------------
+
+const FILL_CLAUSE: Record<ReframeSettings['fill'], string> = {
+  natural: '',
+  sky: 'Favour open sky and foreground landscape in the new space.',
+  city: 'Favour city depth in the new space: the continuing street and neighbouring buildings, receding.',
+};
+
+/**
+ * Any image → the same image at a new aspect ratio, extended outward.
+ *
+ * The app pads the input onto the target canvas with flat grey margins before it
+ * is sent (src/lib/reframe.ts), so this prompt can be literal about what is old
+ * and what is new — and, by default, pastes the original pixels back afterwards,
+ * so even a model that "improves" the middle cannot change what was supplied.
+ */
+export function buildReframePrompt(a: { fill: ReframeSettings['fill'] }): string {
+  return [
+    'The input is an image placed on a larger canvas; the flat grey areas around it are empty margins. Extend the ' +
+      'picture into those margins so the whole canvas becomes one seamless image.',
+    'STEP 1 — READ THE ORIGINAL FIRST. Note what it shows and how it was made: the outline and openings of any ' +
+      'building, the camera height, lens and vanishing points, the horizon line, the direction and colour of the light ' +
+      'and shadows, the materials and the colour grade — or, if it is a drawing, its line weights, its paper and its ' +
+      'projection.',
+    'STEP 2 — LOCK THE ORIGINAL. Everything inside the original picture stays exactly as it is — same subject, same ' +
+      'proportions, no stretching, no squashing, no re-rendering, no loss of detail. You are adding to its edges, not ' +
+      'repainting it.',
+    'STEP 3 — FILL THE MARGINS with what would really be there: continue the sky, ground, paving, street, landscape and ' +
+      'any partly cropped neighbours, following the original’s perspective and horizon, its light and shadows, its ' +
+      'grain and colour. Content crosses the seam without a visible join. Add nothing that competes with the subject: ' +
+      'no new building in front of it, no large figures, no text. A drawing extends as more of the same paper and ' +
+      'linework, never as invented rooms.',
+    FILL_CLAUSE[a.fill],
+    NO_TEXT,
+    'CHECK before you finish: is the original part identical to the input, at the same size? Is any grey margin, seam, ' +
+      'mirrored repeat or second horizon left? Fix it.',
+  ]
+    .filter(Boolean)
+    .join(' ');
+}
+
+// --- Ground-floor program (guide #20) ---------------------------------------
+
+const PROGRAM: Record<Exclude<GroundProgram, 'custom'>, { name: string; inside: string }> = {
+  cafe: { name: 'a boutique coffee shop', inside: 'a counter, seating and menu boards' },
+  retail: { name: 'a retail shop', inside: 'display tables, shelving and a fitting area' },
+  lobby: { name: 'a co-working lobby', inside: 'a reception desk, lounge seating and people working' },
+  restaurant: { name: 'a restaurant', inside: 'set tables, a bar and warm pendant lighting' },
+  gallery: { name: 'a small gallery', inside: 'white walls, hung work and a few visitors' },
+};
+
+const GROUND_MATERIAL: Record<GroundFloorSettings['materials'], string> = {
+  complement: 'whose materials are chosen to complement the upper facade',
+  timber: 'in warm timber and clear glass, chosen to sit well under the upper facade',
+  metal: 'in dark bronze-finished metal and clear glass, chosen to sit well under the upper facade',
+};
+
+/**
+ * A facade with the ground floor marked → a new use tested there, everything
+ * else untouched.
+ *
+ * The same marker discipline as Targeted Edit, which passed live (V5): the box
+ * is an instruction and is removed. What makes a frontage look designed rather
+ * than pasted is that it takes its grid from the building above — so the bays
+ * and the first-floor line are named.
+ */
+export function buildGroundFloorPrompt(a: {
+  program: GroundProgram;
+  customProgram: string;
+  materials: GroundFloorSettings['materials'];
+  people: boolean;
+}): string {
+  const p =
+    a.program === 'custom'
+      ? { name: a.customProgram.trim() || 'the new use the architect has in mind', inside: 'the fit-out that use needs' }
+      : PROGRAM[a.program];
+  return [
+    `You are redesigning the ground floor of the building in the input to test a new use: ${p.name}.`,
+    'A RED RECTANGLE has been drawn on the image. It marks the only area you may change. It is an instruction, not part ' +
+      'of the building — remove it completely in the output.',
+    'STEP 1 — READ THE IMAGE FIRST. Note the building above the rectangle — facade material, window rhythm, column and ' +
+      'bay lines, floor levels — and the street in front: pavement, kerb, trees, street furniture. Note the camera ' +
+      'position, lens and crop.',
+    'STEP 2 — LOCK EVERYTHING OUTSIDE THE RECTANGLE. The upper floors, roof, neighbouring buildings, pavement, street ' +
+      'and sky stay exactly as they are — same geometry, materials, light and camera.',
+    `STEP 3 — DESIGN THE NEW FRONTAGE, inside the rectangle only: a shopfront for ${p.name} whose structure lines up ` +
+      'with the columns and bays above, whose head height sits at the existing first-floor line, and ' +
+      `${GROUND_MATERIAL[a.materials]}. Make it an active frontage: large clear glazing with a lit, visible interior — ` +
+      `${p.inside}` +
+      (a.people ? ' — with staff and customers inside and a few people at the door.' : ' — lit, but with no people.'),
+    // A blank fascia, not "a correctly spelled name": the contradiction gate
+    // caught that pairing with NO_TEXT, and Urban Context's live run V1 showed
+    // blank fascias are what keeps a street free of garbled lettering.
+    `The fascia above the shopfront is left blank — a sign panel with no lettering on it. ${NO_TEXT}`,
+    'CHECK before you finish: compare everything outside the rectangle with the input — any difference is a mistake. ' +
+      'Is the red rectangle gone?',
   ].join(' ');
 }

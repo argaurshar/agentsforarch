@@ -22,6 +22,10 @@ import {
   buildUpscalePrompt,
   buildWatercolourPrompt,
   buildWireframeRenderPrompt,
+  buildGroundFloorPrompt,
+  buildPhasingPrompt,
+  buildReframePrompt,
+  PHASE_STAGE,
 } from '../src/lib/prompt/visualization';
 import {
   buildCadElevationPrompt,
@@ -262,5 +266,18 @@ for (const stages of ['3', '4', '5'] as const)
     for (const search of [true, false])
       add(`history:${stages}:${style}:s${search}`, buildSiteHistoryPrompt({ where: '27.1751° N, 78.0421° E', place: '', stages, style, search }));
 add('history:named', buildSiteHistoryPrompt({ where: '27.1751° N, 78.0421° E', place: 'Taj Mahal complex', stages: '4', style: 'urban', search: true }));
+
+// --- Build plan, Phase 3a -----------------------------------------------------
+// Phasing: the base in both site moods, then each stage job as sent.
+for (const activity of ['busy', 'quiet'] as const) add(`phasing:${activity}`, buildPhasingPrompt({ activity }));
+for (const [k, v] of Object.entries(PHASE_STAGE)) add(`phasing:job:${k}`, `${buildPhasingPrompt({ activity: 'busy' })}\n\nTHE STAGE: ${v.clause}`);
+for (const fill of ['natural', 'sky', 'city'] as const) add(`reframe:${fill}`, buildReframePrompt({ fill }));
+for (const program of ['cafe', 'retail', 'lobby', 'restaurant', 'gallery'] as const)
+  add(`ground:${program}`, buildGroundFloorPrompt({ program, customProgram: '', materials: 'complement', people: true }));
+add('ground:custom', buildGroundFloorPrompt({ program: 'custom', customProgram: 'a bike repair workshop', materials: 'complement', people: true }));
+add('ground:custom-empty', buildGroundFloorPrompt({ program: 'custom', customProgram: '', materials: 'complement', people: true }));
+for (const materials of ['timber', 'metal'] as const)
+  add(`ground:${materials}`, buildGroundFloorPrompt({ program: 'cafe', customProgram: '', materials, people: true }));
+add('ground:empty-shop', buildGroundFloorPrompt({ program: 'cafe', customProgram: '', materials: 'complement', people: false }));
 
 console.log(out.join('\n\n'));

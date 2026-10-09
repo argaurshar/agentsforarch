@@ -984,6 +984,63 @@ const check = (name, ok, detail = '') => {
   check('with the sheet already loaded', await gen().isEnabled());
   await page.getByRole('button', { name: /^Layer maps$/ }).click();
 
+  // --- Build plan, Phase 3a --------------------------------------------------
+  // Construction Phasing: one request per stage, each ending on its own stage.
+  await navTo('phasing');
+  await page.setInputFiles('input[type=file]', PLAN);
+  await page.waitForTimeout(400);
+  const phBefore = geminiBodies.length;
+  await gen().click();
+  await page.waitForTimeout(4500);
+  const phBodies = geminiBodies.slice(phBefore);
+  check('three stages send three generations', phBodies.length === 3, `${phBodies.length}`);
+  check(
+    'each ends on its own stage, in order',
+    /THE STAGE: EXCAVATION/.test(phBodies[0] ?? '') && /THE STAGE: STRUCTURAL FRAME/.test(phBodies[1] ?? '') && /THE STAGE: ENVELOPE/.test(phBodies[2] ?? ''),
+  );
+  check('and every one locks the camera', phBodies.every((b) => /THE CAMERA IS THE PART THAT DRIFTS/.test(b)));
+  check('the results are labelled by stage', /Structural frame/.test(await mainText()));
+  for (const name of ['Excavation', 'Structural frame', 'Envelope']) await page.getByRole('switch', { name }).click();
+  await page.waitForTimeout(300);
+  check('no stage chosen blocks Generate', !(await gen().isEnabled()));
+  for (const name of ['Excavation', 'Structural frame', 'Envelope']) await page.getByRole('switch', { name }).click();
+
+  // Reframe (R1): the INPUT that reaches the engine is the padded canvas, and
+  // the result is the original pasted back at the new ratio.
+  const pngSize = (b64) => {
+    const b = Buffer.from(b64, 'base64');
+    return b.toString('ascii', 1, 4) === 'PNG' ? { w: b.readUInt32BE(16), h: b.readUInt32BE(20) } : null;
+  };
+  await navTo('reframe');
+  await page.setInputFiles('input[type=file]', PLAN);
+  await page.waitForTimeout(400);
+  const rfBefore = geminiBodies.length;
+  await gen().click();
+  await page.waitForTimeout(3500);
+  const rfBody = JSON.parse(geminiBodies[rfBefore] || '{}');
+  const sentImg = rfBody.contents?.[0]?.parts?.find((p) => p.inlineData)?.inlineData?.data;
+  const sentSize = sentImg ? pngSize(sentImg) : null;
+  check('reframe sends the input padded to 9:16', !!sentSize && Math.abs(sentSize.w / sentSize.h - 9 / 16) < 0.01, JSON.stringify(sentSize));
+  check('keeping the original width (nothing scaled down)', sentSize?.w === 1300, JSON.stringify(sentSize));
+  check('and asks the engine for 9:16', rfBody.generationConfig?.imageConfig?.aspectRatio === '9:16');
+  const outSize = await page.locator('main figure img[src^="data:image/jpeg"]').first().evaluate((i) => ({ w: i.naturalWidth, h: i.naturalHeight })).catch(() => null);
+  check('the result is the original pasted back at 9:16', !!outSize && outSize.w === 1300 && Math.abs(outSize.w / outSize.h - 9 / 16) < 0.01, JSON.stringify(outSize));
+
+  // Ground-Floor Program: the box is required, and the fascia stays blank.
+  await navTo('groundFloor');
+  check('ground floor keeps the fascia blank', /fascia above the shopfront is left blank/.test(await page.locator('#groundFloor-prompt').inputValue()));
+  await page.setInputFiles('input[type=file]', PLAN);
+  await page.waitForTimeout(400);
+  check('ground floor will not run without the box', !(await gen().isEnabled()) && /Mark the area on the image/.test(await mainText()));
+  const gfCanvas = page.locator('[data-marker-canvas]');
+  const gfBox = await gfCanvas.boundingBox();
+  await page.mouse.move(gfBox.x + gfBox.width * 0.1, gfBox.y + gfBox.height * 0.6);
+  await page.mouse.down();
+  await page.mouse.move(gfBox.x + gfBox.width * 0.5, gfBox.y + gfBox.height * 0.85, { steps: 8 });
+  await page.mouse.up();
+  await page.waitForTimeout(400);
+  check('drawing the box unblocks it', await gen().isEnabled());
+
   // The shared lock must not name a thing the tool exists to change. This is the
   // contradiction that the static gate catches across all 624 variants; here it
   // is checked once, live, on the two tools most likely to regress.

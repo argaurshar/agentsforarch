@@ -38,6 +38,14 @@ export interface GenerateOptions {
    * say so through `engineSupportsGrounding()` rather than silently degrading.
    */
   grounding?: boolean;
+  /**
+   * Reframe & Extend: pad the first input to this ratio before sending, and
+   * (with keepOriginal) paste its pixels back over the result. Applied by
+   * `runFeature`, never by a provider — it is canvas work, not transport.
+   */
+  reframe?: { ratio: AspectRatio; anchor: 'centre' | 'top' | 'bottom'; keepOriginal: boolean };
+  /** Construction Phasing: one output per named stage, same camera. */
+  stages?: string[];
 }
 
 const GEMINI_ACCEPTS = new Set<AspectRatio>(['1:1', '2:3', '3:2', '3:4', '4:3', '4:5', '5:4', '9:16', '16:9', '21:9']);

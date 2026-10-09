@@ -21,6 +21,9 @@ import {
   Leaf,
   LandPlot,
   Compass,
+  Construction,
+  Expand,
+  Store,
   Globe,
   Grid3x3,
   History,
@@ -105,6 +108,10 @@ import {
   buildWatercolourPrompt,
   buildMassingRenderPrompt,
   buildWireframeRenderPrompt,
+  buildGroundFloorPrompt,
+  buildPhasingPrompt,
+  buildReframePrompt,
+  PHASE_STAGE,
 } from '../../lib/prompt/visualization';
 import {
   buildBubblePlanPrompt,
@@ -124,6 +131,10 @@ import { LIGHTING, MATERIAL_PRESETS, MOODS, SEASONS, defaultScene } from '../../
 import type { AspectRatio } from '../../providers/options';
 import type { GenerateOptions, GenerateRequest } from '../../providers/types';
 import type {
+  GroundFloorSettings,
+  PhaseStage,
+  PhasingSettings,
+  ReframeSettings,
   SiteAnalysis3dSettings,
   SiteHistorySettings,
   SitePhotoSettings,
@@ -3280,6 +3291,249 @@ const siteHistory: FeatureDef<SiteHistorySettings> = {
   ],
 };
 
+// --- Build plan, Phase 3a ------------------------------------------------------
+
+const STAGE_ORDER: PhaseStage[] = ['excavation', 'structure', 'envelope'];
+const stagesOf = (s: PhasingSettings): PhaseStage[] => STAGE_ORDER.filter((k) => s[k]);
+const stagesFromReq = (req: GenerateRequest): PhaseStage[] =>
+  ((req.options.stages ?? []) as PhaseStage[]).filter((k) => k in PHASE_STAGE);
+
+/**
+ * A finished render → the same view at earlier construction stages, one image
+ * per stage, camera locked (guide #47).
+ */
+const phasing: FeatureDef<PhasingSettings> = {
+  key: 'phasing',
+  category: 'visualization',
+  name: 'Construction Phasing',
+  blurb: 'Render to Construction Stages',
+  verb: 'Show it being built',
+  inputKind: ['building'],
+  outputKind: 'building',
+  icon: Construction,
+  inputMode: 'image',
+  maxReferences: 0,
+  defaultSettings: { excavation: true, structure: true, envelope: true, activity: 'busy' },
+  quick: [
+    { kind: 'toggle', key: 'excavation', label: 'Excavation', hint: 'The plot dug out, nothing above ground.' },
+    { kind: 'toggle', key: 'structure', label: 'Structural frame', hint: 'The bare skeleton at full height.' },
+    { kind: 'toggle', key: 'envelope', label: 'Envelope', hint: 'Cladding going on, lower floors first.' },
+    {
+      kind: 'choice',
+      key: 'activity',
+      label: 'Site',
+      options: [
+        { value: 'busy', label: 'Working' },
+        { value: 'quiet', label: 'At rest' },
+      ],
+    },
+  ],
+  buildPrompt: (s) => buildPhasingPrompt(s),
+  sendTargets: ['upscale'],
+  poolLabel: 'Renders',
+  galleryLabel: 'Construction stage',
+  labelsFor: (req) => stagesFromReq(req).map((k) => PHASE_STAGE[k].label),
+  // One image per stage: the base prompt names "the stage at the end", and
+  // each job ends with its own.
+  jobsFor: (req, base, labels) =>
+    req.options.refine
+      ? undefined
+      : stagesFromReq(req).map((k, i) => ({ label: labels[i], prompt: `${base}\n\nTHE STAGE: ${PHASE_STAGE[k].clause}` })),
+  plannedCount: (s, mode) => (mode === 'refine' ? 1 : Math.max(1, stagesOf(s).length)),
+  ui: {
+    eyebrow: 'Visualization',
+    title: 'Render → Construction Stages',
+    description:
+      'The same view, earlier: dug out, framed, being clad — one image per stage from exactly the camera of your render, so the set lines up as a timeline.',
+    inputLabel: 'Input',
+    inputHint: 'The finished render or photo of the building',
+    outputCaption: 'One image per stage',
+    emptyIcon: Construction,
+    emptyTitle: 'No stages yet',
+    emptyDescription: 'Upload the finished render, pick the stages and press Generate — one image appears per stage.',
+    compare: { before: 'Finished', after: 'Under construction' },
+  },
+  blockedReason: (s, hasInput, mode) => {
+    if (!hasInput) return 'Upload the finished render to begin.';
+    if (mode !== 'refine' && stagesOf(s).length === 0) return 'Choose at least one stage.';
+    return null;
+  },
+  toOptions: (s, ctx) => (ctx.refine ? { refine: true } : { variations: 1, stages: stagesOf(s) }),
+  promptContracts: [
+    { name: 'phasing reads the image first', pattern: /READ THE IMAGE FIRST/ },
+    { name: 'phasing names the camera as what drifts', pattern: /THE CAMERA IS THE PART THAT DRIFTS/ },
+    { name: 'phasing keeps the footprint', pattern: /occupies exactly its footprint/ },
+    { name: 'phasing checks the overlay', pattern: /line up exactly/ },
+  ],
+};
+
+/**
+ * Any image → a new aspect ratio by extending outward; the original pixels are
+ * pasted back by default (guide #29, #33).
+ */
+const reframe: FeatureDef<ReframeSettings> = {
+  key: 'reframe',
+  category: 'visualization',
+  name: 'Reframe & Extend',
+  blurb: 'Any Image to Any Ratio',
+  verb: 'Change the frame',
+  inputKind: ['building', 'room', 'model', 'plan', 'sketch', 'map', 'site', 'inspiration'],
+  outputKind: 'same',
+  icon: Expand,
+  inputMode: 'image',
+  maxReferences: 0,
+  defaultSettings: { ratio: '9:16', anchor: 'centre', fill: 'natural', keepOriginal: true },
+  quick: [
+    {
+      kind: 'choice',
+      key: 'ratio',
+      label: 'New frame',
+      options: [
+        { value: '9:16', label: '9:16 story' },
+        { value: '4:5', label: '4:5 post' },
+        { value: '1:1', label: '1:1' },
+        { value: '3:2', label: '3:2' },
+        { value: '16:9', label: '16:9' },
+        { value: '21:9', label: '21:9 banner' },
+      ],
+    },
+    {
+      kind: 'choice',
+      key: 'anchor',
+      label: 'New space goes',
+      hint: 'For a taller frame: around the image, above it, or below it.',
+      options: [
+        { value: 'centre', label: 'Both sides' },
+        { value: 'bottom', label: 'Above' },
+        { value: 'top', label: 'Below' },
+      ],
+    },
+    {
+      kind: 'choice',
+      key: 'fill',
+      label: 'Fill with',
+      options: [
+        { value: 'natural', label: 'What is there' },
+        { value: 'sky', label: 'Sky & foreground' },
+        { value: 'city', label: 'City depth' },
+      ],
+    },
+    {
+      kind: 'toggle',
+      key: 'keepOriginal',
+      label: 'Keep the original pixels',
+      hint: 'Pastes your image back over the result, so the middle cannot change. Off lets the model blend more freely.',
+    },
+  ],
+  buildPrompt: (s) => buildReframePrompt(s),
+  aspectRatio: (s) => s.ratio,
+  sendTargets: ['upscale'],
+  poolLabel: 'Reframed',
+  galleryLabel: 'Reframe',
+  ui: {
+    eyebrow: 'Visualization',
+    title: 'Any Image → Any Frame',
+    description:
+      'A landscape render becomes a 9:16 story or a 21:9 banner by extending the scene outward — sky, street, landscape — never by stretching or cropping. Your original pixels are put back on top.',
+    inputLabel: 'Input',
+    inputHint: 'Any image — a render, a photo, a drawing',
+    outputCaption: 'The reframed image',
+    emptyIcon: Expand,
+    emptyTitle: 'Nothing reframed yet',
+    emptyDescription: 'Upload an image, pick the new frame and press Generate.',
+    compare: { before: 'Original', after: 'Reframed' },
+  },
+  blockedReason: (_s, hasInput) => (hasInput ? null : 'Upload an image to begin.'),
+  toOptions: (s, ctx) => ({
+    ...plainOptions(ctx),
+    // A refine edits an already-reframed output, which needs no new padding.
+    ...(ctx.refine ? {} : { reframe: { ratio: s.ratio, anchor: s.anchor, keepOriginal: s.keepOriginal } }),
+  }),
+  promptContracts: [
+    { name: 'reframe names the grey margins', pattern: /flat grey areas around it are empty margins/ },
+    { name: 'reframe locks the original', pattern: /LOCK THE ORIGINAL/ },
+    { name: 'reframe adds nothing that competes', pattern: /Add nothing that competes with the subject/ },
+    { name: 'reframe checks for seams and repeats', pattern: /seam, mirrored repeat/ },
+  ],
+};
+
+/**
+ * A facade with the ground floor boxed → a new use tested there, everything
+ * else untouched (guide #20).
+ */
+const groundFloor: FeatureDef<GroundFloorSettings> = {
+  key: 'groundFloor',
+  category: 'visualization',
+  name: 'Ground-Floor Program',
+  blurb: 'Test a New Ground Floor',
+  verb: 'Test a new ground floor',
+  inputKind: ['building'],
+  outputKind: 'building',
+  icon: Store,
+  inputMode: 'image',
+  maxReferences: 0,
+  // Required: without the box the model has no way to know which floor.
+  marker: 'required',
+  defaultSettings: { program: 'cafe', customProgram: '', materials: 'complement', people: true },
+  quick: [
+    {
+      kind: 'choice',
+      key: 'program',
+      label: 'New use',
+      options: [
+        { value: 'cafe', label: 'Café' },
+        { value: 'retail', label: 'Retail' },
+        { value: 'lobby', label: 'Co-working lobby' },
+        { value: 'restaurant', label: 'Restaurant' },
+        { value: 'gallery', label: 'Gallery' },
+        { value: 'custom', label: 'Something else' },
+      ],
+    },
+    {
+      kind: 'choice',
+      key: 'materials',
+      label: 'Shopfront',
+      options: [
+        { value: 'complement', label: 'Match the facade' },
+        { value: 'timber', label: 'Timber & glass' },
+        { value: 'metal', label: 'Bronze & glass' },
+      ],
+    },
+    { kind: 'toggle', key: 'people', label: 'People', hint: 'Staff and customers, so the frontage reads as active.' },
+  ],
+  buildPrompt: (s) => buildGroundFloorPrompt(s),
+  sendTargets: ['humanScale', 'atmosphere', 'upscale'],
+  poolLabel: 'Renders',
+  galleryLabel: 'Ground floor',
+  ui: {
+    eyebrow: 'Visualization',
+    title: 'Facade → New Ground Floor',
+    description:
+      'Box the ground floor and try a café, a shop or a lobby there — the frontage takes its grid from the bays above, and nothing outside the box changes.',
+    inputLabel: 'Input',
+    inputHint: 'A facade or street photo or render — then box the ground floor',
+    outputCaption: 'The new frontage',
+    emptyIcon: Store,
+    emptyTitle: 'No frontage yet',
+    emptyDescription: 'Upload a facade, box the ground floor and press Generate.',
+    compare: { before: 'Existing', after: 'New use' },
+  },
+  blockedReason: (s, hasInput, mode) => {
+    if (!hasInput) return 'Upload a facade to begin.';
+    if (mode === 'refine') return null;
+    if (s.program === 'custom' && !s.customProgram.trim()) return 'Say what the new use is.';
+    return null;
+  },
+  toOptions: (_s, ctx) => plainOptions(ctx),
+  promptContracts: [
+    { name: 'ground floor reads the box as an instruction', pattern: /It is an instruction, not part of the building/ },
+    { name: 'ground floor locks everything outside the box', pattern: /LOCK EVERYTHING OUTSIDE THE RECTANGLE/ },
+    { name: 'ground floor takes its grid from above', pattern: /lines up with the columns and bays above/ },
+    { name: 'ground floor makes an active frontage', pattern: /active frontage/ },
+    { name: 'ground floor removes the box', pattern: /Is the red rectangle gone/ },
+  ],
+};
+
 export const REGISTRY = {
   massing,
   sketchRender,
@@ -3311,6 +3565,9 @@ export const REGISTRY = {
   multiView,
   reflection,
   upscale,
+  groundFloor,
+  phasing,
+  reframe,
   watercolour,
   axonometric,
   interior,

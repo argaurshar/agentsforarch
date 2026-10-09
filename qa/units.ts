@@ -7,6 +7,7 @@
 import { geminiRequestBody, groundingSources } from '../src/providers/gemini';
 import type { GenerateContentResponse } from '../src/providers/gemini';
 import { formatCoordinates, formatLatitude, parseCoordinates } from '../src/lib/coords';
+import { placement, ratioValue } from '../src/lib/reframe';
 
 const results: { ok: boolean; name: string }[] = [];
 function check(name: string, ok: boolean, detail = ''): void {
@@ -81,6 +82,25 @@ for (const bad of ['', 'Taj Mahal', '27.1751', '95, 10', '10, 200', '27 N 28 N',
 }
 check('formats in the form prompts state', formatCoordinates({ lat: -33.85681, lng: 151.21529 }) === '33.8568° S, 151.2153° E');
 check('formats a latitude for the sun path', formatLatitude(27.1751) === '27.2° N' && formatLatitude(-33.86) === '33.9° S');
+
+// --- Reframe geometry (Phase 3a, R1) ----------------------------------------
+
+const P = (w: number, h: number, r: string, a: 'centre' | 'top' | 'bottom' = 'centre') => placement(w, h, r, a);
+const tall = P(1200, 656, '9:16');
+check('16:9 → 9:16 keeps the width and grows the height', tall.W === 1200 && tall.H === 2133, json(tall));
+check('and centres the original vertically', tall.y === Math.round((2133 - 656) / 2) && tall.x === 0, json(tall));
+check('the original keeps its own size on the canvas', tall.w === 1200 && tall.h === 656);
+check('anchor bottom puts the new space above', P(1200, 656, '9:16', 'bottom').y === 2133 - 656);
+check('anchor top puts the new space below', P(1200, 656, '9:16', 'top').y === 0);
+const wide = P(800, 800, '21:9');
+check('1:1 → 21:9 keeps the height and grows the width, centred', wide.H === 800 && wide.W === 1867 && wide.x === 534, json(wide));
+const same = P(1600, 900, '16:9');
+check('a ratio it already has adds no margin', same.W === 1600 && same.H === 900 && same.x === 0 && same.y === 0, json(same));
+for (const r of ['9:16', '4:5', '1:1', '3:2', '16:9', '21:9']) {
+  const p = P(1200, 656, r);
+  check(`the ${r} canvas really is ${r}`, Math.abs(p.W / p.H - ratioValue(r)) < 0.002, json(p));
+  check(`and contains the original (${r})`, p.x >= 0 && p.y >= 0 && p.x + p.w <= p.W && p.y + p.h <= p.H, json(p));
+}
 
 // ---------------------------------------------------------------------------
 const failed = results.filter((r) => !r.ok).length;

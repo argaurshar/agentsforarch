@@ -221,6 +221,10 @@ const AWAITING_LIVE_RUN = {
   // first passing run.
   sitePhoto: 'new; text-only, awaiting approved paid runs (Z8 landmark rule, Z9 ordinary street)',
   siteHistory: 'new; text-only, awaiting approved paid runs (Z10 Taj Mahal, Z11 Battersea)',
+  // Build plan, Phase 3a — our own inputs throughout, publishable on a pass.
+  phasing: 'new; fixture ex-human-scale.jpg, awaiting one approved paid run of three stages (Q1)',
+  reframe: 'new; fixtures ex-human-scale.jpg, ex-massing.jpg, awaiting approved paid runs (Q2, Q3)',
+  groundFloor: 'new; fixture fixture-street-marked.png (qa/canvasOps.cjs burn), awaiting one approved paid run (Q4)',
 };
 const exempt = (k) => k in NO_FIXTURE || k in AWAITING_LIVE_RUN;
 const documented = new Set(

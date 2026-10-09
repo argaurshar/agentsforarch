@@ -45,6 +45,9 @@ import { UpscaleFeature } from './features/visualization/UpscaleFeature';
 import { WatercolourFeature } from './features/visualization/WatercolourFeature';
 import { WireframeRenderFeature } from './features/visualization/WireframeRenderFeature';
 import { MassingRenderFeature } from './features/visualization/MassingRenderFeature';
+import { GroundFloorFeature } from './features/visualization/GroundFloorFeature';
+import { PhasingFeature } from './features/visualization/PhasingFeature';
+import { ReframeFeature } from './features/visualization/ReframeFeature';
 import { RenderFeature } from './features/render/RenderFeature';
 import { useHashRoute } from './lib/useHashRoute';
 import { useProjectStore } from './store/useProjectStore';
@@ -88,6 +91,9 @@ const FEATURES: Record<FeatureKind | 'studio' | 'home' | 'gallery', ComponentTyp
   multiView: MultiViewFeature,
   reflection: ReflectionFeature,
   upscale: UpscaleFeature,
+  groundFloor: GroundFloorFeature,
+  phasing: PhasingFeature,
+  reframe: ReframeFeature,
   watercolour: WatercolourFeature,
   axonometric: AxonometricFeature,
   interior: InteriorFeature,
