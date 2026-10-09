@@ -316,15 +316,23 @@ photographed from above is rendered seen from above; do not drop the camera to
 street level" — and the reference's doors, garage doors and roof overhangs are
 named in "do not build the reference". The closing check compares the viewpoint.
 
-### Retries — blocked by the account, not the code
+### Retries, after the spending cap was raised
+
+| Run | Verdict |
+|---|---|
+| O3b | **PASS.** The 9:16 portrait room came back 9:16 (0.558 in, 0.558 out), same camera, the same mountain painting hung on the wall, nothing else changed. The two-image frame fix works. |
+| X1b | **Better, still FAIL.** Fixed: the high aerial camera is kept, the frame is the massing's 3:2 (1.49 → 1.491), and there is no garage door. Still wrong: the single courtyard block comes back split into separate stepped buildings, and windows are cut into faces the model shows as solid. Its one retry is spent; the next prompt change waits for approval. |
+
+### Earlier: retries blocked by the account, not the code
 
 X1b and O3b (the reserve) were refused with **HTTP 429 RESOURCE_EXHAUSTED: "Your
 project has exceeded its monthly spending cap."** Refused requests are not billed.
 They run as soon as the cap is raised at https://ai.studio/spend.
 
-Phase 0 so far: **5 planned calls made** (G1, O2, O3, X1 returned images; O1's
-two attempts timed out), **2 reserve calls refused** by the spend cap.
+Phase 0: **5 planned calls** (G1, O2, O3, X1 returned images; O1's two
+attempts timed out) and **2 reserve calls** (X1b, O3b — first refused by the
+spend cap, unbilled; then run once the cap was raised).
 
-O2 and O3 outputs are **not committed**: they were made from the guide's own
+O2, O3 and O3b outputs are **not committed**: they were made from the guide's own
 images and reproduce them closely, and guide material stays out of this public
 repository. Their prompts and verdicts are here; the images were kept locally.

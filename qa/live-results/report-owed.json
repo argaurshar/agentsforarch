@@ -89,7 +89,57 @@
       ],
       "sources": [],
       "failures": []
+    },
+    {
+      "id": "X1b",
+      "tool": "massingRender",
+      "input": "ex-massing.jpg",
+      "extra": "elev-rendered.jpg",
+      "title": "FIX CHECK \u2014 camera and doors named, frame pinned to the massing. Whose building now?",
+      "verdicts": [
+        "PASS \u2014 the courtyard block from the same high angle, same 3:2 frame, clad and lit like the reference, no garage door",
+        "FAIL \u2014 the camera drops again, the reference house\u2019s doors return, or the frame is not 3:2"
+      ],
+      "status": "generated",
+      "calls": 1,
+      "labels": [
+        "Massing render"
+      ],
+      "files": [
+        "run-X1b-output.png"
+      ],
+      "sources": [],
+      "searchQueries": [],
+      "failures": []
+    },
+    {
+      "id": "O3b",
+      "tool": "placeObject",
+      "input": "guide:uc25-input1.jpg",
+      "extra": "guide:uc25-input2.jpg",
+      "settings": {
+        "kind": "artwork",
+        "placement": "add",
+        "target": ""
+      },
+      "title": "FIX CHECK \u2014 the frame pinned to the room. Portrait in, portrait out?",
+      "verdicts": [
+        "PASS \u2014 the same painting on the wall, the room in its own 9:16 portrait frame, camera unchanged",
+        "FAIL \u2014 a square or landscape frame again, or a different painting"
+      ],
+      "status": "generated",
+      "calls": 1,
+      "labels": [
+        "Artwork"
+      ],
+      "sources": [],
+      "searchQueries": [],
+      "failures": [],
+      "files_kept_locally": [
+        "run-O3b-output.png"
+      ],
+      "note": "output not committed: derived from a test-only guide fixture"
     }
   ],
-  "generations": 4
+  "generations": 6
 }
