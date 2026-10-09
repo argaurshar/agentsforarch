@@ -363,3 +363,30 @@ spend cap, unbilled; then run once the cap was raised).
 O1, O2, O3 and O3b outputs are **not committed**: they were made from the guide's own
 images and reproduce them closely, and guide material stays out of this public
 repository. Their prompts and verdicts are here; the images were kept locally.
+
+## Build plan, Phase 1 — 9 October 2026
+
+Four approved calls, `liveRuns --new --runs=Y1,Y2,Y3,Y4`. Y1-Y3 on our own
+images; Y4 on the guide's jali photo (#59, test-only; output kept locally).
+
+| Run | Tool | Verdict |
+|---|---|---|
+| Y1 | Concept Diagram | **PARTIAL.** One camera throughout, one move per panel, captions spelled (EXTRUDE VOLUME, CARVE COURTYARD, STEP INSIDE, STEP OUTSIDE), ending on a stepped courtyard. But it drew **two rows** — each move twice — and the last panel is a tidy **symmetric** ring, not our asymmetric massing. |
+| Y2 | Bubble to Plan | **PARTIAL — nearly a pass.** The arrangement is the diagram's: the hall opens to both bedrooms, the bath and living; the bedrooms do not connect; kitchen + dining opens off living; balcony and entry where drawn. Title, note and north mark removed. But the **bubble names came back as room labels** (BED 1, LIVING…) under the no-text default. |
+| Y3 | Moodboard to Space | **PASS.** One room photograph built from the board — terracotta stucco and tile, linen, rattan, reclaimed wood, macramé, bronze, bougainvillea. No collage, no text. Ships as the tool's worked example. |
+| Y4 | Bio-Mimicry Concept Board | **PARTIAL.** Exactly three parts, one pavilion throughout, title spelled. But it **printed the prompt's own part names** ("TOP SECTION (CONCEPT):") as captions, and it built the pavilion **out of the jali blocks themselves** rather than translating their qualities. |
+
+### Fixes (no calls spent)
+
+- Concept Diagram: "Exactly ONE ROW of N panels — not two rows, and no panel
+  drawn twice"; the last panel keeps the input's **asymmetries** ("a tidier,
+  symmetrical version of it is a different building").
+- Bubble to Plan: "THE BUBBLE NAMES DO NOT SURVIVE: do not letter the rooms at
+  all" whenever room names are off — names written on the input read as content.
+- Concept Board: the part names are "instructions to you, not captions: never
+  print them"; and if the inspiration is a building component, "do not simply
+  build the pavilion out of that component".
+
+Each has a new contract; the snapshot changed in those three tools only (24
+variants). Retries Y1b, Y2b, Y4b await approval — 3 calls, one more than
+Phase 1's reserve of 2.

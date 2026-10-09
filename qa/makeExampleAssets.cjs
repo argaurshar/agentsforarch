@@ -61,6 +61,7 @@ const MANIFEST = [
   ['run-W4-output.png', 'ex-render-refine.jpg', 'renderRefine'],
   ['run-W5-output.png', 'ex-program-diagram.jpg', 'programDiagram'],
   ['run-X1c-output.png', 'ex-massing-render.jpg', 'massingRender — the FIXED run; X1 dropped the camera, X1b split the block'],
+  ['run-Y3-output.png', 'ex-moodboard-space.jpg', 'moodboardSpace — our own Moodboard output, back into a room'],
 ];
 
 function encode(srcFile, tmpDir) {

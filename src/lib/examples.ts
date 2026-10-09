@@ -396,6 +396,24 @@ export const EXAMPLES: Partial<Record<FeatureKind, ExampleSet>> = {
     ],
   },
 
+  moodboardSpace: {
+    summary:
+      'A mood board becomes one room you could walk into — its palette, materials and furniture style built into a ' +
+      'real space, not another collage. The reverse of Moodboard.',
+    cases: [
+      {
+        label: 'Earthy Mediterranean board → living room',
+        note:
+          'Everything on the board, in a room: terracotta stucco and tile, linen curtains, rattan chairs, a reclaimed-wood ' +
+          'console, macramé, a bronze lamp and bougainvillea. No swatches, no text.',
+        input: asset('board-boho.jpg'),
+        inputLabel: 'Mood board',
+        output: asset('ex-moodboard-space.jpg'),
+        outputLabel: 'The room',
+      },
+    ],
+  },
+
   massingRender: {
     summary:
       'A white massing model and a building whose look you like: the massing comes back clad, lit and landscaped like ' +

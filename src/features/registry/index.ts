@@ -2556,6 +2556,9 @@ const conceptDiagram: FeatureDef<ConceptDiagramSettings> = {
     { name: 'concept diagram holds one camera', pattern: /SAME axonometric camera angle/ },
     { name: 'concept diagram ends on the input', pattern: /last panel must match the input/ },
     { name: 'concept diagram insists on spelling', pattern: /Spell every word correctly/ },
+    // Live run Y1 drew two rows of four and ended on a tidy symmetric ring.
+    { name: 'concept diagram draws one row', pattern: /Exactly ONE ROW of/ },
+    { name: 'concept diagram keeps the asymmetry', pattern: /and its asymmetries too/ },
   ],
 };
 
@@ -2620,6 +2623,9 @@ const conceptBoard: FeatureDef<ConceptBoardSettings> = {
     { name: 'concept board has exactly three parts', pattern: /exactly three parts/ },
     { name: 'concept board shows one building throughout', pattern: /All three parts show the SAME building/ },
     { name: 'concept board insists on spelling', pattern: /Spell every word correctly/ },
+    // Live run Y4 printed "TOP SECTION (CONCEPT):" and built the pavilion from jali blocks.
+    { name: 'concept board never prints its part names', pattern: /are instructions to you, not captions/ },
+    { name: 'concept board does not build from the component', pattern: /do not simply build the pavilion out of that component/ },
   ],
 };
 
@@ -2690,6 +2696,8 @@ const bubblePlan: FeatureDef<BubblePlanSettings> = {
     { name: 'bubble plan holds the projection', pattern: /ORTHOGRAPHIC drawing/ },
     { name: 'bubble plan removes the diagram marks', pattern: /Remove every bubble/ },
     { name: 'bubble plan never blocks a door', pattern: /no furniture in front of a door/ },
+    // Live run Y2 kept the bubble names as room labels.
+    { name: 'bubble plan drops the bubble names', pattern: /THE BUBBLE NAMES DO NOT SURVIVE/ },
   ],
 };
 

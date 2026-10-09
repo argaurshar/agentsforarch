@@ -248,14 +248,16 @@ export function buildConceptDiagramPrompt(a: {
         'starting block. Begin with the plain extruded volume that fills the site, and let each later move make exactly ' +
         'ONE visible change — a carve, a lift, a step, a twist, a split, added greenery — chosen because you can SEE it ' +
         'in the final building. Do not invent moves the building does not show.',
-    `STEP 3 — DRAW THE SEQUENCE. ${n} panels side by side, left to right, each showing the same building from the SAME ` +
+    `STEP 3 — DRAW THE SEQUENCE. Exactly ONE ROW of ${n} panels side by side, left to right — not two rows, and no ` +
+      `panel drawn twice — each showing the same building from the SAME ` +
       'axonometric camera angle, at the same scale, on the same footprint. Draw the volume as a clean simplified massing ' +
       'model: no photorealism, no texture, no people, no context beyond a thin ground plane. In each panel show the move ' +
       'happening: a bold arrow for the push, pull or lift, the removed part as a ghosted outline, the new element ' +
       'picked out in colour. Every panel keeps everything the previous panel established.',
     `Colour: ${LOOK_CLAUSE[a.look]}. One palette across all ${n} panels, on a plain white background.`,
-    'The last panel must match the input building’s massing — same courtyard, same steps, same proportions. A sequence ' +
-      'that ends on a different building explains nothing.',
+    'The last panel must match the input building’s massing — same courtyard, same steps, same proportions, and its ' +
+      'asymmetries too: which parts are taller, which side is lower, where the steps fall. A tidier, symmetrical version ' +
+      'of it is a different building, and a sequence that ends on a different building explains nothing.',
     a.labels
       ? 'Under each panel, a short numbered caption of two to four words naming the move (for example 1. SITE VOLUME, ' +
         '2. CARVE COURTYARD) in a clean bold sans-serif. Spell every word correctly and keep every word legible.'
@@ -302,7 +304,9 @@ export function buildConceptBoardPrompt(a: { program: BoardProgram; customProgra
     'STEP 2 — TRANSLATE, DO NOT COPY. Design a building that carries those qualities into architecture — structure, ' +
       'envelope, light and circulation — so someone who knows the source would recognise the idea, but the building is ' +
       'not shaped like the object. Never reproduce the object literally, never show a face, head or recognisable ' +
-      'figure, and never paste the input image onto the board.',
+      'figure, and never paste the input image onto the board. If the inspiration is itself a building component — a ' +
+      'brick, a block, a screen, a tile — do not simply build the pavilion out of that component: carry its qualities ' +
+      'into the structure, the space and the light.',
     'STEP 3 — LAY OUT ONE BOARD with exactly three parts, on a background themed on the inspiration’s palette and ' +
       'texture, in a structured international layout with generous margins:',
     `1. CONCEPT — a loose, hand-painted colour sketch of the core idea, with ${
@@ -312,8 +316,10 @@ export function buildConceptBoardPrompt(a: { program: BoardProgram; customProgra
       'circulation and a credible setting.',
     '3. INTERIOR VIGNETTES — three or four small views of interior moments and details.',
     'All three parts show the SAME building.',
-    'Text is limited to the title and at most one short line per part, in a clean sans-serif. Spell every word ' +
-      'correctly and keep every word legible. Do not add any watermark or signature.',
+    'Text is limited to the title and at most one short line per part, in a clean sans-serif. The part names above — ' +
+      'CONCEPT, MAIN RENDER, INTERIOR VIGNETTES — are instructions to you, not captions: never print them, or any words ' +
+      'like “top section” or “middle section”. Spell every word correctly and keep every word legible. Do not add any ' +
+      'watermark or signature.',
     'CHECK before you finish: is the building clearly inspired by the input, yet not a copy of it? Are there exactly ' +
       'three parts showing one building? Is the title spelled correctly?',
   ].join(' ');

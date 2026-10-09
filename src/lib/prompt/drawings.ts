@@ -423,9 +423,17 @@ export function buildBubblePlanPrompt(a: { furnished: boolean; walls: BubbleWall
     drawingCraft(),
     'Remove every bubble, hand-written label, dimension and arrow of the original — none of the diagram’s marks ' +
       'survive into the drawing.',
+    // Live run Y2 kept the diagram's bubble names as room labels under this
+    // very no-text clause: names written on the input read as content to keep.
+    a.roomNames
+      ? ''
+      : 'THE BUBBLE NAMES DO NOT SURVIVE: do not letter the rooms at all — no BED 1, no LIVING, no BATH. Each room is ' +
+        'read from its furniture, not from a word.',
     annotationClause(a.roomNames ? 'labels' : 'none', 'room', PLAN_DIMENSIONS),
     'CHECK before you finish: does every bubble have a room? Do rooms whose bubbles touched share a door? Is any ' +
       'original text or bubble outline left? Fix anything that fails.',
     projectionCheck('flat 2D plan'),
-  ].join(' ');
+  ]
+    .filter(Boolean)
+    .join(' ');
 }
